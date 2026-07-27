@@ -313,17 +313,7 @@ class UAVEnv:
         self._render_fig = None
         self._render_has_shown = False
 
-        self.nearest_agent_count = 2
-        self.nearest_agent_feature_dim = self.nearest_agent_count * (
-            self.dim_actions * 2 + 1
-        )
-        obs_dim = (
-            2 * self.dim_actions
-            + self.num_lasers
-            + (self.dim_actions + 1)
-            + 1
-            + self.nearest_agent_feature_dim
-        )
+        obs_dim = 2 * self.dim_actions + self.num_lasers
         self.action_space = {
             f"agent_{i}": spaces.Box(
                 low=-self.a_max,
@@ -724,34 +714,6 @@ class UAVEnv:
             ],
             dtype=np.float32,
         )
-
-    def _nearest_agent_features(self, agent):
-        features = np.zeros(self.nearest_agent_feature_dim, dtype=np.float32)
-        if not self._agent_is_active(agent):
-            return features
-        scale = self._space_scale() + eps
-        max_dist = float(np.linalg.norm(self._space_scale()) + eps)
-        neighbors = []
-        for other in self.agents:
-            if other is agent or not self._agent_is_active(other):
-                continue
-            rel_pos = other.pos - agent.pos
-            dist = float(np.linalg.norm(rel_pos))
-            rel_vel = other.vel - agent.vel
-            neighbors.append((dist, rel_pos, rel_vel))
-        neighbors.sort(key=lambda item: item[0])
-        slot_dim = self.dim_actions * 2 + 1
-        for slot_idx, (dist, rel_pos, rel_vel) in enumerate(
-            neighbors[: self.nearest_agent_count]
-        ):
-            start = slot_idx * slot_dim
-            features[start : start + self.dim_actions] = rel_pos / scale
-            vel_start = start + self.dim_actions
-            features[vel_start : vel_start + self.dim_actions] = rel_vel / (
-                self.v_max + eps
-            )
-            features[start + 2 * self.dim_actions] = dist / max_dist
-        return features
 
     def get_agent_completed_order_counts(self):
         return np.asarray(
@@ -1341,11 +1303,6 @@ class UAVEnv:
 
         return self.get_obs(), rewards, dones, self.safe_value.copy()
 
-    def _goal_features(self, agent):
-        delta = agent.goal - agent.pos
-        distance = np.linalg.norm(delta) / (np.linalg.norm(self._space_scale()) + eps)
-        return np.concatenate([delta / (self._space_scale() + eps), np.array([distance], dtype=np.float32)])
-
     def _message_from_sender(self, receiver, sender):
         if not self._agent_is_active(receiver) or not self._agent_is_active(sender):
             return np.zeros(self.msg_shape, dtype=np.float32)
@@ -1402,17 +1359,10 @@ class UAVEnv:
                 )
                 continue
             own = np.concatenate([agent.pos / scale, agent.vel / (agent.v_max + eps)])
-            energy = np.array(
-                [agent.energy / (agent.initial_energy + eps)],
-                dtype=np.float32,
-            )
             obs = np.concatenate(
                 [
                     own,
                     np.asarray(agent.lasers, dtype=np.float32),
-                    self._goal_features(agent),
-                    energy,
-                    self._nearest_agent_features(agent),
                 ]
             )
             observations.append(obs.astype(np.float32))
@@ -1425,20 +1375,9 @@ class UAVEnv:
             if not self._agent_is_active(agent):
                 parts.append(np.zeros(self.dim_actions, dtype=np.float32))
                 parts.append(np.zeros(self.dim_actions, dtype=np.float32))
-                parts.append(np.zeros(self.dim_actions, dtype=np.float32))
-                parts.append(np.array([1.0], dtype=np.float32))
-                parts.append(np.array([0.0], dtype=np.float32))
                 continue
             parts.append(agent.pos / scale)
             parts.append(agent.vel / (agent.v_max + eps))
-            parts.append(agent.goal / scale)
-            parts.append(np.array([float(agent.reached)], dtype=np.float32))
-            parts.append(
-                np.array(
-                    [agent.energy / (agent.initial_energy + eps)],
-                    dtype=np.float32,
-                )
-            )
         for obstacle in self.obstacles:
             parts.append(obstacle.pos / scale[:2])
             parts.append(np.array([obstacle.radius / max(self.length, self.width)], dtype=np.float32))

@@ -17,18 +17,13 @@ from envs.UAVEnergyDelivery import (
 )
 
 
-TASK_ORDER = 1
-TASK_CHARGE = 2
-HIGH_MODE_CHARGE = 0
-HIGH_MODE_ORDER = 1
-
-
 class HierarchicalUAVEnv(UAVEnv):
     """Adapter over the flat UAVEnergyDelivery environment.
 
-    The high-level action is a continuous target point in the map. The base
-    geometry, order sampling, charging, collision handling, energy accounting,
-    and environment reward terms come from UAVEnergyDelivery.py.
+    The high-level interface is intentionally empty. The base geometry, order
+    sampling, charging, collision handling, energy accounting, and environment
+    reward terms come from UAVEnergyDelivery.py. New high-level modules can be
+    added here without touching the flat environment.
     """
 
     def __init__(
@@ -87,40 +82,20 @@ class HierarchicalUAVEnv(UAVEnv):
             charging_station_pos=charging_station_pos,
         )
         self.meta_period = 5
-        self.high_goal_style = str(high_goal_style)
-        self.high_mode_policy = str(high_mode_policy)
-        self.high_lateral_scale = float(high_lateral_scale)
-        self.charge_mode_fraction = float(np.clip(charge_mode_fraction, 0.01, 0.99))
-        self.charge_mode_threshold = -1.0 + 2.0 * self.charge_mode_fraction
-        self.charge_mode_center = -1.0 + self.charge_mode_fraction
-        self.order_mode_center = self.charge_mode_fraction
         self.high_level_mode_n_actions = 0
-        self.high_level_n_actions = self.dim_actions
+        self.high_level_n_actions = 0
+        self.high_level_obs_shape = 0
+        self.high_level_state_shape = 0
         self.low_task_shape = 0
 
-        self.reachable_subgoal_scale = 1.0
-        self.intrinsic_reward_scale = 1.0
-        self.intrinsic_success_bonus = 1.0
-        self.order_progress_override = None
-        self.energy_margin_reserve_ratio = 0.05
-        self.charge_energy_threshold = 0.35
-        self.charge_release_threshold = 0.65
-        self.charge_queue_enabled = False
-        self.charge_queue_radius = 0.24
-        self.min_subgoal_progress = 1.25 * self.goal_tolerance
-
-        self._last_high_mode_train_mask = np.ones(
-            (self.num_agents, 1), dtype=np.float32
-        )
+        self._last_high_mode_train_mask = np.zeros((self.num_agents, 1), dtype=np.float32)
         self._last_step_energy_ratio = np.zeros(self.num_agents, dtype=np.float32)
         self._last_reward_terms = {}
         self._init_hierarchical_agent_state()
 
     def _init_hierarchical_agent_state(self):
         for agent in self.agents:
-            agent.assigned_order_slot = None
-            agent.current_task_type = None
-            agent.task_target = agent.pos.copy()
+            agent.reached = False
 
     def set_meta_period(self, meta_period):
         self.meta_period = max(1, int(meta_period))
@@ -139,43 +114,25 @@ class HierarchicalUAVEnv(UAVEnv):
         charge_queue_enabled=None,
         charge_queue_radius=None,
     ):
-        if reachable_subgoal_scale is not None:
-            self.reachable_subgoal_scale = float(max(0.0, reachable_subgoal_scale))
-        if intrinsic_reward_scale is not None:
-            self.intrinsic_reward_scale = float(intrinsic_reward_scale)
-        if intrinsic_success_bonus is not None:
-            self.intrinsic_success_bonus = float(intrinsic_success_bonus)
-        if high_goal_style is not None:
-            self.high_goal_style = str(high_goal_style)
-        if high_lateral_scale is not None:
-            self.high_lateral_scale = float(max(0.0, high_lateral_scale))
-        if order_progress_override is not None:
-            self.order_progress_override = float(
-                np.clip(order_progress_override, -1.0, 1.0)
-            )
-        if energy_margin_reserve_ratio is not None:
-            self.energy_margin_reserve_ratio = float(
-                np.clip(energy_margin_reserve_ratio, 0.0, 1.0)
-            )
-        if charge_energy_threshold is not None:
-            self.charge_energy_threshold = float(
-                np.clip(charge_energy_threshold, 0.0, 1.0)
-            )
-        if charge_release_threshold is not None:
-            self.charge_release_threshold = float(
-                np.clip(charge_release_threshold, 0.0, 1.0)
-            )
-        if charge_queue_enabled is not None:
-            self.charge_queue_enabled = bool(charge_queue_enabled)
-        if charge_queue_radius is not None:
-            self.charge_queue_radius = float(max(self.goal_tolerance, charge_queue_radius))
+        del (
+            reachable_subgoal_scale,
+            intrinsic_reward_scale,
+            intrinsic_success_bonus,
+            high_goal_style,
+            high_lateral_scale,
+            order_progress_override,
+            energy_margin_reserve_ratio,
+            charge_energy_threshold,
+            charge_release_threshold,
+            charge_queue_enabled,
+            charge_queue_radius,
+        )
+        return None
 
     def reset(self, seed=None):
         obs = super().reset(seed=seed)
         self._init_hierarchical_agent_state()
-        self._last_high_mode_train_mask = np.ones(
-            (self.num_agents, 1), dtype=np.float32
-        )
+        self._last_high_mode_train_mask = np.zeros((self.num_agents, 1), dtype=np.float32)
         self._last_step_energy_ratio = np.zeros(self.num_agents, dtype=np.float32)
         self._last_reward_terms = {}
         return obs
@@ -183,166 +140,21 @@ class HierarchicalUAVEnv(UAVEnv):
     def _assign_orders(self):
         self._activate_orders()
 
-    @property
-    def order_slots(self):
-        slots = list(self.active_order_ids[: self.max_active_orders])
-        if len(slots) < self.max_active_orders:
-            slots.extend([None for _ in range(self.max_active_orders - len(slots))])
-        return slots
-
-    @property
-    def available_order_slots(self):
-        slots = []
-        for slot_idx, order_id in enumerate(self.order_slots):
-            if order_id is None or order_id >= len(self.orders):
-                continue
-            order = self.orders[int(order_id)]
-            if order.status == DeliveryOrder.ACTIVE and order.assigned_agent is None:
-                slots.append(slot_idx)
-        return slots
-
-    def _slot_order(self, slot_idx):
-        slots = self.order_slots
-        if slot_idx is None or int(slot_idx) < 0 or int(slot_idx) >= len(slots):
-            return None
-        order_id = slots[int(slot_idx)]
-        if order_id is None or int(order_id) >= len(self.orders):
-            return None
-        return self.orders[int(order_id)]
-
-    def _max_reachable_subgoal_distance(self, agent):
-        return (
-            float(agent.v_max)
-            * float(self.time_step)
-            * float(max(1, self.meta_period))
-            * float(self.reachable_subgoal_scale)
-        )
-
-    def _clip_position_to_bounds(self, pos):
-        pos = np.asarray(pos, dtype=np.float32)[: self.dim_actions].copy()
-        lower = np.full(self.dim_actions, self.safe_radius, dtype=np.float32)
-        upper = self._space_scale() - self.safe_radius
-        return np.clip(pos, lower, upper).astype(np.float32)
-
     def _set_agent_idle(self, agent):
         super()._set_agent_idle(agent)
-        agent.assigned_order_slot = None
-        agent.current_task_type = None
-        agent.task_target = agent.pos.copy()
+        agent.reached = False
         return agent.goal.copy()
 
-    def _set_agent_target(self, agent, target, task_type=None):
-        target = self._clip_position_to_bounds(target)
-        agent.goal = target.copy()
-        agent.task_target = target.copy()
-        agent.current_task_type = task_type
-        agent.reached = self._distance_to_goal(agent) <= self.goal_tolerance
-        return target.copy()
-
-    def _task_target_for_agent(self, agent):
-        if agent.current_task_type == TASK_CHARGE:
-            return self._nearest_charging_station_pos(agent.pos)
-        if agent.assigned_order_id is None:
-            return None
-        return self._order_target(self.orders[agent.assigned_order_id])
-
-    def _select_order_for_agent(self, agent):
-        if agent.assigned_order_id is not None:
-            return self.orders[agent.assigned_order_id]
-        return self._nearest_available_order(agent)
-
-    def _assign_order_slot_to_agent(self, agent, slot_idx):
-        order = self._slot_order(slot_idx)
-        if order is None or order.status != DeliveryOrder.ACTIVE:
-            return False
-        if not self._assign_order_to_agent(agent, order):
-            return False
-        agent.assigned_order_slot = int(slot_idx)
-        agent.current_task_type = TASK_ORDER
-        agent.task_target = order.pickup_pos.copy()
-        return True
-
-    def _charge_option_complete(self, agent):
-        energy_ratio = agent.energy / (agent.initial_energy + eps)
-        return (
-            agent.current_task_type == TASK_CHARGE
-            and np.linalg.norm(agent.pos - self._nearest_charging_station_pos(agent.pos))
-            <= self.goal_tolerance
-            and energy_ratio >= self.charge_release_threshold
-        )
-
-    def _set_agent_charging(self, agent):
-        target = self._nearest_charging_station_pos(agent.pos)
-        agent.assigned_order_slot = None
-        if agent.assigned_order_id is not None and not agent.carrying_order:
-            order = self.orders[agent.assigned_order_id]
-            if order.status == DeliveryOrder.ASSIGNED:
-                order.status = DeliveryOrder.ACTIVE
-                order.assigned_agent = None
-                agent.assigned_order_id = None
-        agent.task_target = target.copy()
-        self._set_agent_target(agent, target, TASK_CHARGE)
-        return True
-
-    def _subgoal_on_line(self, agent, target, progress_scalar):
-        target = np.asarray(target, dtype=np.float32)[: self.dim_actions]
-        to_target = target - agent.pos
-        target_dist = float(np.linalg.norm(to_target))
-        if target_dist <= eps:
-            return agent.pos.copy()
-        max_dist = self._max_reachable_subgoal_distance(agent)
-        line_length = min(target_dist, max_dist)
-        min_progress = min(line_length, self.min_subgoal_progress)
-        fraction = 0.5 * (float(np.clip(progress_scalar, -1.0, 1.0)) + 1.0)
-        if line_length > min_progress + eps:
-            progress = min_progress + fraction * (line_length - min_progress)
-        else:
-            progress = line_length
-        direction = to_target / (target_dist + eps)
-        return self._clip_position_to_bounds(agent.pos + direction * progress)
-
-    def _subgoal_from_relative_action(self, agent, action):
-        action = np.asarray(action, dtype=np.float32).reshape(-1)
-        relative = np.zeros(self.dim_actions, dtype=np.float32)
-        used_dim = min(self.dim_actions, action.size)
-        if used_dim > 0:
-            relative[:used_dim] = np.clip(action[:used_dim], -1.0, 1.0)
-        norm = float(np.linalg.norm(relative))
-        if norm > 1.0:
-            relative = relative / (norm + eps)
-        max_dist = self._max_reachable_subgoal_distance(agent)
-        return self._clip_position_to_bounds(agent.pos + relative * max_dist)
-
     def prepare_high_level_decision(self):
-        return {}
+        return None
 
     def apply_high_level_actions(self, actions):
-        actions = np.asarray(actions, dtype=np.float32)
-        if actions.ndim == 1:
-            actions = actions.reshape(self.num_agents, -1)
-        if actions.shape[-1] < self.high_level_n_actions:
-            pad_width = self.high_level_n_actions - actions.shape[-1]
-            actions = np.pad(actions, ((0, 0), (0, pad_width))).astype(np.float32)
-        actions = actions[:, : self.high_level_n_actions].reshape(
-            self.num_agents, self.high_level_n_actions
-        )
-        lower = np.full(self.dim_actions, self.safe_radius, dtype=np.float32)
-        upper = self._space_scale() - self.safe_radius
-        targets = lower + 0.5 * (np.clip(actions, -1.0, 1.0) + 1.0) * (upper - lower)
-        applied = np.zeros((self.num_agents, self.high_level_n_actions), dtype=np.float32)
-        for idx, agent in enumerate(self.agents):
-            if not self._agent_is_active(agent):
-                continue
-            target = self._clip_position_to_bounds(targets[idx])
-            self._set_agent_target(agent, target, task_type=None)
-            applied[idx] = actions[idx]
-        self._last_high_mode_train_mask = np.zeros(
-            (self.num_agents, 1), dtype=np.float32
-        )
-        return applied
+        del actions
+        self._last_high_mode_train_mask = np.zeros((self.num_agents, 1), dtype=np.float32)
+        return np.zeros((self.num_agents, 0), dtype=np.float32)
 
     def _agent_has_motion_task(self, agent):
-        return self._agent_is_active(agent) and not agent.reached
+        return self._agent_is_active(agent)
 
     def _advance_order_if_reached(self, agent, current_dist=None):
         return super()._advance_order_if_reached(agent, current_dist)
@@ -393,7 +205,6 @@ class HierarchicalUAVEnv(UAVEnv):
         for idx, (agent, action) in enumerate(zip(self.agents, actions)):
             if (
                 not powered_mask[idx]
-                or agent.reached
                 or not self._agent_has_motion_task(agent)
             ):
                 agent.vel[:] = 0.0
@@ -519,15 +330,14 @@ class HierarchicalUAVEnv(UAVEnv):
         return np.zeros((0,), dtype=np.float32)
 
     def get_high_level_obs(self):
-        return self.get_obs()
+        return np.zeros((self.num_agents, self.high_level_obs_shape), dtype=np.float32)
 
     def get_high_level_state(self):
-        return self.get_state()
+        return np.zeros((self.high_level_state_shape,), dtype=np.float32)
 
     def get_high_level_avail_agent_actions(self, agent_id):
-        agent = self.agents[int(agent_id)]
-        avail = np.zeros(self.high_level_mode_n_actions, dtype=np.float32)
-        return avail
+        del agent_id
+        return np.zeros((self.high_level_mode_n_actions,), dtype=np.float32)
 
     def get_high_level_avail_actions(self):
         return np.stack(
