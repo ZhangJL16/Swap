@@ -221,6 +221,10 @@ def build_env(args, algs):
             high_mode_policy=str(getattr(args, "hrl_high_mode_policy", "hybrid")),
             high_lateral_scale=float(getattr(args, "hrl_high_lateral_scale", 0.35)),
             auction_enabled=bool(getattr(args, "hrl_auction_enabled", True)),
+            cbf_flow_enabled=args.alg == "hmappo_cbf_flow",
+            agent_entry_interval=int(getattr(args, "agent_entry_interval", 1)),
+            order_max_duration=int(getattr(args, "order_max_duration", 120)),
+            energy_reserve=float(getattr(args, "energy_reserve", 0.0)),
         )
 
     if args.map in {
@@ -418,6 +422,10 @@ if __name__ == "__main__":
             args = get_ippo_args(args)
         elif args.alg.find("mappo_lagrangian") > -1:
             args = get_mappo_lagrangian_args(args)
+        elif args.alg == "hmappo_cbf_flow":
+            args.use_level_policy = True
+            args.is_level_training = True
+            args = get_mappo_args(args)
         elif args.alg.find("mappo") > -1:
             args = get_mappo_args(args)
         elif args.alg.find("macpo") > -1:

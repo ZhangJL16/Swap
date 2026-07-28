@@ -232,6 +232,13 @@ class RolloutWorker:
             [],
             [],
         )
+        u_raw, u_correct, raw_log_prob, correction_delta, intervention_masks = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
         self._reset_env_for_episode(evaluate, episode_num)
         low_action_type = getattr(self.args, "low_action_type", "discrete")
         low_continuous = low_action_type == "continuous"
@@ -389,6 +396,9 @@ class RolloutWorker:
             maven_z = list(maven_z.cpu())
 
         while not terminated and step < self.episode_limit:
+            cbf_flow = self.args.alg == "hmappo_cbf_flow"
+            if cbf_flow and hasattr(self.env, "prepare_cbf_flow_step"):
+                self.env.prepare_cbf_flow_step()
             active_agent_mask = _get_active_agent_mask(self.env, self.n_agents)
             noop_action = _get_noop_action(self.env, self.n_actions)
             if level_training and step % meta_period == 0:
@@ -587,6 +597,16 @@ class RolloutWorker:
                 actions_onehot.append(action_onehot)
                 avail_actions.append(avail_action)
                 last_action[agent_id] = action_onehot
+            raw_actions = (
+                np.asarray(actions, dtype=np.float32).reshape(self.n_agents, low_action_dim)
+                if low_continuous
+                else np.reshape(actions, [self.n_agents, 1])
+            )
+            raw_log_probs_step = None
+            if cbf_flow and hasattr(self.agents, "get_low_action_log_probs"):
+                raw_log_probs_step = self.agents.get_low_action_log_probs(raw_obs, raw_actions)
+            if raw_log_probs_step is None:
+                raw_log_probs_step = np.zeros((self.n_agents, 1), dtype=np.float32)
 
             if hasattr(self.agents, "revise_safe_actions"):
                 revised_actions = self.agents.revise_safe_actions(
@@ -595,7 +615,16 @@ class RolloutWorker:
                     base_actions=actions,
                 )
                 if revised_actions is not None:
-                    if not low_continuous:
+                    if cbf_flow and low_continuous:
+                        actions = [
+                            np.asarray(action, dtype=np.float32).reshape(-1)[:low_action_dim]
+                            for action in revised_actions
+                        ]
+                        actions = [
+                            action if active_agent_mask[agent_id] > 0.0 else np.asarray(noop_action, dtype=np.float32)
+                            for agent_id, action in enumerate(actions)
+                        ]
+                    elif not low_continuous:
                         actions = [int(action) for action in revised_actions]
                         actions = [
                             action if active_agent_mask[agent_id] > 0.0 else noop_action
@@ -613,8 +642,20 @@ class RolloutWorker:
                 dtype=np.float32,
             ).reshape(self.n_agents, 1)
             guard_flags *= active_agent_mask.reshape(self.n_agents, 1)
+            correct_actions = (
+                np.asarray(actions, dtype=np.float32).reshape(self.n_agents, low_action_dim)
+                if low_continuous
+                else np.reshape(actions, [self.n_agents, 1])
+            )
+            correction_step = correct_actions - raw_actions
 
             reward, terminated, info = self.env.step(actions)
+            if (
+                cbf_flow
+                and hasattr(self.agents, "energy_records")
+                and isinstance(info, dict)
+            ):
+                self.agents.energy_records.extend(info.get("energy_transitions", []))
             log_reward = float(np.asarray(reward, dtype=np.float32).mean())
 
             if self.args.alg.find("Comm") != -1:
@@ -714,9 +755,14 @@ class RolloutWorker:
             o_raw.append(raw_obs)
             s.append(state)
             if low_continuous:
-                u.append(np.asarray(actions, dtype=np.float32).reshape(self.n_agents, low_action_dim))
+                u.append(raw_actions if cbf_flow else correct_actions)
             else:
                 u.append(np.reshape(actions, [self.n_agents, 1]))
+            u_raw.append(raw_actions.copy())
+            u_correct.append(correct_actions.copy())
+            raw_log_prob.append(np.asarray(raw_log_probs_step, dtype=np.float32).reshape(self.n_agents, 1))
+            correction_delta.append(correction_step.copy())
+            intervention_masks.append(guard_flags.copy())
             u_onehot.append(actions_onehot)
             avail_u.append(avail_actions)
             active_masks.append(active_agent_mask.reshape(self.n_agents, 1).copy())
@@ -787,6 +833,11 @@ class RolloutWorker:
             o.append(np.zeros((self.n_agents, self.obs_shape)))
             o_raw.append(np.zeros((self.n_agents, getattr(self.args, "raw_obs_shape", self.obs_shape))))
             u.append(np.zeros((self.n_agents, low_action_dim if low_continuous else 1)))
+            u_raw.append(np.zeros((self.n_agents, low_action_dim if low_continuous else 1), dtype=np.float32))
+            u_correct.append(np.zeros((self.n_agents, low_action_dim if low_continuous else 1), dtype=np.float32))
+            raw_log_prob.append(np.zeros((self.n_agents, 1), dtype=np.float32))
+            correction_delta.append(np.zeros((self.n_agents, low_action_dim if low_continuous else 1), dtype=np.float32))
+            intervention_masks.append(np.zeros((self.n_agents, 1), dtype=np.float32))
             s.append(np.zeros(self.state_shape))
             r.append(np.zeros_like(reward_template))
             if use_constraint_cost:
@@ -859,6 +910,11 @@ class RolloutWorker:
             u_onehot=u_onehot.copy(),
             guard_applied=guard_applied.copy(),
             agent_active_mask=active_masks.copy(),
+            u_raw=u_raw.copy(),
+            u_correct=u_correct.copy(),
+            raw_log_prob=raw_log_prob.copy(),
+            correction_delta=correction_delta.copy(),
+            intervention_mask=intervention_masks.copy(),
             padded=padded.copy(),
             terminated=terminate.copy(),
         )

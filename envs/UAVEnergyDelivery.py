@@ -170,10 +170,11 @@ class DeliveryOrder:
     PICKED = "picked"
     COMPLETED = "completed"
 
-    def __init__(self, order_id, pickup_pos, dropoff_pos):
+    def __init__(self, order_id, pickup_pos, dropoff_pos, time_limit=None):
         self.order_id = int(order_id)
         self.pickup_pos = np.asarray(pickup_pos, dtype=np.float32)
         self.dropoff_pos = np.asarray(dropoff_pos, dtype=np.float32)
+        self.time_limit = float(time_limit) if time_limit is not None else 0.0
         self.status = self.PENDING
         self.assigned_agent = None
 

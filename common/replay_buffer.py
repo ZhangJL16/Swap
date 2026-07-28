@@ -56,6 +56,27 @@ class ReplayBuffer:
             )
         if self.args.alg == 'maven':
             self.buffers['z'] = np.empty([self.size, self.args.noise_dim], dtype=np.float32)
+        if self.args.alg == "hmappo_cbf_flow":
+            self.buffers["u_raw"] = np.empty(
+                [self.size, self.episode_limit, self.n_agents, self.u_shape],
+                dtype=np.float32,
+            )
+            self.buffers["u_correct"] = np.empty(
+                [self.size, self.episode_limit, self.n_agents, self.u_shape],
+                dtype=np.float32,
+            )
+            self.buffers["raw_log_prob"] = np.empty(
+                [self.size, self.episode_limit, self.n_agents, 1],
+                dtype=np.float32,
+            )
+            self.buffers["correction_delta"] = np.empty(
+                [self.size, self.episode_limit, self.n_agents, self.u_shape],
+                dtype=np.float32,
+            )
+            self.buffers["intervention_mask"] = np.empty(
+                [self.size, self.episode_limit, self.n_agents, 1],
+                dtype=np.float32,
+            )
         # thread lock
         self.lock = threading.Lock()
 
@@ -89,6 +110,42 @@ class ReplayBuffer:
                 self.buffers['o_next_raw'][idxs] = episode_batch['o_next_raw']
             if self.args.alg == 'maven':
                 self.buffers['z'][idxs] = episode_batch['z']
+            if self.args.alg == "hmappo_cbf_flow":
+                self.buffers["u_raw"][idxs] = episode_batch.get(
+                    "u_raw",
+                    np.zeros(
+                        [batch_size, self.episode_limit, self.n_agents, self.u_shape],
+                        dtype=np.float32,
+                    ),
+                )
+                self.buffers["u_correct"][idxs] = episode_batch.get(
+                    "u_correct",
+                    np.zeros(
+                        [batch_size, self.episode_limit, self.n_agents, self.u_shape],
+                        dtype=np.float32,
+                    ),
+                )
+                self.buffers["raw_log_prob"][idxs] = episode_batch.get(
+                    "raw_log_prob",
+                    np.zeros(
+                        [batch_size, self.episode_limit, self.n_agents, 1],
+                        dtype=np.float32,
+                    ),
+                )
+                self.buffers["correction_delta"][idxs] = episode_batch.get(
+                    "correction_delta",
+                    np.zeros(
+                        [batch_size, self.episode_limit, self.n_agents, self.u_shape],
+                        dtype=np.float32,
+                    ),
+                )
+                self.buffers["intervention_mask"][idxs] = episode_batch.get(
+                    "intervention_mask",
+                    np.zeros(
+                        [batch_size, self.episode_limit, self.n_agents, 1],
+                        dtype=np.float32,
+                    ),
+                )
 
     def sample(self, batch_size):
         temp_buffer = {}

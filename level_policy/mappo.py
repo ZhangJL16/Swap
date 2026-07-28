@@ -191,8 +191,14 @@ class MAPPO:
         self.model_dir = args.model_dir + "/" + args.alg + "/" + args.map
         self.eval_hidden = None
 
+        auto_load_low = (
+            getattr(self.args, "alg", "") == "hmappo_cbf_flow"
+            and getattr(self.args, "training_phase", "low_cbf") != "low_cbf"
+        )
         if self.args.load_model:
             self._load_models()
+        elif auto_load_low:
+            self._try_load_existing_low_models()
         pretrained_low_dir = getattr(self.args, "hmappo_pretrained_low_model_dir", "")
         if pretrained_low_dir:
             self._load_pretrained_low_models(pretrained_low_dir)
@@ -263,6 +269,24 @@ class MAPPO:
         return self._choose_from_network(
             self.low_actors[agent_idx], observation, avail_actions, evaluate
         )
+
+    @torch.no_grad()
+    def get_low_action_log_probs(self, observations, actions):
+        if not self.low_continuous:
+            return None
+        observations = np.asarray(observations, dtype=np.float32)
+        actions = np.asarray(actions, dtype=np.float32)
+        log_probs = np.zeros((self.n_agents, 1), dtype=np.float32)
+        for agent_idx in range(self.n_agents):
+            obs = torch.tensor(
+                observations[agent_idx], dtype=torch.float32, device=self.device
+            ).unsqueeze(0)
+            action = torch.tensor(
+                actions[agent_idx], dtype=torch.float32, device=self.device
+            ).view(1, -1)
+            dist = self._gaussian_dist(self.low_actors[agent_idx], obs)
+            log_probs[agent_idx, 0] = float(dist.log_prob(action).sum(dim=-1).item())
+        return log_probs
 
     @torch.no_grad()
     def choose_high_level_action(
@@ -375,6 +399,11 @@ class MAPPO:
         freeze_high = bool(getattr(self.args, "hmappo_freeze_high_level", False))
         if not freeze_low:
             if self.low_continuous:
+                low_action_key = (
+                    "u_raw"
+                    if self.args.alg == "hmappo_cbf_flow" and "u_raw" in batch
+                    else "u"
+                )
                 self._learn_continuous_level(
                     batch=batch,
                     actors=self.low_actors,
@@ -384,7 +413,7 @@ class MAPPO:
                     obs_key="o",
                     state_key="s",
                     next_state_key="s_next",
-                    action_key="u",
+                    action_key=low_action_key,
                     reward_key="r",
                     padded_key="padded",
                     terminated_key="terminated",
@@ -393,6 +422,8 @@ class MAPPO:
                     obs_dim=self.low_obs_shape,
                     state_dim=self.low_state_shape,
                     intervention_key="guard_applied",
+                    correct_action_key="u_correct",
+                    raw_log_prob_key="raw_log_prob",
                 )
             else:
                 self._learn_level(
@@ -711,10 +742,20 @@ class MAPPO:
         del energy_margin_key, energy_order_mask_key
         duration_key = unused_kwargs.get("duration_key", None)
         intervention_key = unused_kwargs.get("intervention_key", None)
+        correct_action_key = unused_kwargs.get("correct_action_key", None)
+        raw_log_prob_key = unused_kwargs.get("raw_log_prob_key", None)
+        cbf_flow = self.args.alg == "hmappo_cbf_flow"
+        align_coef = float(getattr(self.args, "actor_correct_align_coef", 0.0))
         states = batch[state_key]
         next_states = batch[next_state_key]
         obs = batch[obs_key]
         actions = batch[action_key]
+        correct_actions = (
+            batch.get(correct_action_key, None) if correct_action_key is not None else None
+        )
+        raw_log_probs_saved = (
+            batch.get(raw_log_prob_key, None) if raw_log_prob_key is not None else None
+        )
         terminated = batch[terminated_key].squeeze(-1)
         mask = 1 - batch[padded_key].squeeze(-1)
         active_mask = batch.get(active_key, None)
@@ -754,9 +795,17 @@ class MAPPO:
                 episode_num * time_len, obs_dim
             )
             agent_actions = actions[:, :, agent_idx, :].reshape(-1, action_dim)
+            agent_correct_actions = (
+                correct_actions[:, :, agent_idx, :].reshape(-1, action_dim)
+                if correct_actions is not None
+                else None
+            )
             agent_rewards = rewards[:, :, agent_idx]
             agent_mask = mask * active_mask[:, :, agent_idx]
-            agent_actor_mask = agent_mask * (1.0 - intervention_mask[:, :, agent_idx])
+            if cbf_flow:
+                agent_actor_mask = agent_mask
+            else:
+                agent_actor_mask = agent_mask * (1.0 - intervention_mask[:, :, agent_idx])
             flat_agent_mask = agent_mask.reshape(-1) > 0
             flat_actor_mask = agent_actor_mask.reshape(-1) > 0
 
@@ -775,13 +824,21 @@ class MAPPO:
                     agent_mask,
                     durations,
                 )
-                old_dist = self._gaussian_dist(actors[agent_idx], actor_states)
-                old_log_probs = old_dist.log_prob(agent_actions).sum(dim=-1)
+                if raw_log_probs_saved is not None:
+                    old_log_probs = raw_log_probs_saved[:, :, agent_idx, :].reshape(-1)
+                else:
+                    old_dist = self._gaussian_dist(actors[agent_idx], actor_states)
+                    old_log_probs = old_dist.log_prob(agent_actions).sum(dim=-1)
 
             valid_states = flat_states[flat_agent_mask]
             valid_returns = returns.reshape(-1)[flat_agent_mask]
             valid_actor_states_pg = actor_states[flat_actor_mask]
             valid_actions_pg = agent_actions[flat_actor_mask]
+            valid_correct_actions_pg = (
+                agent_correct_actions[flat_actor_mask]
+                if agent_correct_actions is not None
+                else None
+            )
             valid_advantages_pg = advantages.reshape(-1)[flat_actor_mask]
             valid_old_log_probs_pg = old_log_probs[flat_actor_mask]
             if valid_states.size(0) == 0:
@@ -812,6 +869,14 @@ class MAPPO:
                         entropy = dist.entropy().sum(dim=-1)
                         actor_loss = -torch.min(surrogate_1, surrogate_2)
                         actor_loss -= self.args.entropy_coef * entropy
+                        if (
+                            cbf_flow
+                            and align_coef > 0.0
+                            and valid_correct_actions_pg is not None
+                        ):
+                            mean, _ = actors[agent_idx](valid_actor_states_pg[indices])
+                            align_loss = (mean - valid_correct_actions_pg[indices].detach()).pow(2).sum(dim=-1)
+                            actor_loss = actor_loss + align_coef * align_loss
                         actor_loss = actor_loss.mean()
                         actor_optimizers[agent_idx].zero_grad()
                         actor_loss.backward()
@@ -1048,6 +1113,11 @@ class MAPPO:
             self.low_critics,
             model_dir=checkpoint_dir,
         )
+
+    def _try_load_existing_low_models(self):
+        if self._latest_paths("low", "actor", 0) is None:
+            return
+        self._load_level_models("low", self.low_actors, self.low_critics)
 
     def _load_models(self):
         levels = [("low", self.low_actors, self.low_critics)]

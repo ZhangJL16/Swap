@@ -77,6 +77,12 @@ class Agents:
             from level_policy.official_hmappo import OfficialHMAPPO
 
             self.policy = OfficialHMAPPO(args)
+        elif args.alg == "hmappo_cbf_flow":
+            if not getattr(args, "use_level_policy", False):
+                raise ValueError("hmappo_cbf_flow requires level-policy training.")
+            from level_policy.mappo import MAPPO
+
+            self.policy = MAPPO(args)
         elif args.alg.find("mappo_lagrangian") > -1:
             if getattr(args, "use_level_policy", False):
                 raise ValueError("mappo_lagrangian is only implemented for flat MAPPO.")
@@ -123,6 +129,19 @@ class Agents:
             self.args.alg.find("Comm") > -1 and getattr(args, "msg_shape", 0) > 0
         )
         self.prev_comm_lambda = np.zeros(self.n_agents, dtype=np.float32)
+        self.cbf_teacher = None
+        self.correction_records = []
+        self.energy_records = []
+        if args.alg == "hmappo_cbf_flow":
+            from safety.joint_cbf_qp import JointCBFQP
+
+            self.cbf_teacher = JointCBFQP(
+                alpha1=getattr(args, "cbf_alpha1", 1.0),
+                alpha2=getattr(args, "cbf_alpha2", 1.0),
+                teacher_margin=getattr(args, "cbf_teacher_margin", 0.0),
+            )
+            self.last_cbf_constraint_A = None
+            self.last_cbf_constraint_c = None
 
         if self.use_comm_plugin:
             dqn_kwargs = dict(
@@ -520,6 +539,21 @@ class Agents:
         action = Categorical(prob).sample().long()
         return action
 
+    def get_low_action_log_probs(self, observations, actions):
+        if not hasattr(self.policy, "get_low_action_log_probs"):
+            return None
+        return self.policy.get_low_action_log_probs(observations, actions)
+
+    def drain_correction_records(self):
+        records = self.correction_records
+        self.correction_records = []
+        return records
+
+    def drain_energy_records(self):
+        records = self.energy_records
+        self.energy_records = []
+        return records
+
     def _get_max_episode_len(self, batch):
         terminated = batch["terminated"]
         episode_num = terminated.shape[0]
@@ -570,6 +604,37 @@ class Agents:
         return 0.0
 
     def revise_safe_actions(self, observations, avail_actions, base_actions):
+        if self.args.alg == "hmappo_cbf_flow":
+            del observations, avail_actions
+            active_mask = (
+                self.env.get_active_agent_mask()
+                if hasattr(self.env, "get_active_agent_mask")
+                else np.ones(self.n_agents, dtype=np.float32)
+            )
+            corrected, A, c = self.cbf_teacher.solve_from_env(
+                self.env.env if hasattr(self.env, "env") else self.env,
+                np.asarray(base_actions, dtype=np.float32),
+                active_mask=active_mask,
+            )
+            raw = np.asarray(base_actions, dtype=np.float32)
+            delta = np.linalg.norm(corrected - raw, axis=-1)
+            flags = ((delta > 1e-6).astype(np.float32) * active_mask.reshape(-1))
+            self.last_guard_applied = flags.tolist()
+            self.last_cbf_constraint_A = A
+            self.last_cbf_constraint_c = c
+            env_ref = self.env.env if hasattr(self.env, "env") else self.env
+            if hasattr(env_ref, "get_cbf_safety_state"):
+                self.correction_records.append(
+                    {
+                        "safety_state_abs": env_ref.get_cbf_safety_state(),
+                        "raw_joint_action": raw.reshape(-1).copy(),
+                        "correct_joint_action": corrected.reshape(-1).copy(),
+                        "constraint_A": A.copy(),
+                        "constraint_c": c.copy(),
+                        "active_mask": active_mask.copy(),
+                    }
+                )
+            return corrected.astype(np.float32)
         if getattr(self.args, "low_action_type", "discrete") == "continuous":
             self.last_guard_applied = [0.0 for _ in range(self.n_agents)]
             return None

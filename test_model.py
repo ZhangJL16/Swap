@@ -21,6 +21,7 @@ from common.arguments import (
 )
 from common.rollout import _build_env_summary, _get_active_agent_mask, _get_env_msg
 from main_level import build_env
+from safety.distilled_corrector import DistilledCorrector
 
 
 def positive_int(value):
@@ -301,6 +302,45 @@ def parse_args():
         help="Extra collision prediction margin used by the low-level safety action replacement",
     )
     parser.add_argument(
+        "--agent-entry-interval",
+        "--agent_entry_interval",
+        dest="agent_entry_interval",
+        type=positive_int,
+        default=1,
+        help="hmappo_cbf_flow UAV entry interval",
+    )
+    parser.add_argument(
+        "--order-max-duration",
+        "--order_max_duration",
+        dest="order_max_duration",
+        type=positive_int,
+        default=120,
+        help="hmappo_cbf_flow maximum option duration",
+    )
+    parser.add_argument(
+        "--energy-reserve",
+        "--energy_reserve",
+        dest="energy_reserve",
+        type=float,
+        default=0.0,
+        help="hmappo_cbf_flow energy reserve",
+    )
+    parser.add_argument(
+        "--cbf-flow-artifact-dir",
+        "--cbf_flow_artifact_dir",
+        dest="cbf_flow_artifact_dir",
+        type=str,
+        default="",
+        help="hmappo_cbf_flow artifact directory",
+    )
+    parser.add_argument(
+        "--cbf-flow-use-student",
+        "--cbf_flow_use_student",
+        dest="cbf_flow_use_student",
+        action="store_true",
+        help="Use distilled student corrector during hmappo_cbf_flow evaluation",
+    )
+    parser.add_argument(
         "--save-xy",
         dest="save_xy",
         action="store_true",
@@ -356,9 +396,25 @@ def make_base_args(cli_args):
         evaluate=True,
         cuda=cli_args.cuda,
         gpu_id=cli_args.gpu_id,
-        use_level_policy=cli_args.map.startswith("UAVEnergyDeliveryLevel")
-        or cli_args.alg.lower() == "hmappo",
-        is_level_training=cli_args.map.startswith("UAVEnergyDeliveryLevel"),
+        use_level_policy=(
+            cli_args.map.startswith("UAVEnergyDeliveryLevel")
+            or cli_args.alg.lower() in {"hmappo", "hmappo_cbf_flow"}
+        ),
+        training_phase="distill",
+        agent_entry_interval=cli_args.agent_entry_interval,
+        order_max_duration=cli_args.order_max_duration,
+        energy_reserve=cli_args.energy_reserve,
+        cbf_flow_artifact_dir=cli_args.cbf_flow_artifact_dir,
+        cbf_flow_load_artifact_dir=cli_args.cbf_flow_artifact_dir,
+        cbf_flow_export_student=False,
+        cbf_flow_student_mse_threshold=0.02,
+        flow_hidden_dim=256,
+        flow_eval_steps=8,
+        student_margin=0.0,
+        is_level_training=(
+            cli_args.map.startswith("UAVEnergyDeliveryLevel")
+            or cli_args.alg.lower() == "hmappo_cbf_flow"
+        ),
         hmappo_meta_period=cli_args.hmappo_meta_period,
         hrl_reachable_subgoal_scale=cli_args.hrl_reachable_subgoal_scale,
         hrl_intrinsic_reward_scale=cli_args.hrl_intrinsic_reward_scale,
@@ -413,6 +469,10 @@ def configure_algorithm_args(args):
         args = get_centralv_args(args)
     elif args.alg.find("reinforce") > -1:
         args = get_reinforce_args(args)
+    elif args.alg == "hmappo_cbf_flow":
+        args.use_level_policy = True
+        args.is_level_training = True
+        args = get_mappo_args(args)
     elif args.alg.find("mappo") > -1:
         args = get_mappo_args(args)
     elif args.alg.find("macpo") > -1:
@@ -558,6 +618,8 @@ def choose_actions(env, agents, args, last_action, step):
     actions = []
     actions_onehot = []
     avail_actions = []
+    low_continuous = getattr(args, "low_action_type", "discrete") == "continuous"
+    low_action_dim = int(getattr(args, "low_action_dim", args.n_actions))
     for agent_id in range(args.n_agents):
         avail_action = env.get_avail_agent_actions(agent_id)
         action = agents.choose_action(
@@ -570,13 +632,70 @@ def choose_actions(env, agents, args, last_action, step):
             timestep_max=args.n_steps,
             msg=None if msg is None else msg[agent_id],
         )
-        action_onehot = np.zeros(args.n_actions, dtype=np.float32)
-        action_onehot[action] = 1.0
-        actions.append(int(action))
+        if low_continuous:
+            action = np.asarray(action, dtype=np.float32).reshape(-1)
+            if action.size < low_action_dim:
+                action = np.pad(action, (0, low_action_dim - action.size))
+            action_onehot = np.clip(action[:low_action_dim], -1.0, 1.0).astype(np.float32)
+            actions.append(action_onehot.copy())
+        else:
+            action_onehot = np.zeros(args.n_actions, dtype=np.float32)
+            action_onehot[int(action)] = 1.0
+            actions.append(int(action))
         actions_onehot.append(action_onehot)
         avail_actions.append(avail_action)
         last_action[agent_id] = action_onehot
     return raw_obs, actions, avail_actions, actions_onehot
+
+
+def load_student_corrector(env, args, cli_args):
+    if args.alg != "hmappo_cbf_flow" or not cli_args.cbf_flow_use_student:
+        return None
+    base_env = env.env if hasattr(env, "env") else env
+    if not hasattr(base_env, "get_cbf_safety_state"):
+        return None
+    artifact_dir = (
+        cli_args.cbf_flow_artifact_dir
+        or os.path.join(args.model_dir, args.alg, args.map, "cbf_flow")
+    )
+    deploy_path = os.path.join(artifact_dir, "student_deploy.pt")
+    fallback_path = os.path.join(artifact_dir, "student.pt")
+    model_path = deploy_path if os.path.exists(deploy_path) else fallback_path
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"No distilled student checkpoint found under {artifact_dir}")
+    joint_action_dim = int(args.n_agents * int(getattr(args, "low_action_dim", args.n_actions)))
+    student = DistilledCorrector(
+        safety_state_dim=len(base_env.get_cbf_safety_state()),
+        joint_action_dim=joint_action_dim,
+        hidden_dim=int(getattr(args, "flow_hidden_dim", 256)),
+    )
+    device = torch.device(
+        f"cuda:{getattr(args, 'gpu_id', 0)}"
+        if getattr(args, "cuda", False) and torch.cuda.is_available()
+        else "cpu"
+    )
+    student.load_state_dict(torch.load(model_path, map_location=device))
+    student.to(device)
+    student.eval()
+    print(f"Loaded distilled student corrector: {model_path}")
+    return student
+
+
+def apply_student_corrector(env, args, student, actions):
+    if student is None:
+        return actions
+    base_env = env.env if hasattr(env, "env") else env
+    state = torch.as_tensor(
+        base_env.get_cbf_safety_state(), dtype=torch.float32, device=next(student.parameters()).device
+    ).view(1, -1)
+    raw = torch.as_tensor(
+        np.asarray(actions, dtype=np.float32).reshape(1, -1),
+        dtype=torch.float32,
+        device=next(student.parameters()).device,
+    )
+    with torch.no_grad():
+        corrected = student(state, raw).detach().cpu().numpy().reshape(args.n_agents, -1)
+    return [corrected[idx].astype(np.float32) for idx in range(args.n_agents)]
 
 
 def apply_high_level_action_if_needed(env, agents, args, step, current_subgoals):
@@ -629,7 +748,7 @@ def apply_high_level_action_if_needed(env, agents, args, step, current_subgoals)
     return current_subgoals
 
 
-def run_episode(env, agents, args, cli_args, episode_idx):
+def run_episode(env, agents, args, cli_args, episode_idx, student_corrector=None):
     if cli_args.seed is None:
         seed = int(np.random.SeedSequence().generate_state(1, dtype=np.uint32)[0])
         print(f"Episode {episode_idx} seed: {seed} (random)")
@@ -710,14 +829,19 @@ def run_episode(env, agents, args, cli_args, episode_idx):
             current_high_subgoals,
         )
         raw_obs, actions, avail_actions, _ = choose_actions(env, agents, args, last_action, step)
-        if hasattr(agents, "revise_safe_actions"):
+        if student_corrector is not None:
+            actions = apply_student_corrector(env, args, student_corrector, actions)
+        elif hasattr(agents, "revise_safe_actions"):
             revised_actions = agents.revise_safe_actions(
                 observations=raw_obs,
                 avail_actions=avail_actions,
                 base_actions=actions,
             )
             if revised_actions is not None:
-                actions = [int(action) for action in revised_actions]
+                if getattr(args, "low_action_type", "discrete") == "continuous":
+                    actions = [np.asarray(action, dtype=np.float32) for action in revised_actions]
+                else:
+                    actions = [int(action) for action in revised_actions]
         reward, terminated, info = env.step(actions)
         episode_reward += float(np.asarray(reward, dtype=np.float32).mean())
         step += 1
@@ -793,6 +917,8 @@ def main():
         args.obs_shape = env_info["obs_shape"]
         args.raw_obs_shape = env_info["obs_shape"]
         args.episode_limit = env_info["episode_limit"]
+        args.low_action_type = env_info.get("low_action_type", "discrete")
+        args.low_action_dim = env_info.get("low_action_dim", args.n_actions)
         args.msg_shape = env_info.get("msg_shape", 0)
         args.high_level_n_actions = env_info.get("high_level_n_actions", 0)
         args.high_level_mode_n_actions = env_info.get("high_level_mode_n_actions", 0)
@@ -806,6 +932,7 @@ def main():
         args = configure_algorithm_args(args)
 
         agents = Agents(args, env)
+        student_corrector = load_student_corrector(env, args, cli_args)
         print_model_info(args)
 
         if cli_args.render:
@@ -831,7 +958,14 @@ def main():
 
         summaries = []
         for episode_idx in range(cli_args.episodes):
-            summary = run_episode(env, agents, args, cli_args, episode_idx)
+            summary = run_episode(
+                env,
+                agents,
+                args,
+                cli_args,
+                episode_idx,
+                student_corrector=student_corrector,
+            )
             summaries.append(summary)
             print(
                 f"Episode {episode_idx}: reward={summary['episode_reward']:.3f}, "
