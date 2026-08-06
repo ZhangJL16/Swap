@@ -58,6 +58,7 @@ class ScenarioDefinition:
     bootstrap_lidar_poses: tuple[np.ndarray, ...]
     configuration_overrides: dict[str, Any]
     expected_certificate_outcome: str
+    mission_config: dict[str, Any]
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "world_size", as_vec3(self.world_size, "world_size"))
@@ -156,6 +157,7 @@ def _parse_scenario(payload: dict[str, Any]) -> ScenarioDefinition:
         tuple(as_vec3(value, "bootstrap_lidar_pose") for value in payload.get("bootstrap_lidar_poses", ())),
         dict(payload.get("configuration_overrides", {})),
         str(payload.get("expected_certificate_outcome", "unspecified")),
+        dict(payload.get("mission", {})),
     )
 
 
@@ -169,9 +171,9 @@ def load_scenario(path_or_name: str | Path) -> ScenarioDefinition:
         base_path = Path(str(files("envs.certified_uav.scenarios").joinpath(str(payload["base"]))))
         with base_path.open("r", encoding="utf-8") as handle:
             merged = json.load(handle)
-        merged["name"] = payload["name"]
-        merged["expected_certificate_outcome"] = payload.get("expected_certificate_outcome", "unspecified")
-        merged["configuration_overrides"] = payload.get("configuration_overrides", {})
+        for key, value in payload.items():
+            if key not in {"base", "initial_energy", "invalidate_last_corridor_overlap"}:
+                merged[key] = value
         if "initial_energy" in payload:
             merged["initial_state"]["energy"] = payload["initial_energy"]
         if payload.get("invalidate_last_corridor_overlap"):

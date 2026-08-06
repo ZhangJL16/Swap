@@ -1,52 +1,2250 @@
-# Review bundle source diff and provenance
-
-source_commit=59fa35f4cdf82624f08da761fdc737cac77dd48d
-source_branch=master
-generated_at=2026-08-07T01:37:03+08:00
-
-## Included-path working-tree status
- M envs/UAVEnergyDelivery.py
-?? DERIVATION_PACKAGE.md
-?? artifacts/environment_acceptance/
-?? artifacts/smoke_training/
-?? calibration/
-?? cert_runtime/
-?? docs/SINGLE_UAV_CERTIFICATION_ENV.md
-?? envs/certified_uav/
-?? envs/legacy/
-?? scripts/run_certified_env_acceptance.py
-?? scripts/run_certified_env_stress.py
-?? scripts/train_generator_sac_smoke.py
-?? tests/
-
-## Tracked diff for included paths
-diff --git a/envs/UAVEnergyDelivery.py b/envs/UAVEnergyDelivery.py
-index 24eb046..fd0d724 100755
---- a/envs/UAVEnergyDelivery.py
-+++ b/envs/UAVEnergyDelivery.py
-@@ -2058,6 +2058,10 @@ class UAVEnvDiscreteWrapper:
-         action = np.asarray(action, dtype=np.float32).reshape(-1)
-         if action.size < self.action_dim:
-             action = np.pad(action, (0, self.action_dim - action.size))
-+        if getattr(self.env, "continuous_action_is_physical", False):
-+            return np.clip(
-+                action[: self.action_dim], -self.env.a_max, self.env.a_max
-+            ).astype(np.float32)
-         action = np.clip(action[: self.action_dim], -1.0, 1.0)
-         return action.astype(np.float32) * float(self.env.a_max)
-
-@@ -2145,6 +2149,11 @@ class UAVEnvDiscreteWrapper:
-             "n_actions": self.n_actions,
-             "low_action_type": self.low_action_type,
-             "low_action_dim": self.action_dim,
-+            "low_action_limit": float(
-+                self.env.a_max
-+                if getattr(self.env, "continuous_action_is_physical", False)
-+                else 1.0
-+            ),
-             "n_agents": self.n_agents,
-             "state_shape": int(state.shape[0]),
-             "obs_shape": int(obs.shape[-1]),
-
-## Note
-Most certification files are new/untracked in the source checkout, so their complete contents are supplied directly in this bundle rather than duplicated as no-index patches.
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+new file mode 100644
+index 0000000..2955a22
+--- /dev/null
++++ b/.github/workflows/tests.yml
+@@ -0,0 +1,20 @@
++name: tests
++
++on:
++  push:
++  pull_request:
++
++jobs:
++  unittest:
++    runs-on: ubuntu-latest
++    defaults:
++      run:
++        working-directory: review_bundle
++    steps:
++      - uses: actions/checkout@v4
++      - uses: astral-sh/setup-uv@v6
++        with:
++          python-version: "3.12"
++      - run: uv venv .venv
++      - run: uv pip install --python .venv/bin/python -r requirements.txt
++      - run: .venv/bin/python -m unittest discover -v -s tests -p 'test_*.py'
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..a160f49
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,3 @@
++__pycache__/
++*.py[cod]
++.pytest_cache/
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..e3d85f0
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,14 @@
++# Swap Certified UAV Research Bundle
++
++The active research package is in `review_bundle/`.
++
++```bash
++cd review_bundle
++uv venv .venv
++uv pip install --python .venv/bin/python -r requirements.txt
++.venv/bin/python -m unittest discover -v -s tests -p 'test_*.py'
++```
++
++See `review_bundle/README.md` for multi-step Generator-SAC and comparison commands.
++All checked-in calibration and experiments are synthetic software evidence, not real-flight safety
++evidence.
+diff --git a/review_bundle/DERIVATION_PACKAGE.md b/review_bundle/DERIVATION_PACKAGE.md
+index 0073b76..58ac9cf 100644
+--- a/review_bundle/DERIVATION_PACKAGE.md
++++ b/review_bundle/DERIVATION_PACKAGE.md
+@@ -3182,3 +3182,43 @@ physical bounds **blocked-by-calibration**; hard timing and atomic actuator I/O
+ **blocked-by-deployment-evidence**. The main theorem therefore remains a corridor-conditional
+ robust guarantee under independently valid bounds. Zero synthetic collisions or finite training
+ losses do not upgrade T1, T6, or T7 to real-flight claims.
++
++## 2026-08-07 Multi-Step Generator-SAC implementation addendum
++
++The single-step smoke optimizer remains only a formula/data-flow control. The formal implementation
++in `cert_runtime/generator_sac.py` instantiates the frozen-correspondence Route-A operator over
++multi-step trajectories with twin target critics. For transition (t), the critic input is the
++physically executed (a_t^{\rm exec}), never the nominal latent or rejected candidate. The target is
++
++\[
++y_t=r_t+\gamma(1-d_t)\begin{cases}
++\min_i Q_{\bar\psi_i}(o_{t+1},c_{t+1}+G_{t+1}\tanh u_{t+1})
++-\alpha\log q_G(a_{t+1}\mid z_{t+1}),&z_{t+1}\in\mathcal Z_G,\\
++\min_i Q_{\bar\psi_i}(o_{t+1},\kappa(z_{t+1})),&z_{t+1}\notin\mathcal Z_G.
++\end{cases}
++\]
++
++Here (d_t) is the physical termination indicator. Time-limit truncation bootstraps by default and
++is stored separately. The first branch uses next-state (c_{t+1},G_{t+1}), including the stable tanh
++Jacobian and (-\log|\det G_{t+1}|). The second branch is an atomic fallback and has no Generator
++density. Targets are detached, target critics are updated by Polyak averaging, and actor/temperature
++updates are restricted to accepted Generator rows with detached (c,G).
++
++This implements an engineering safeguarded-hybrid Bellman target. It does not prove A10c's global
++safeguarded-MDP kernel, deep-network convergence, or monotone improvement when certificate epochs
++change. Replay is grouped by epoch (or may be rejected/cleared under configured policies), so a
++batch never silently identifies incompatible state-dependent action correspondences.
++
++The training task adds explicit OUTBOUND and RETURN phases. These variables affect observations and
++reward but are not certificate sources. The deterministic synthetic mission fixture demonstrates
++that a mission can require many consecutive transitions and can complete task then return. Physical
++theorems remain conditional on independently valid calibration, corridor, κ, energy, numerical, and
++deadline premises.
++
++The first empirical matrix uses only 2,000 steps per method/scenario/seed and must not be interpreted
++as convergence evidence. Generator-SAC exhibited no sampled collision and high energy-triggered
++return success in the energy-tight fixture, while task success remained zero at this budget. Direct
++SAC variants showed occasional task completion but high collision rates. A shielded obstacle run
++still produced one sampled collision across three seeds, exposing that the fast synthetic waypoint
++κ is not a corridor-wide L4/L6 certificate. Accordingly, these results support implementation and
++experimental-design claims only; they do not upgrade T1, T3, T6, or T7.
+diff --git a/review_bundle/README.md b/review_bundle/README.md
+new file mode 100644
+index 0000000..b84ef08
+--- /dev/null
++++ b/review_bundle/README.md
+@@ -0,0 +1,43 @@
++# Certified UAV Review Bundle
++
++Synthetic single-UAV certificate experiments, multi-step Generator-SAC, and legacy regression
++fixtures. This repository is software and synthetic empirical evidence only; it is not real-flight
++safety evidence.
++
++## Setup
++
++```bash
++uv venv .venv
++uv pip install --python .venv/bin/python -r requirements.txt
++```
++
++## Tests
++
++```bash
++.venv/bin/python -m unittest discover -v -s tests -p 'test_*.py'
++```
++
++## Multi-Step Training
++
++```bash
++.venv/bin/python scripts/train_generator_sac.py \
++  --scenario mission_open --seeds 0 1 2 --steps 10000
++
++.venv/bin/python scripts/run_comparison.py \
++  --methods sac penalty_sac shield_sac generator_sac \
++  --scenarios mission_open mission_obstacle mission_narrow mission_energy_tight \
++  --seeds 0 1 2 --steps 10000
++```
++
++Results are written to `artifacts/comparison/<scenario>/<method>/seed_<n>/` and aggregated under
++`artifacts/comparison/aggregate/`. The checked-in first-round matrix is a reduced validation run;
++formal paper comparisons require longer training, real calibration, HIL, and deployment evidence.
++
++Checked-in reduced matrix:
++
++```bash
++.venv/bin/python scripts/run_comparison.py \
++  --methods sac penalty_sac shield_sac generator_sac \
++  --scenarios mission_open mission_obstacle mission_narrow mission_energy_tight \
++  --seeds 0 1 2 --steps 2000 --warmup-steps 200 --batch-size 64
++```
+diff --git a/review_bundle/cert_runtime/generator_sac.py b/review_bundle/cert_runtime/generator_sac.py
+new file mode 100644
+index 0000000..78045e1
+--- /dev/null
++++ b/review_bundle/cert_runtime/generator_sac.py
+@@ -0,0 +1,292 @@
++from __future__ import annotations
++
++from dataclasses import dataclass
++from typing import Literal, Sequence
++
++import numpy as np
++import torch
++from torch import Tensor, nn
++
++from .actor import FeedForwardAffineTanhActor
++
++
++EpochReplayPolicy = Literal["reject", "group", "clear_on_change"]
++
++
++@dataclass(frozen=True)
++class GeneratorSACConfig:
++    gamma: float = 0.99
++    tau: float = 0.005
++    actor_lr: float = 3e-4
++    critic_lr: float = 3e-4
++    alpha_lr: float = 3e-4
++    batch_size: int = 256
++    replay_capacity: int = 1_000_000
++    warmup_steps: int = 5_000
++    updates_per_step: int = 1
++    target_entropy: float = -3.0
++    hidden_dim: int = 128
++    bootstrap_on_truncation: bool = True
++    epoch_replay_policy: EpochReplayPolicy = "clear_on_change"
++
++
++def _copy_array(value):
++    return None if value is None else np.asarray(value, dtype=np.float32).copy()
++
++
++@dataclass(frozen=True)
++class GeneratorTransition:
++    observation: np.ndarray
++    next_observation: np.ndarray
++    reward: float
++    terminated: bool
++    truncated: bool
++    episode_id: int
++    mission_phase: str
++    next_mission_phase: str
++    certificate_epoch: str
++    next_certificate_epoch: str
++    u: np.ndarray | None
++    eta: np.ndarray | None
++    c: np.ndarray | None
++    G: np.ndarray | None
++    candidate_action: np.ndarray | None
++    kappa_action: np.ndarray
++    executed_action: np.ndarray
++    measured_action: np.ndarray
++    accepted: bool
++    fallback_reason: str | None
++    next_c: np.ndarray | None
++    next_G: np.ndarray | None
++    next_kappa: np.ndarray
++    next_generator_available: bool
++    next_certificate_valid: bool
++    geometry_version: str
++    corridor_version: str
++    energy_version: str
++    certificate_hashes: tuple[str | None, str | None]
++
++    def __post_init__(self) -> None:
++        for name in ("observation", "next_observation", "u", "eta", "c", "G", "candidate_action", "kappa_action", "executed_action", "measured_action", "next_c", "next_G", "next_kappa"):
++            object.__setattr__(self, name, _copy_array(getattr(self, name)))
++        if self.executed_action is None or self.executed_action.shape != (3,):
++            raise ValueError("executed_action must have shape (3,)")
++        if self.next_kappa is None or self.next_kappa.shape != (3,):
++            raise ValueError("next_kappa must have shape (3,)")
++        if self.accepted and (self.c is None or self.G is None or self.u is None):
++            raise ValueError("accepted transition requires u,c,G")
++        if self.next_generator_available and (self.next_c is None or self.next_G is None):
++            raise ValueError("generator-valid next state requires next c,G")
++
++
++class GeneratorReplayBuffer:
++    def __init__(self, capacity: int, epoch_policy: EpochReplayPolicy, seed: int = 0) -> None:
++        self.capacity = int(capacity)
++        self.epoch_policy = epoch_policy
++        self.rng = np.random.default_rng(seed)
++        self.transitions: list[GeneratorTransition] = []
++        self.active_epoch: str | None = None
++        self.epoch_rejection_count = 0
++
++    def __len__(self) -> int:
++        return len(self.transitions)
++
++    def add(self, transition: GeneratorTransition) -> bool:
++        epoch = transition.certificate_epoch
++        if self.active_epoch is None:
++            self.active_epoch = epoch
++        elif epoch != self.active_epoch:
++            if self.epoch_policy == "reject":
++                self.epoch_rejection_count += 1
++                return False
++            if self.epoch_policy == "clear_on_change":
++                self.transitions.clear()
++                self.active_epoch = epoch
++        self.transitions.append(transition)
++        if len(self.transitions) > self.capacity:
++            del self.transitions[: len(self.transitions) - self.capacity]
++        return True
++
++    def sample(self, batch_size: int) -> list[GeneratorTransition]:
++        if not self.transitions:
++            raise ValueError("cannot sample empty replay")
++        if self.epoch_policy == "group":
++            epochs: dict[str, list[int]] = {}
++            for index, transition in enumerate(self.transitions):
++                epochs.setdefault(transition.certificate_epoch, []).append(index)
++            eligible = [indices for indices in epochs.values() if len(indices) >= batch_size]
++            if not eligible:
++                raise ValueError("no certificate epoch contains a complete batch")
++            pool = eligible[int(self.rng.integers(len(eligible)))]
++        else:
++            pool = list(range(len(self.transitions)))
++            if len({self.transitions[index].certificate_epoch for index in pool}) != 1:
++                raise ValueError("incompatible certificate epochs in replay")
++        selected = self.rng.choice(pool, size=batch_size, replace=False)
++        return [self.transitions[int(index)] for index in selected]
++
++
++class QNetwork(nn.Module):
++    def __init__(self, observation_dim: int, hidden_dim: int) -> None:
++        super().__init__()
++        self.network = nn.Sequential(
++            nn.Linear(observation_dim + 3, hidden_dim), nn.ReLU(),
++            nn.Linear(hidden_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, 1),
++        )
++
++    def forward(self, observation: Tensor, action: Tensor) -> Tensor:
++        return self.network(torch.cat((observation, action), dim=-1)).squeeze(-1)
++
++
++class GeneratorSAC:
++    """Off-policy Generator-SAC with a fallback atomic Bellman branch."""
++
++    def __init__(self, observation_dim: int, config: GeneratorSACConfig | None = None, *, seed: int = 0, device: str = "cpu") -> None:
++        self.config = GeneratorSACConfig() if config is None else config
++        self.device = torch.device(device)
++        torch.manual_seed(seed)
++        self.actor = FeedForwardAffineTanhActor(observation_dim, self.config.hidden_dim).to(self.device)
++        self.critic_1 = QNetwork(observation_dim, self.config.hidden_dim).to(self.device)
++        self.critic_2 = QNetwork(observation_dim, self.config.hidden_dim).to(self.device)
++        self.target_critic_1 = QNetwork(observation_dim, self.config.hidden_dim).to(self.device)
++        self.target_critic_2 = QNetwork(observation_dim, self.config.hidden_dim).to(self.device)
++        self.target_critic_1.load_state_dict(self.critic_1.state_dict())
++        self.target_critic_2.load_state_dict(self.critic_2.state_dict())
++        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=self.config.actor_lr)
++        self.critic_optimizer = torch.optim.Adam(list(self.critic_1.parameters()) + list(self.critic_2.parameters()), lr=self.config.critic_lr)
++        self.log_alpha = torch.tensor(0.0, device=self.device, requires_grad=True)
++        self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=self.config.alpha_lr)
++        self.replay = GeneratorReplayBuffer(self.config.replay_capacity, self.config.epoch_replay_policy, seed)
++        self.gradient_steps = 0
++        self.generator_log_density_calls = 0
++
++    @property
++    def alpha(self) -> Tensor:
++        return self.log_alpha.exp()
++
++    def select_u(self, observation: np.ndarray, deterministic: bool = False) -> np.ndarray:
++        with torch.no_grad():
++            tensor = torch.as_tensor(observation, dtype=torch.float32, device=self.device)
++            distribution = self.actor.distribution(tensor)
++            u = distribution.mean if deterministic else distribution.sample()
++            return u.cpu().numpy().astype(np.float64)
++
++    def observe(self, transition: GeneratorTransition) -> bool:
++        return self.replay.add(transition)
++
++    def _tensor(self, values) -> Tensor:
++        return torch.as_tensor(values, dtype=torch.float32, device=self.device)
++
++    @staticmethod
++    def _mapped_action(c: Tensor, G: Tensor, u: Tensor) -> Tensor:
++        return c + torch.bmm(G, torch.tanh(u).unsqueeze(-1)).squeeze(-1)
++
++    def _sample_generator_actions(self, observations: Tensor, centers: Tensor, generators: Tensor) -> tuple[Tensor, Tensor, Tensor]:
++        distribution = self.actor.distribution(observations)
++        u = distribution.rsample()
++        actions = self._mapped_action(centers.detach(), generators.detach(), u)
++        log_prob = distribution.log_prob(u).sum(-1) - self.actor.stable_tanh_log_jacobian(u) - torch.linalg.slogdet(generators.detach()).logabsdet
++        self.generator_log_density_calls += int(observations.shape[0])
++        return actions, log_prob, u
++
++    def bellman_target(self, batch: Sequence[GeneratorTransition]) -> tuple[Tensor, dict[str, int]]:
++        rewards = self._tensor([transition.reward for transition in batch])
++        terminated = self._tensor([float(transition.terminated) for transition in batch])
++        truncated = self._tensor([float(transition.truncated) for transition in batch])
++        done = terminated if self.config.bootstrap_on_truncation else torch.maximum(terminated, truncated)
++        next_observations = self._tensor(np.stack([transition.next_observation for transition in batch]))
++        next_actions = self._tensor(np.stack([transition.next_kappa for transition in batch]))
++        entropy = torch.zeros(len(batch), dtype=torch.float32, device=self.device)
++        generator_indices = [index for index, transition in enumerate(batch) if transition.next_generator_available and transition.next_certificate_valid and not transition.terminated]
++        if generator_indices:
++            index_tensor = torch.as_tensor(generator_indices, dtype=torch.long, device=self.device)
++            centers = self._tensor(np.stack([batch[index].next_c for index in generator_indices]))
++            generators = self._tensor(np.stack([batch[index].next_G for index in generator_indices]))
++            actions, log_prob, _ = self._sample_generator_actions(next_observations[index_tensor], centers, generators)
++            next_actions = next_actions.clone()
++            next_actions[index_tensor] = actions
++            entropy[index_tensor] = self.alpha.detach() * log_prob
++        with torch.no_grad():
++            q_next = torch.minimum(self.target_critic_1(next_observations, next_actions), self.target_critic_2(next_observations, next_actions))
++            target = rewards + self.config.gamma * (1.0 - done) * (q_next - entropy)
++        return target, {"generator_target_count": len(generator_indices), "fallback_target_count": len(batch) - len(generator_indices)}
++
++    @staticmethod
++    def _finite_gradients(parameters) -> bool:
++        return all(parameter.grad is None or torch.isfinite(parameter.grad).all() for parameter in parameters)
++
++    def update(self, batch: Sequence[GeneratorTransition] | None = None) -> dict[str, float | int | str]:
++        selected = list(batch) if batch is not None else self.replay.sample(self.config.batch_size)
++        if len({transition.certificate_epoch for transition in selected}) != 1:
++            raise ValueError("mixed certificate epoch batch")
++        observations = self._tensor(np.stack([transition.observation for transition in selected]))
++        executed_actions = self._tensor(np.stack([transition.executed_action for transition in selected]))
++        target, branch_counts = self.bellman_target(selected)
++        prediction_1 = self.critic_1(observations, executed_actions)
++        prediction_2 = self.critic_2(observations, executed_actions)
++        critic_loss_1 = nn.functional.mse_loss(prediction_1, target)
++        critic_loss_2 = nn.functional.mse_loss(prediction_2, target)
++        critic_loss = critic_loss_1 + critic_loss_2
++        self.critic_optimizer.zero_grad(set_to_none=True)
++        critic_loss.backward()
++        parameters = list(self.critic_1.parameters()) + list(self.critic_2.parameters())
++        if not torch.isfinite(critic_loss) or not self._finite_gradients(parameters):
++            raise FloatingPointError("nonfinite critic loss or gradient")
++        critic_gradient_norm = float(torch.nn.utils.clip_grad_norm_(parameters, 100.0))
++        self.critic_optimizer.step()
++        accepted_indices = [index for index, transition in enumerate(selected) if transition.accepted and transition.c is not None and transition.G is not None]
++        actor_status = "zero-accepted-sample"
++        actor_loss_value = alpha_loss_value = mean_log_prob = mean_log_det = mean_jacobian = float("nan")
++        actor_gradient_norm = 0.0
++        if accepted_indices:
++            index_tensor = torch.as_tensor(accepted_indices, dtype=torch.long, device=self.device)
++            centers = self._tensor(np.stack([selected[index].c for index in accepted_indices])).detach()
++            generators = self._tensor(np.stack([selected[index].G for index in accepted_indices])).detach()
++            actions, log_prob, u = self._sample_generator_actions(observations[index_tensor], centers, generators)
++            q_value = torch.minimum(self.critic_1(observations[index_tensor], actions), self.critic_2(observations[index_tensor], actions))
++            actor_loss = (self.alpha.detach() * log_prob - q_value).mean()
++            self.actor_optimizer.zero_grad(set_to_none=True)
++            actor_loss.backward()
++            if not torch.isfinite(actor_loss) or not self._finite_gradients(self.actor.parameters()):
++                raise FloatingPointError("nonfinite actor loss or gradient")
++            actor_gradient_norm = float(torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 100.0))
++            self.actor_optimizer.step()
++            alpha_loss = -(self.log_alpha * (log_prob.detach() + self.config.target_entropy)).mean()
++            self.alpha_optimizer.zero_grad(set_to_none=True)
++            alpha_loss.backward()
++            if not torch.isfinite(alpha_loss) or self.log_alpha.grad is None or not torch.isfinite(self.log_alpha.grad):
++                raise FloatingPointError("nonfinite alpha loss or gradient")
++            self.alpha_optimizer.step()
++            actor_status = "updated"
++            actor_loss_value = float(actor_loss.detach())
++            alpha_loss_value = float(alpha_loss.detach())
++            mean_log_prob = float(log_prob.mean().detach())
++            mean_log_det = float(torch.linalg.slogdet(generators).logabsdet.mean().detach())
++            mean_jacobian = float(self.actor.stable_tanh_log_jacobian(u).mean().detach())
++        self.polyak_update()
++        self.gradient_steps += 1
++        return {
++            "critic_loss_1": float(critic_loss_1.detach()), "critic_loss_2": float(critic_loss_2.detach()),
++            "actor_loss": actor_loss_value, "alpha_loss": alpha_loss_value, "alpha": float(self.alpha.detach()),
++            "mean_log_prob": mean_log_prob, "mean_log_det_G": mean_log_det,
++            "mean_tanh_log_jacobian": mean_jacobian,
++            "q_value_exec": float(torch.minimum(prediction_1, prediction_2).mean().detach()),
++            "accepted_batch_count": len(accepted_indices), "fallback_batch_count": len(selected) - len(accepted_indices),
++            "accepted_batch_fraction": len(accepted_indices) / len(selected), "actor_status": actor_status,
++            "critic_gradient_norm": critic_gradient_norm, "actor_gradient_norm": actor_gradient_norm,
++            **branch_counts,
++        }
++
++    def polyak_update(self) -> None:
++        with torch.no_grad():
++            for online, target in ((self.critic_1, self.target_critic_1), (self.critic_2, self.target_critic_2)):
++                for online_parameter, target_parameter in zip(online.parameters(), target.parameters()):
++                    target_parameter.data.mul_(1.0 - self.config.tau)
++                    target_parameter.data.add_(self.config.tau * online_parameter.data)
++
++    def state_dict(self) -> dict[str, object]:
++        return {
++            "actor": self.actor.state_dict(), "critic_1": self.critic_1.state_dict(), "critic_2": self.critic_2.state_dict(),
++            "target_critic_1": self.target_critic_1.state_dict(), "target_critic_2": self.target_critic_2.state_dict(),
++            "log_alpha": self.log_alpha.detach().cpu(), "config": self.config.__dict__.copy(), "gradient_steps": self.gradient_steps,
++        }
+diff --git a/review_bundle/docs/SINGLE_UAV_CERTIFICATION_ENV.md b/review_bundle/docs/SINGLE_UAV_CERTIFICATION_ENV.md
+index 0efac3e..c131f31 100644
+--- a/review_bundle/docs/SINGLE_UAV_CERTIFICATION_ENV.md
++++ b/review_bundle/docs/SINGLE_UAV_CERTIFICATION_ENV.md
+@@ -33,7 +33,7 @@ envs/certified_uav/
+ 
+ `CertifiedSingleUAVPlantEnv` receives only a final three-dimensional acceleration in the actuator box. It applies bounded tracking, calls `integrate_double_integrator`, performs swept capsule collision, subtracts realized energy, measures LiDAR, evaluates the terminal predicate, and terminates on collision, energy depletion, velocity-limit violation, or terminal success. It does not construct κ, c, G, certificates, actors, task goals, or fallback decisions.
+ 
+-`CertifiedTaskWrapper` owns the inspection goal and task reward. Its fixed 117-dimensional observation layout is:
++`CertifiedTaskWrapper` owns the mission phase, goal, and task reward. Its fixed 121-dimensional observation layout is:
+ 
+ | Segment | Shape | Slice |
+ |---|---:|---:|
+@@ -46,8 +46,11 @@ envs/certified_uav/
+ | LiDAR validity | 32 | 45:77 |
+ | task-only local-map encoding | 16 | 77:93 |
+ | task-only corridor encoding | 24 | 93:117 |
++| mission-phase one-hot | 4 | 117:121 |
+ 
+-These task features are never certificate evidence.
++These task features are never certificate evidence. `MissionPhase` is explicit task state with
++`OUTBOUND`, `RETURN`, `SUCCESS`, and `FAILURE`; it is recorded for learning and metrics but does
++not replace any geometric, recovery, or energy proof object.
+ 
+ `CertifiedRuntimeWrapper` consumes only physical state and `LidarPacket` on its certificate path. A synthetic reset may replay scenario-provided LiDAR packets to represent historical rolling-map evidence; the runtime never reads the plant obstacle list. Each execution cycle stages the previously authorized κ or emergency brake before certificate work, updates the proof-carrying ternary grid, runs `SingleCorridorClosurePipeline`, checks recovery and E3 certificates, constructs the complete diagonal zonotope, calls the actor only after set acceptance, and uses one-shot watchdog publication. The plant receives only the resulting `a_exec`.
+ 
+@@ -84,6 +87,69 @@ These parameters are deterministic software fixtures, not calibrated UAV values.
+ 
+ The runtime replay record stores the certificate snapshot, task observation, u, tanh(u), c, G, candidate, κ, executed action, acceptance, fallback reason, hashes, versions, timestamp, and measured tracking action. `CertificateEpoch` is emitted from the immutable snapshot. `GeneratorSACTrainer` rejects cross-epoch batches, detaches c and G, feeds `a_exec` to the critic, applies the stable tanh Jacobian and `-log|det G|` only on accepted generator transitions, and excludes fallback atoms from the generator entropy density.
+ 
++The formal multi-step implementation is `cert_runtime/generator_sac.py`. It adds twin online and
++target critics, discounting, terminal masking, branch-aware next actions, automatic temperature,
++and Polyak updates. For a Generator-valid next state it uses
++
++```text
++y = r + gamma (1-d) [min(Q1_target,Q2_target)(o_next,a_next)
++                      - alpha log q_G(a_next|z_next)].
++```
++
++For a fallback-only next state it instead evaluates `kappa(next_state)` and adds no Generator
++entropy. Current critics always receive replayed `a_exec`. Actor updates use only accepted
++Generator rows; fallback-only batches explicitly skip the actor objective. The first training
++profile groups replay by certificate epoch and makes no monotone-improvement claim across epoch
++changes.
++
++## Multi-Step Mission Fixtures
++
++### Baseline audit before this phase
++
++| Limitation | Actual pre-phase code | Audit result |
++|---|---|---|
++| reset after every training step | `scripts/train_generator_sac_smoke.py` unconditional `runtime.reset` | confirmed |
++| independent one-step replay | smoke transition followed immediately by reset | confirmed |
++| episode length/return hard-coded | `episode_length=1`, `episode_return=reward` | confirmed |
++| near-terminal training fixture | `open_corridor` starts adjacent to the terminal | confirmed; retained only for acceptance |
++| immediate-reward critic | `MinimalGeneratorSAC` regressed Q directly to reward | confirmed; smoke control retained |
++| missing SAC bootstrap/targets | no gamma, target critics, masks, or Polyak update | confirmed; formal trainer added separately |
++| reset-based stress | stress loop reset each cycle | confirmed; remains software stress only |
++| no baseline runner | no common agent/experiment registry | confirmed; `experiments/` added |
++
++The acceptance fixtures remain unchanged. Training uses four additional deterministic scenarios:
++
++- `mission_open`: short outbound inspection followed by a long return to the terminal;
++- `mission_obstacle`: static blocked direct route with an explicit synthetic detour region;
++- `mission_narrow`: a narrow certified region where positive-volume Generator sets may disappear;
++- `mission_energy_tight`: an early energy-triggered return regime.
++
++The training certificate profile consists of explicitly supplied synthetic free/occupied boxes and
++return waypoints. `SyntheticMissionCertificateProvider` propagates the complete diagonal action
++interval for one step, checks actuator/velocity/free-region/occupied-region containment, and
++constructs a versioned Generator bundle. This is a fast synthetic training fixture, not a substitute
++for the proof-carrying online LiDAR/corridor closure used by the acceptance scenarios and not real
++calibration evidence.
++
++The deterministic `mission_open` controller regression completes outbound and terminal return in
++more than 20 consecutive plant steps without reset. Training loops reset only on `terminated` or
++`truncated`; episode return, length, task completion, return trigger, collision, depletion, and
++timeout are accumulated per episode.
++
++## Unified Baselines
++
++`experiments/` provides four execution modes over the same plant, task reward, scenario seed,
++network width, replay budget, and optimizer family:
++
++1. `sac`: direct coordinate-box SAC without certificate execution;
++2. `penalty_sac`: direct SAC with additional sampled failure penalties;
++3. `shield_sac`: nominal SAC action executed only when it belongs to the verified runtime set,
++   otherwise κ; its critic receives the post-shield action;
++4. `generator_sac`: affine-tanh Generator branch with κ fallback and branch-aware entropy.
++
++The baselines compare empirical execution behavior. Penalty success is not a certificate, and a
++shielded zero-collision sample does not establish a continuous-domain theorem.
++
+ ## Synthetic Calibration Log
+ 
+ `export_calibration_record()` returns structured records containing timestamps, states, commanded/candidate action, published action, measured action, next state, LiDAR arrays, energy before/after, and sensor/dynamics/tracking/energy/terminal versions. Voltage, current, and power remain optional because this environment does not synthesize an electrical measurement chain. These logs can test calibration software but cannot become deterministic engineering bounds merely because simulated residuals are covered.
+@@ -104,6 +170,50 @@ The acceptance-round unittest result is 100 passed, 0 skipped, and 0 failed in 1
+ - The fixed corridor uses a deliberately simple one-step vertical braking hierarchy to close software proof dependencies. A physically meaningful return flight corridor still requires calibrated cell construction and recovery verification.
+ - HIL, command readback, power instrumentation, and real actuator tracking are unresolved.
+ - No global unknown-environment safety, automatic docking, charging handoff, dynamic obstacle, multi-UAV, or large-scale training claim is made.
++
++## First Multi-Step Comparison (Reduced Validation Budget)
++
++The checked-in matrix runs four methods, four mission scenarios, three seeds, and 2,000 environment
++steps per run (96,000 total transitions). This is deliberately below the planned 10k--20k first
++paper-training budget and is therefore a pipeline/semantic validation, not a converged comparison.
++All runs use 200 warmup steps, batch size 64, the same plant/task/scenario seeds, and the actual
++executed action in each critic replay row.
++
++| Method | Scenario | Task success | Return success | Collision episode rate | Fallback rate |
++|---|---|---:|---:|---:|---:|
++| Generator-SAC | energy-tight | 0.000 | 0.930 | 0.000 | 0.160 |
++| Generator-SAC | open | 0.000 | 0.000 | 0.000 | 0.111 |
++| Generator-SAC | obstacle | 0.000 | 0.000 | 0.000 | 0.094 |
++| Generator-SAC | narrow | 0.000 | 0.000 | 0.000 | 0.087 |
++| SAC | open | 0.024 | 0.000 | 0.607 | 0.000 |
++| Penalty SAC | energy-tight | 0.049 | 0.000 | 0.613 | 0.000 |
++| Shield SAC | open | 0.000 | 0.000 | 0.000 | 0.780 |
++| Shield SAC | obstacle | 0.000 | 0.000 | 0.022 | 0.817 |
++
++Values are means over three seeds. The full 16-row mean/std table is
++`artifacts/comparison/aggregate/summary.csv`; learning-curve bins, safety-performance data, and
++runtime data are adjacent CSV files. The energy-tight Generator result represents mostly
++energy-triggered return, not outbound task completion. The zero task-success values for the main
++method show that 2,000 steps are insufficient for a learning claim. The sampled shield-obstacle
++collision demonstrates that the fast synthetic mission κ/waypoint profile is not yet a closed
++corridor-wide recovery certificate. It must be repaired or replaced by the full closure pipeline
++before using that scenario for theorem-facing safety evidence.
++
++No sampled Generator-SAC collision occurred in these 48 reduced runs, but that observation is only
++synthetic empirical evidence. It does not establish calibrated physical safety or continuous-domain
++coverage.
++
++Reproduce the checked-in reduced matrix with:
++
++```bash
++.venv/bin/python scripts/run_comparison.py \
++  --methods sac penalty_sac shield_sac generator_sac \
++  --scenarios mission_open mission_obstacle mission_narrow mission_energy_tight \
++  --seeds 0 1 2 --steps 2000 --warmup-steps 200 --batch-size 64
++```
++
++The authoritative post-change suite contains 113 tests. It includes the original acceptance,
++calibration, interval, watchdog, environment, and Torch tests plus 13 multi-step/SAC/fairness tests.
+ ## Acceptance and Generator-SAC smoke protocol (2026-08-07)
+ 
+ This environment is a synthetic software fixture. Its strongest supported statement is a
+diff --git a/review_bundle/envs/certified_uav/__init__.py b/review_bundle/envs/certified_uav/__init__.py
+index c843a58..252bf37 100644
+--- a/review_bundle/envs/certified_uav/__init__.py
++++ b/review_bundle/envs/certified_uav/__init__.py
+@@ -9,7 +9,7 @@ from .plant_env import CertifiedSingleUAVPlantEnv
+ from .runtime_wrapper import CertifiedRuntimeWrapper
+ from .scenario import FixedCertificationScenario, RandomTrainingScenario, ScenarioDefinition, load_scenario
+ from .state import UAVPhysicalState
+-from .task_wrapper import CertifiedTaskWrapper
++from .task_wrapper import CertifiedTaskWrapper, MissionPhase, RewardBreakdown, TaskRewardConfig
+ from .telemetry import StepTelemetry
+ from .terminal import TerminalSpec
+ 
+@@ -19,6 +19,9 @@ __all__ = [
+     "CertifiedRuntimeWrapper",
+     "CertifiedSingleUAVPlantEnv",
+     "CertifiedTaskWrapper",
++    "MissionPhase",
++    "RewardBreakdown",
++    "TaskRewardConfig",
+     "CertifiedUAVConfig",
+     "FixedCertificationScenario",
+     "EnergyModel",
+diff --git a/review_bundle/envs/certified_uav/mission_certificate.py b/review_bundle/envs/certified_uav/mission_certificate.py
+new file mode 100644
+index 0000000..fe3d81a
+--- /dev/null
++++ b/review_bundle/envs/certified_uav/mission_certificate.py
+@@ -0,0 +1,236 @@
++from __future__ import annotations
++
++from dataclasses import dataclass
++from hashlib import sha256
++from json import dumps
++from math import isfinite
++from time import monotonic
++from typing import Any
++
++import numpy as np
++
++from cert_runtime.certificates import ProofMetadata, certificate_hash
++from cert_runtime.recovery import RecoveryDecision
++from cert_runtime.state import CertificateState
++from cert_runtime.types import Zonotope3
++from cert_runtime.zonotope import ZonotopeCertificate
++
++
++@dataclass(frozen=True)
++class MissionFailureWitness:
++    failed_predicate: str
++
++
++@dataclass(frozen=True)
++class MissionClosureResult:
++    closed: bool
++    zonotope_certificate: ZonotopeCertificate | None
++    status: str
++    failure_witness: MissionFailureWitness | None = None
++    manifest: None = None
++
++
++@dataclass(frozen=True)
++class MissionActionContext:
++    recovery: RecoveryDecision
++    closure: MissionClosureResult
++    required_energy: float
++    current_energy_margin: float
++
++    @property
++    def generator_available(self) -> bool:
++        return bool(
++            self.closure.closed
++            and self.closure.zonotope_certificate is not None
++            and self.closure.zonotope_certificate.verified
++            and self.closure.zonotope_certificate.zonotope is not None
++        )
++
++
++class SyntheticMissionCertificateProvider:
++    """Fast synthetic action-set fixture.
++
++    It uses only explicit free/occupied boxes from the scenario's certificate
++    profile.  It is software experiment evidence, not calibrated flight proof.
++    Complete diagonal action intervals are propagated analytically for one step.
++    """
++
++    def __init__(self, runtime: Any) -> None:
++        self.runtime = runtime
++        self.profile = runtime.scenario.mission_config
++        self.free_boxes = tuple(np.asarray(box, dtype=np.float64) for box in self.profile["free_boxes"])
++        self.occupied_boxes = tuple(np.asarray(box, dtype=np.float64) for box in self.profile.get("occupied_boxes", ()))
++        self.waypoints = tuple(np.asarray(point, dtype=np.float64) for point in self.profile["return_waypoints"])
++        self.base_scales = np.asarray(self.profile["generator_scale"], dtype=np.float64)
++        self.narrow_regions = tuple(np.asarray(box, dtype=np.float64) for box in self.profile.get("narrow_regions", ()))
++        self.reserve_per_meter = float(self.profile.get("energy_reserve_per_meter", 0.1))
++        self.trigger_margin = float(self.profile.get("return_trigger_margin", 1.0))
++        self.version = "synthetic-mission-provider-v1"
++        self.last_context: MissionActionContext | None = None
++
++    def _path_distance(self, position: np.ndarray) -> float:
++        nearest = min(range(len(self.waypoints)), key=lambda index: float(np.linalg.norm(position - self.waypoints[index])))
++        distance = float(np.linalg.norm(position - self.waypoints[nearest]))
++        for left, right in zip(self.waypoints[nearest:], self.waypoints[nearest + 1 :]):
++            distance += float(np.linalg.norm(left - right))
++        return distance
++
++    def required_energy(self, position: np.ndarray) -> float:
++        terminal = self.runtime.scenario.terminal.minimum_energy
++        return terminal + self.trigger_margin + self.reserve_per_meter * self._path_distance(position)
++
++    def recovery_action(self, state: CertificateState) -> tuple[float, float, float]:
++        position = np.asarray(state.position)
++        velocity = np.asarray(state.velocity)
++        nearest = min(range(len(self.waypoints)), key=lambda index: float(np.linalg.norm(position - self.waypoints[index])))
++        target_index = min(nearest + 1, len(self.waypoints) - 1)
++        if float(np.linalg.norm(position - self.waypoints[target_index])) < 0.12 and target_index < len(self.waypoints) - 1:
++            target_index += 1
++        target = self.waypoints[target_index]
++        raw = 0.9 * (target - position) - 1.4 * velocity
++        maximum = self.runtime.config.a_max
++        lower_velocity_action = (-self.runtime.config.v_max - velocity) / self.runtime.config.dt
++        upper_velocity_action = (self.runtime.config.v_max - velocity) / self.runtime.config.dt
++        bounded = np.minimum(np.maximum(raw, np.maximum(-maximum, lower_velocity_action)), np.minimum(maximum, upper_velocity_action))
++        return tuple(float(value) for value in bounded)
++
++    @staticmethod
++    def _box_contains(box: np.ndarray, low: np.ndarray, high: np.ndarray, margin: float = 0.0) -> bool:
++        return bool(np.all(low[:2] >= box[:2] + margin) and np.all(high[:2] <= box[2:] - margin))
++
++    @staticmethod
++    def _boxes_overlap(left_low: np.ndarray, left_high: np.ndarray, box: np.ndarray, margin: float) -> bool:
++        return bool(
++            left_high[0] >= box[0] - margin
++            and left_low[0] <= box[2] + margin
++            and left_high[1] >= box[1] - margin
++            and left_low[1] <= box[3] + margin
++        )
++
++    def _inside_narrow_region(self, position: np.ndarray) -> bool:
++        return any(box[0] <= position[0] <= box[2] and box[1] <= position[1] <= box[3] for box in self.narrow_regions)
++
++    def _continuous_one_step_valid(self, state: CertificateState, zonotope: Zonotope3) -> bool:
++        config = self.runtime.config
++        action = zonotope.action_bounds
++        action_low = np.asarray(action.low)
++        action_high = np.asarray(action.high)
++        if np.any(action_low < -config.a_max - 1e-12) or np.any(action_high > config.a_max + 1e-12):
++            return False
++        tracking = config.tracking_error_bound
++        dt_low = config.dt
++        dt_high = config.dt + config.total_latency
++        position = np.asarray(state.position)
++        velocity = np.asarray(state.velocity)
++        acceleration_low = action_low - tracking
++        acceleration_high = action_high + tracking
++        candidates = []
++        for duration in (dt_low, dt_high):
++            candidates.append(position + duration * velocity + 0.5 * duration * duration * acceleration_low)
++            candidates.append(position + duration * velocity + 0.5 * duration * duration * acceleration_high)
++        candidates.append(position - np.asarray(state.position_error_radius))
++        candidates.append(position + np.asarray(state.position_error_radius))
++        position_low = np.min(np.stack(candidates), axis=0) - np.asarray(state.position_error_radius)
++        position_high = np.max(np.stack(candidates), axis=0) + np.asarray(state.position_error_radius)
++        velocity_low = velocity + dt_high * acceleration_low - np.asarray(state.velocity_error_radius)
++        velocity_high = velocity + dt_high * acceleration_high + np.asarray(state.velocity_error_radius)
++        if np.any(velocity_low < -config.v_max - 1e-12) or np.any(velocity_high > config.v_max + 1e-12):
++            return False
++        margin = config.body_radius + config.geometry_margin
++        if position_low[2] < margin or position_high[2] > config.world_size[2] - margin:
++            return False
++        if not any(self._box_contains(box, position_low, position_high, margin) for box in self.free_boxes):
++            return False
++        if any(self._boxes_overlap(position_low, position_high, box, margin) for box in self.occupied_boxes):
++            return False
++        return bool(np.all(np.isfinite(position_low)) and np.all(np.isfinite(position_high)))
++
++    def _construct_zonotope(self, state: CertificateState) -> Zonotope3 | None:
++        position = np.asarray(state.position)
++        if self._inside_narrow_region(position):
++            return None
++        center = np.clip(-0.25 * np.asarray(state.velocity), -0.25 * self.runtime.config.a_max, 0.25 * self.runtime.config.a_max)
++        scales = np.minimum(self.base_scales, self.runtime.config.a_max - np.abs(center))
++        minimum = self.runtime.config.minimum_generator_sigma
++        if np.any(scales < minimum):
++            return None
++        # Deterministic common-factor bisection; every accepted factor is checked
++        # using the complete action interval, not samples or vertices.
++        low, high = 0.0, 1.0
++        accepted: Zonotope3 | None = None
++        for _ in range(self.runtime.config.generator_bisection_iterations + 1):
++            factor = high if accepted is None and low == 0.0 else (low + high) / 2.0
++            candidate_scales = np.maximum(minimum, scales * factor)
++            candidate = Zonotope3.diagonal(center, candidate_scales)
++            if (
++                candidate.sigma_min_lower_bound >= minimum
++                and candidate.condition_number_upper_bound <= self.runtime.config.maximum_generator_condition
++                and self._continuous_one_step_valid(state, candidate)
++            ):
++                accepted = candidate
++                low = factor
++            else:
++                high = factor
++        return accepted
++
++    def evaluate(self, state: CertificateState, timestamp: float | None = None) -> MissionActionContext:
++        now = monotonic() if timestamp is None else timestamp
++        required = self.required_energy(np.asarray(state.position))
++        recovery_action = self.recovery_action(state)
++        inside_free = any(self._box_contains(box, np.asarray(state.position), np.asarray(state.position)) for box in self.free_boxes)
++        recovery_hash = certificate_hash({
++            "provider": self.version,
++            "state_version": state.certificate_version,
++            "action": recovery_action,
++            "required_energy": required,
++        })
++        recovery_set = Zonotope3.diagonal(recovery_action, (0.0, 0.0, 0.0))
++        recovery_valid = (
++            inside_free
++            and state.energy >= required
++            and all(isfinite(value) for value in recovery_action)
++            and self._continuous_one_step_valid(state, recovery_set)
++        )
++        recovery = RecoveryDecision(recovery_action, recovery_valid, recovery_hash if recovery_valid else None, "certified" if recovery_valid else "synthetic-recovery-invalid")
++        zonotope = self._construct_zonotope(state) if recovery_valid else None
++        reason = "VERIFIED" if zonotope is not None else ("NO_GENERATOR_SET" if recovery_valid else "INSUFFICIENT_RECOVERY_RESERVE")
++        metadata = None
++        inclusion_hash = None
++        certificate = None
++        if zonotope is not None:
++            versions = dict(state.bound_versions)
++            metadata = ProofMetadata(
++                f"mission-zonotope-{state.certificate_version}",
++                state.certificate_version[2],
++                versions.get("sensor", "synthetic-sensor"),
++                versions.get("dynamics", "synthetic-dynamics"),
++                versions.get("tracking", "synthetic-tracking"),
++                versions.get("energy", "synthetic-energy"),
++                versions.get("terminal", "synthetic-terminal"),
++                state.certificate_version[0],
++                state.certificate_version[1],
++                versions.get("kappa", self.version),
++                now,
++                now + 1000.0,
++                (recovery_hash,),
++            )
++            inclusion_hash = sha256(dumps({"z": repr(zonotope), "recovery": recovery_hash, "version": state.certificate_version}, sort_keys=True).encode()).hexdigest()
++            certificate = ZonotopeCertificate(
++                True,
++                "VERIFIED",
++                zonotope,
++                None,
++                state.certificate_version,
++                recovery_hash,
++                inclusion_hash,
++                tuple(sorted(state.bound_versions.items())),
++                metadata,
++                0.0,
++                now + self.runtime.config.certification_deadline,
++                1,
++                self.runtime.config.generator_bisection_iterations,
++            )
++        closure = MissionClosureResult(zonotope is not None, certificate, reason, None if zonotope is not None else MissionFailureWitness(reason))
++        context = MissionActionContext(recovery, closure, required, state.energy - required)
++        self.last_context = context
++        return context
+diff --git a/review_bundle/envs/certified_uav/runtime_wrapper.py b/review_bundle/envs/certified_uav/runtime_wrapper.py
+index 2a65c49..2cebcc5 100644
+--- a/review_bundle/envs/certified_uav/runtime_wrapper.py
++++ b/review_bundle/envs/certified_uav/runtime_wrapper.py
+@@ -48,6 +48,7 @@ from .actuator import ActionTrace
+ from .config import CertifiedUAVConfig
+ from .dynamics import integrate_double_integrator
+ from .plant_env import CertifiedSingleUAVPlantEnv
++from .mission_certificate import SyntheticMissionCertificateProvider
+ from .scenario import ScenarioDefinition
+ from .task_wrapper import CertifiedTaskWrapper
+ 
+@@ -244,6 +245,11 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
+         self.last_stage_timings: dict[str, float] = {}
+         self._prepare_stage_timings: dict[str, float] = {}
+         self._build_certificate_objects()
++        self.mission_provider = (
++            SyntheticMissionCertificateProvider(self)
++            if self.scenario.mission_config.get("certificate_mode") == "synthetic_preverified"
++            else None
++        )
+ 
+     def _build_certificate_objects(self) -> None:
+         width = int(ceil(self.config.world_size[0] / self.config.grid_resolution))
+@@ -351,6 +357,24 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
+         }
+         return certificate_state
+ 
++    def _mission_preparation(self) -> RuntimeCyclePreparation:
++        state = self._certificate_state()
++        state.explicit_task_state["mission_phase"] = self.task_env.phase.name
++        context = self.mission_provider.evaluate(state, self.plant.state.timestamp)
++        if self.task_env.multi_step_mission and self.task_env.phase.name == "OUTBOUND" and state.energy <= context.required_energy + self.mission_provider.trigger_margin:
++            from .task_wrapper import MissionPhase
++
++            self.task_env.phase = MissionPhase.RETURN
++            self.task_env.return_triggered = True
++            state.explicit_task_state["mission_phase"] = self.task_env.phase.name
++            context = self.mission_provider.evaluate(state, self.plant.state.timestamp)
++        observation = self.task_env.build_observation(self._map_encoding(), self._corridor_encoding())
++        failure = None if context.closure.closed else context.closure.status
++        preparation = RuntimeCyclePreparation(state, observation, context.closure, context.recovery, failure)
++        self.last_preparation = preparation
++        self._prepare_stage_timings = {name: 0.0 for name in ("T_sensor", "T_update", "T_snapshot", "T_corridor", "T_energy", "T_set")}
++        return preparation
++
+     def _map_encoding(self) -> np.ndarray:
+         values: list[float] = []
+         position = self.plant.state.position
+@@ -390,6 +414,8 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
+         return result
+ 
+     def prepare_certificate_cycle(self) -> RuntimeCyclePreparation:
++        if self.mission_provider is not None:
++            return self._mission_preparation()
+         prepare_timings: dict[str, float] = {}
+         sensor_started = monotonic()
+         if self.freeze_certificate_epoch and self._frozen_preparation is not None:
+@@ -488,10 +514,14 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
+         stage_started = monotonic()
+         pre_state = self._certificate_state()
+         pre_snapshot = pre_state.snapshot()
+-        pre_recovery = self.runtime_certifier.recovery_decision(pre_state, self.plant.state.timestamp)
++        pre_recovery = (
++            self.mission_provider.evaluate(pre_state, self.plant.state.timestamp).recovery
++            if self.mission_provider is not None
++            else self.runtime_certifier.recovery_decision(pre_state, self.plant.state.timestamp)
++        )
+         pre_fallback = (
+             pre_recovery.action
+-            if pre_recovery.certified
++            if self.mission_provider is not None or pre_recovery.certified
+             else self.recovery_policy.emergency_brake(pre_state.velocity)
+         )
+         timings["T_kappa"] = monotonic() - stage_started
+@@ -625,6 +655,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
+             "wcet_status": self.watchdog.wcet_contract.status,
+             "candidate_bundle": self.last_bundle,
+             "publication_count": publisher.publication_count,
++            "action_context": self.action_context(preparation),
+         }
+         timings.setdefault("T_actor", 0.0)
+         timings.setdefault("T_recheck", 0.0)
+@@ -634,5 +665,79 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
+         info["stage_timings"] = dict(timings)
+         return next_observation, reward, terminated, truncated, info
+ 
++    def action_context(self, preparation: RuntimeCyclePreparation | None = None) -> dict[str, Any]:
++        selected = self.last_preparation if preparation is None else preparation
++        if selected is None:
++            return {"certificate_valid": False, "generator_available": False}
++        closure = selected.closure_result
++        certificate = None if closure is None else closure.zonotope_certificate
++        zonotope = None if certificate is None else certificate.zonotope
++        recovery = selected.recovery
++        return {
++            "certificate_valid": bool(recovery is not None and recovery.certified),
++            "generator_available": bool(certificate is not None and certificate.verified and zonotope is not None),
++            "c": None if zonotope is None else np.asarray(zonotope.center, dtype=np.float32),
++            "G": None if zonotope is None else np.asarray(zonotope.generators, dtype=np.float32),
++            "kappa": None if recovery is None else np.asarray(recovery.action, dtype=np.float32),
++            "certificate_epoch": None if self.current_epoch is None else self.current_epoch.epoch_id,
++            "certificate_version": selected.state.certificate_version,
++            "geometry_version": self.geometry.version,
++            "corridor_version": self.corridor.version,
++            "energy_version": self.calibration.energy.version,
++            "recovery_hash": None if recovery is None else recovery.certificate_hash,
++            "zonotope_hash": None if certificate is None else certificate.complete_set_inclusion_hash,
++            "failure_reason": selected.failure_reason,
++        }
++
++    def preview_next_action_context(self) -> dict[str, Any]:
++        preparation = self.prepare_certificate_cycle()
++        self.current_epoch = CertificateEpoch.from_snapshot(preparation.state.snapshot())
++        return self.action_context(preparation)
++
++    def step_nominal_action(self, nominal_action: np.ndarray):
++        """B2 control: execute a nominal box action only when it belongs to C_run."""
++
++        total_started = monotonic()
++        pre_state = self._certificate_state()
++        context = self.mission_provider.evaluate(pre_state, self.plant.state.timestamp) if self.mission_provider is not None else None
++        recovery = context.recovery if context is not None else self.runtime_certifier.recovery_decision(pre_state, self.plant.state.timestamp)
++        fallback = np.asarray(recovery.action if recovery.certified else self.recovery_policy.emergency_brake(pre_state.velocity), dtype=np.float64)
++        publisher = AtomicCommandPublisher()
++        self.last_publisher = publisher
++        snapshot = pre_state.snapshot()
++        publisher.stage_default(PublishedCommand(tuple(fallback), "kappa", "STAGED_BEFORE_NOMINAL_CHECK", snapshot.certificate_version))
++        preparation = self.prepare_certificate_cycle()
++        selected = np.asarray(nominal_action, dtype=np.float64)
++        closure = preparation.closure_result
++        certificate = None if closure is None else closure.zonotope_certificate
++        zonotope = None if certificate is None else certificate.zonotope
++        accepted = bool(
++            preparation.failure_reason is None
++            and preparation.recovery is not None
++            and preparation.recovery.certified
++            and certificate is not None
++            and certificate.verified
++            and zonotope is not None
++            and zonotope.contains(selected)
++        )
++        action = selected if accepted else fallback
++        reason = "VERIFIED_NOMINAL_MEMBERSHIP" if accepted else (preparation.failure_reason or "NOMINAL_OUTSIDE_CERTIFIED_SET")
++        publisher.publish_once(PublishedCommand(tuple(float(value) for value in action), "task" if accepted else "kappa", reason, snapshot.certificate_version))
++        observation, reward, terminated, truncated, info = self.task_env.step(action)
++        measured = self.plant.last_telemetry.action_trace.measured
++        trace = ActionTrace(selected, selected if accepted else None, fallback, action, measured, accepted, None if accepted else reason, str(snapshot.certificate_version))
++        telemetry = self.plant.attach_runtime_trace(trace, str(snapshot.certificate_version), str(self.geometry.version), str(self.corridor.version))
++        self.last_stage_timings = {"T_total": monotonic() - total_started}
++        return observation, reward, terminated, truncated, info | {
++            "telemetry": telemetry,
++            "accepted": accepted,
++            "fallback_reason": trace.fallback_reason,
++            "critic_action": action.copy(),
++            "certificate_epoch": CertificateEpoch.from_snapshot(preparation.state.snapshot()),
++            "publication_count": publisher.publication_count,
++            "action_context": self.action_context(preparation),
++            "stage_timings": dict(self.last_stage_timings),
++        }
++
+     def export_calibration_record(self):
+         return self.plant.export_calibration_record()
+diff --git a/review_bundle/envs/certified_uav/scenario.py b/review_bundle/envs/certified_uav/scenario.py
+index dc76e96..01e0770 100644
+--- a/review_bundle/envs/certified_uav/scenario.py
++++ b/review_bundle/envs/certified_uav/scenario.py
+@@ -58,6 +58,7 @@ class ScenarioDefinition:
+     bootstrap_lidar_poses: tuple[np.ndarray, ...]
+     configuration_overrides: dict[str, Any]
+     expected_certificate_outcome: str
++    mission_config: dict[str, Any]
+ 
+     def __post_init__(self) -> None:
+         object.__setattr__(self, "world_size", as_vec3(self.world_size, "world_size"))
+@@ -156,6 +157,7 @@ def _parse_scenario(payload: dict[str, Any]) -> ScenarioDefinition:
+         tuple(as_vec3(value, "bootstrap_lidar_pose") for value in payload.get("bootstrap_lidar_poses", ())),
+         dict(payload.get("configuration_overrides", {})),
+         str(payload.get("expected_certificate_outcome", "unspecified")),
++        dict(payload.get("mission", {})),
+     )
+ 
+ 
+@@ -169,9 +171,9 @@ def load_scenario(path_or_name: str | Path) -> ScenarioDefinition:
+         base_path = Path(str(files("envs.certified_uav.scenarios").joinpath(str(payload["base"]))))
+         with base_path.open("r", encoding="utf-8") as handle:
+             merged = json.load(handle)
+-        merged["name"] = payload["name"]
+-        merged["expected_certificate_outcome"] = payload.get("expected_certificate_outcome", "unspecified")
+-        merged["configuration_overrides"] = payload.get("configuration_overrides", {})
++        for key, value in payload.items():
++            if key not in {"base", "initial_energy", "invalidate_last_corridor_overlap"}:
++                merged[key] = value
+         if "initial_energy" in payload:
+             merged["initial_state"]["energy"] = payload["initial_energy"]
+         if payload.get("invalidate_last_corridor_overlap"):
+diff --git a/review_bundle/envs/certified_uav/scenarios/mission_energy_tight.json b/review_bundle/envs/certified_uav/scenarios/mission_energy_tight.json
+new file mode 100644
+index 0000000..29b1dad
+--- /dev/null
++++ b/review_bundle/envs/certified_uav/scenarios/mission_energy_tight.json
+@@ -0,0 +1,25 @@
++{
++  "base": "mission_open.json",
++  "name": "mission_energy_tight",
++  "initial_state": {"position": [3.15,0.50,1.0], "velocity": [0.0,0.0,0.0], "energy": 5.5, "timestamp": 0.0},
++  "configuration_overrides": {
++    "v_max": [0.30,0.30,0.12], "a_max": [0.18,0.18,0.08], "initial_energy": 5.5,
++    "episode_limit": 400, "minimum_generator_sigma": 0.01, "certification_deadline": 0.08
++  },
++  "mission": {
++    "enabled": true,
++    "certificate_mode": "synthetic_preverified",
++    "free_boxes": [[0.20,0.20,3.80,3.80]],
++    "occupied_boxes": [],
++    "return_waypoints": [[3.15,1.30,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
++    "goal_radius": 0.20,
++    "progress_weight": 10.0,
++    "task_reward": 20.0,
++    "return_reward": 30.0,
++    "energy_cost_weight": 0.01,
++    "generator_scale": [0.12,0.12,0.04],
++    "narrow_regions": [],
++    "energy_reserve_per_meter": 0.45,
++    "return_trigger_margin": 1.3
++  }
++}
+diff --git a/review_bundle/envs/certified_uav/scenarios/mission_narrow.json b/review_bundle/envs/certified_uav/scenarios/mission_narrow.json
+new file mode 100644
+index 0000000..ea38235
+--- /dev/null
++++ b/review_bundle/envs/certified_uav/scenarios/mission_narrow.json
+@@ -0,0 +1,25 @@
++{
++  "base": "mission_open.json",
++  "name": "mission_narrow",
++  "task_goal": [2.15,3.15,1.0],
++  "aabb_obstacles": [
++    {"low": [1.75,1.00,0.0], "high": [2.00,3.35,2.0]},
++    {"low": [2.32,1.00,0.0], "high": [2.57,3.35,2.0]}
++  ],
++  "mission": {
++    "enabled": true,
++    "certificate_mode": "synthetic_preverified",
++    "free_boxes": [[0.20,0.20,3.80,0.95],[0.20,0.85,1.70,3.80],[2.05,0.85,2.27,3.80],[2.62,0.85,3.80,3.80]],
++    "occupied_boxes": [[1.75,1.00,2.00,3.35],[2.32,1.00,2.57,3.35]],
++    "return_waypoints": [[3.15,3.15,1.0],[2.70,3.55,1.0],[2.70,0.70,1.0],[1.50,0.70,1.0],[0.40,0.50,1.0]],
++    "generator_scale": [0.10,0.10,0.04],
++    "narrow_regions": [[2.02,0.90,2.30,3.50]],
++    "energy_reserve_per_meter": 0.11,
++    "return_trigger_margin": 1.2,
++    "goal_radius": 0.20,
++    "progress_weight": 10.0,
++    "task_reward": 20.0,
++    "return_reward": 30.0,
++    "energy_cost_weight": 0.01
++  }
++}
+diff --git a/review_bundle/envs/certified_uav/scenarios/mission_obstacle.json b/review_bundle/envs/certified_uav/scenarios/mission_obstacle.json
+new file mode 100644
+index 0000000..507c9ad
+--- /dev/null
++++ b/review_bundle/envs/certified_uav/scenarios/mission_obstacle.json
+@@ -0,0 +1,25 @@
++{
++  "base": "mission_open.json",
++  "name": "mission_obstacle",
++  "task_goal": [3.15,3.15,1.0],
++  "aabb_obstacles": [
++    {"low": [2.10,1.25,0.0], "high": [2.55,2.55,2.0]},
++    {"low": [2.75,2.65,0.0], "high": [3.45,2.90,2.0]}
++  ],
++  "mission": {
++    "enabled": true,
++    "certificate_mode": "synthetic_preverified",
++    "free_boxes": [[0.20,0.20,3.80,1.10],[0.20,0.90,1.90,3.80],[1.75,2.75,3.80,3.80],[2.55,0.90,3.80,2.70]],
++    "occupied_boxes": [[2.10,1.25,2.55,2.55],[2.75,2.65,3.45,2.90]],
++    "return_waypoints": [[3.15,3.15,1.0],[1.75,3.15,1.0],[1.30,1.00,1.0],[1.30,0.50,1.0],[0.40,0.50,1.0]],
++    "generator_scale": [0.12,0.12,0.05],
++    "narrow_regions": [],
++    "energy_reserve_per_meter": 0.10,
++    "return_trigger_margin": 1.2,
++    "goal_radius": 0.20,
++    "progress_weight": 10.0,
++    "task_reward": 20.0,
++    "return_reward": 30.0,
++    "energy_cost_weight": 0.01
++  }
++}
+diff --git a/review_bundle/envs/certified_uav/scenarios/mission_open.json b/review_bundle/envs/certified_uav/scenarios/mission_open.json
+new file mode 100644
+index 0000000..b6079a7
+--- /dev/null
++++ b/review_bundle/envs/certified_uav/scenarios/mission_open.json
+@@ -0,0 +1,47 @@
++{
++  "name": "mission_open",
++  "world_size": [4.0, 4.0, 2.0],
++  "initial_state": {"position": [3.15, 0.50, 1.0], "velocity": [0.0, 0.0, 0.0], "energy": 30.0, "timestamp": 0.0},
++  "station_position": [0.40, 0.50, 1.0],
++  "task_goal": [3.15, 1.30, 1.0],
++  "terminal": {
++    "position_low": [0.30, 0.40, 0.90],
++    "position_high": [0.50, 0.60, 1.10],
++    "velocity_abs_max": [0.05, 0.05, 0.04],
++    "minimum_energy": 1.0,
++    "continuation_modes": ["hover"],
++    "version": "synthetic-mission-terminal-v1"
++  },
++  "aabb_obstacles": [],
++  "cylinder_obstacles": [],
++  "corridor_cells": [
++    {"cell_id": 0, "level": 0, "region_low_xy": [0.25,0.35], "region_high_xy": [0.75,0.65], "altitude_limit": 1.3, "state_position_low": [0.25,0.35,0.85], "state_position_high": [0.75,0.65,1.15], "state_velocity_low": [-0.3,-0.3,-0.12], "state_velocity_high": [0.3,0.3,0.12], "energy_low": 1.0, "energy_high": 31.0},
++    {"cell_id": 1, "level": 1, "region_low_xy": [0.65,0.35], "region_high_xy": [1.25,0.65], "altitude_limit": 1.3, "state_position_low": [0.65,0.35,0.85], "state_position_high": [1.25,0.65,1.15], "state_velocity_low": [-0.3,-0.3,-0.12], "state_velocity_high": [0.3,0.3,0.12], "energy_low": 1.0, "energy_high": 31.0},
++    {"cell_id": 2, "level": 2, "region_low_xy": [1.15,0.35], "region_high_xy": [1.75,0.65], "altitude_limit": 1.3, "state_position_low": [1.15,0.35,0.85], "state_position_high": [1.75,0.65,1.15], "state_velocity_low": [-0.3,-0.3,-0.12], "state_velocity_high": [0.3,0.3,0.12], "energy_low": 1.0, "energy_high": 31.0},
++    {"cell_id": 3, "level": 3, "region_low_xy": [1.65,0.35], "region_high_xy": [2.25,0.65], "altitude_limit": 1.3, "state_position_low": [1.65,0.35,0.85], "state_position_high": [2.25,0.65,1.15], "state_velocity_low": [-0.3,-0.3,-0.12], "state_velocity_high": [0.3,0.3,0.12], "energy_low": 1.0, "energy_high": 31.0},
++    {"cell_id": 4, "level": 4, "region_low_xy": [2.15,0.35], "region_high_xy": [2.75,0.65], "altitude_limit": 1.3, "state_position_low": [2.15,0.35,0.85], "state_position_high": [2.75,0.65,1.15], "state_velocity_low": [-0.3,-0.3,-0.12], "state_velocity_high": [0.3,0.3,0.12], "energy_low": 1.0, "energy_high": 31.0},
++    {"cell_id": 5, "level": 5, "region_low_xy": [2.65,0.35], "region_high_xy": [3.35,0.65], "altitude_limit": 1.3, "state_position_low": [2.65,0.35,0.85], "state_position_high": [3.35,0.65,1.15], "state_velocity_low": [-0.3,-0.3,-0.12], "state_velocity_high": [0.3,0.3,0.12], "energy_low": 1.0, "energy_high": 31.0}
++  ],
++  "bootstrap_lidar_poses": [],
++  "configuration_overrides": {
++    "v_max": [0.30,0.30,0.12], "a_max": [0.18,0.18,0.08], "initial_energy": 30.0,
++    "episode_limit": 400, "minimum_generator_sigma": 0.01, "certification_deadline": 0.08
++  },
++  "mission": {
++    "enabled": true,
++    "certificate_mode": "synthetic_preverified",
++    "free_boxes": [[0.20,0.20,3.80,3.80]],
++    "occupied_boxes": [],
++    "return_waypoints": [[3.15,1.30,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
++    "goal_radius": 0.20,
++    "progress_weight": 10.0,
++    "task_reward": 20.0,
++    "return_reward": 30.0,
++    "energy_cost_weight": 0.01,
++    "generator_scale": [0.14,0.14,0.05],
++    "narrow_regions": [],
++    "energy_reserve_per_meter": 0.08,
++    "return_trigger_margin": 1.0
++  },
++  "expected_certificate_outcome": "synthetic_training_enabled"
++}
+diff --git a/review_bundle/envs/certified_uav/task_wrapper.py b/review_bundle/envs/certified_uav/task_wrapper.py
+index 0a71bec..0c317e1 100644
+--- a/review_bundle/envs/certified_uav/task_wrapper.py
++++ b/review_bundle/envs/certified_uav/task_wrapper.py
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+-from dataclasses import dataclass
++from dataclasses import dataclass, replace
++from enum import IntEnum
+ from typing import Any
+ 
+ import gymnasium as gym
+@@ -17,6 +18,36 @@ class TaskRewardConfig:
+     step_cost: float = 0.01
+     collision_cost: float = 10.0
+     goal_radius: float = 0.08
++    return_success_reward: float = 10.0
++    energy_cost_weight: float = 0.05
++
++
++class MissionPhase(IntEnum):
++    OUTBOUND = 0
++    RETURN = 1
++    SUCCESS = 2
++    FAILURE = 3
++
++
++@dataclass(frozen=True)
++class RewardBreakdown:
++    progress_reward: float
++    task_completion_reward: float
++    return_success_reward: float
++    step_penalty: float
++    energy_penalty: float
++    collision_penalty: float
++
++    @property
++    def total(self) -> float:
++        return float(
++            self.progress_reward
++            + self.task_completion_reward
++            + self.return_success_reward
++            - self.step_penalty
++            - self.energy_penalty
++            - self.collision_penalty
++        )
+ 
+ 
+ class CertifiedTaskWrapper(gym.Wrapper):
+@@ -27,6 +58,21 @@ class CertifiedTaskWrapper(gym.Wrapper):
+         self.plant = plant
+         self.reward_config = TaskRewardConfig() if reward_config is None else reward_config
+         self.goal = plant.scenario.task_goal.copy()
++        self.multi_step_mission = bool(plant.scenario.mission_config.get("enabled", False))
++        if self.multi_step_mission:
++            self.reward_config = replace(
++                self.reward_config,
++                goal_radius=float(plant.scenario.mission_config.get("goal_radius", self.reward_config.goal_radius)),
++                progress_weight=float(plant.scenario.mission_config.get("progress_weight", self.reward_config.progress_weight)),
++                goal_reward=float(plant.scenario.mission_config.get("task_reward", self.reward_config.goal_reward)),
++                return_success_reward=float(plant.scenario.mission_config.get("return_reward", self.reward_config.return_success_reward)),
++                energy_cost_weight=float(plant.scenario.mission_config.get("energy_cost_weight", self.reward_config.energy_cost_weight)),
++            )
++        self.phase = MissionPhase.OUTBOUND
++        self.episode_step = 0
++        self.task_completed = False
++        self.return_triggered = False
++        self.last_reward_breakdown = RewardBreakdown(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+         config = plant.config
+         self.observation_layout: dict[str, slice] = {}
+         cursor = 0
+@@ -40,6 +86,7 @@ class CertifiedTaskWrapper(gym.Wrapper):
+             ("lidar_valid", config.num_lasers),
+             ("local_map_crop", config.local_map_encoding_size),
+             ("corridor", config.corridor_encoding_size),
++            ("mission_phase", 4),
+         ):
+             self.observation_layout[name] = slice(cursor, cursor + length)
+             cursor += length
+@@ -52,6 +99,16 @@ class CertifiedTaskWrapper(gym.Wrapper):
+ 
+     def reset_task(self, scenario) -> None:
+         self.goal = scenario.task_goal.copy()
++        self.phase = MissionPhase.OUTBOUND
++        self.episode_step = 0
++        self.task_completed = False
++        self.return_triggered = False
++
++    @property
++    def active_goal(self) -> np.ndarray:
++        if self.multi_step_mission and self.phase == MissionPhase.RETURN:
++            return self.plant.scenario.station_position
++        return self.goal
+ 
+     def reward(
+         self,
+@@ -59,17 +116,23 @@ class CertifiedTaskWrapper(gym.Wrapper):
+         state_after: UAVPhysicalState,
+         collision: bool,
+         terminal: bool,
++        energy_cost: float = 0.0,
++        task_completed_now: bool = False,
++        target: np.ndarray | None = None,
+     ) -> float:
+-        del terminal
+-        previous_distance = float(np.linalg.norm(state_before.position - self.goal))
+-        current_distance = float(np.linalg.norm(state_after.position - self.goal))
+-        reached_goal = current_distance <= self.reward_config.goal_radius
+-        return (
+-            self.reward_config.progress_weight * (previous_distance - current_distance)
+-            + self.reward_config.goal_reward * float(reached_goal)
+-            - self.reward_config.step_cost
+-            - self.reward_config.collision_cost * float(collision)
++        target = self.active_goal if target is None else target
++        previous_distance = float(np.linalg.norm(state_before.position - target))
++        current_distance = float(np.linalg.norm(state_after.position - target))
++        breakdown = RewardBreakdown(
++            self.reward_config.progress_weight * (previous_distance - current_distance),
++            self.reward_config.goal_reward * float(task_completed_now),
++            self.reward_config.return_success_reward * float(terminal and self.task_completed),
++            self.reward_config.step_cost,
++            self.reward_config.energy_cost_weight * energy_cost,
++            self.reward_config.collision_cost * float(collision),
+         )
++        self.last_reward_breakdown = breakdown
++        return breakdown.total
+ 
+     def build_observation(
+         self,
+@@ -90,12 +153,13 @@ class CertifiedTaskWrapper(gym.Wrapper):
+                 state.position / config.world_size,
+                 state.velocity / config.v_max,
+                 np.array([state.energy / config.initial_energy]),
+-                (self.goal - state.position) / config.world_size,
++                (self.active_goal - state.position) / config.world_size,
+                 (self.plant.scenario.station_position - state.position) / config.world_size,
+                 lidar.distances / config.lidar_range,
+                 lidar.valid.astype(np.float64),
+                 local_map,
+                 corridor,
++                np.eye(4, dtype=np.float64)[int(self.phase)],
+             )
+         )
+         return np.clip(observation, self.observation_space.low, self.observation_space.high).astype(np.float32)
+@@ -106,14 +170,42 @@ class CertifiedTaskWrapper(gym.Wrapper):
+         return self.build_observation(), info | {"observation_layout": dict(self.observation_layout)}
+ 
+     def step(self, action):
++        reward_target = self.active_goal.copy()
+         _, _, terminated, truncated, info = self.plant.step(action)
+         telemetry = info["telemetry"]
++        self.episode_step += 1
++        reached_task = float(np.linalg.norm(self.plant.state.position - self.goal)) <= self.reward_config.goal_radius
++        task_completed_now = bool(self.multi_step_mission and self.phase == MissionPhase.OUTBOUND and reached_task)
++        if task_completed_now:
++            self.task_completed = True
++            self.return_triggered = True
++            self.phase = MissionPhase.RETURN
++        terminal_success = bool(
++            telemetry.terminal_admissible
++            and (not self.multi_step_mission or self.phase == MissionPhase.RETURN)
++        )
++        failure = bool(telemetry.collision or info.get("failure_reason") in {"energy_depleted", "velocity_limit_exceeded"})
++        if terminal_success:
++            self.phase = MissionPhase.SUCCESS
++        elif failure or truncated or (terminated and not terminal_success):
++            self.phase = MissionPhase.FAILURE
+         reward = self.reward(
+             telemetry.state_before,
+             telemetry.state_after,
+             telemetry.collision,
+-            telemetry.terminal_admissible,
++            terminal_success,
++            telemetry.energy_cost,
++            task_completed_now,
++            reward_target,
+         )
+-        task_goal_reached = float(np.linalg.norm(self.plant.state.position - self.goal)) <= self.reward_config.goal_radius
+-        info = info | {"task_goal_reached": task_goal_reached}
++        info = info | {
++            "task_goal_reached": reached_task,
++            "task_completed": self.task_completed,
++            "task_completed_now": task_completed_now,
++            "return_triggered": self.return_triggered,
++            "terminal_return_success": terminal_success,
++            "mission_phase": self.phase.name,
++            "episode_step": self.episode_step,
++            "reward_components": self.last_reward_breakdown.__dict__.copy() | {"total_reward": reward},
++        }
+         return self.build_observation(), reward, terminated, truncated, info
+diff --git a/review_bundle/experiments/__init__.py b/review_bundle/experiments/__init__.py
+new file mode 100644
+index 0000000..1f495d5
+--- /dev/null
++++ b/review_bundle/experiments/__init__.py
+@@ -0,0 +1 @@
++"""Unified synthetic comparison experiments."""
+diff --git a/review_bundle/experiments/agents.py b/review_bundle/experiments/agents.py
+new file mode 100644
+index 0000000..d23c0f8
+--- /dev/null
++++ b/review_bundle/experiments/agents.py
+@@ -0,0 +1,130 @@
++from __future__ import annotations
++
++from dataclasses import dataclass
++from typing import Protocol
++
++import numpy as np
++import torch
++from torch import nn
++from torch.distributions import Normal
++
++from cert_runtime.actor import FeedForwardAffineTanhActor
++from cert_runtime.generator_sac import QNetwork
++
++
++class ContinuousAgent(Protocol):
++    def select_action(self, observation: np.ndarray, context: dict, deterministic: bool = False) -> np.ndarray: ...
++    def observe(self, transition) -> None: ...
++    def update(self) -> dict[str, float | int | str] | None: ...
++
++
++@dataclass(frozen=True)
++class DirectTransition:
++    observation: np.ndarray
++    next_observation: np.ndarray
++    reward: float
++    terminated: bool
++    truncated: bool
++    executed_action: np.ndarray
++
++    def __post_init__(self) -> None:
++        for name in ("observation", "next_observation", "executed_action"):
++            object.__setattr__(self, name, np.asarray(getattr(self, name), dtype=np.float32).copy())
++
++
++class DirectActor(nn.Module):
++    def __init__(self, observation_dim: int, hidden_dim: int) -> None:
++        super().__init__()
++        self.backbone = nn.Sequential(nn.Linear(observation_dim, hidden_dim), nn.ReLU(), nn.Linear(hidden_dim, hidden_dim), nn.ReLU())
++        self.mean = nn.Linear(hidden_dim, 3)
++        self.log_std = nn.Linear(hidden_dim, 3)
++
++    def distribution(self, observation):
++        features = self.backbone(observation)
++        return Normal(self.mean(features), self.log_std(features).clamp(-10.0, 2.0).exp())
++
++
++class DirectSACAgent:
++    """Vanilla/penalty/shield SAC; critics always consume executed actions."""
++
++    def __init__(self, observation_dim: int, action_max: np.ndarray, *, seed: int, batch_size: int = 64, capacity: int = 100000, hidden_dim: int = 128, gamma: float = 0.99, tau: float = 0.005, device: str = "cpu") -> None:
++        torch.manual_seed(seed)
++        self.device = torch.device(device)
++        self.action_max = torch.as_tensor(action_max, dtype=torch.float32, device=self.device)
++        self.actor = DirectActor(observation_dim, hidden_dim).to(self.device)
++        self.critic_1 = QNetwork(observation_dim, hidden_dim).to(self.device)
++        self.critic_2 = QNetwork(observation_dim, hidden_dim).to(self.device)
++        self.target_critic_1 = QNetwork(observation_dim, hidden_dim).to(self.device)
++        self.target_critic_2 = QNetwork(observation_dim, hidden_dim).to(self.device)
++        self.target_critic_1.load_state_dict(self.critic_1.state_dict())
++        self.target_critic_2.load_state_dict(self.critic_2.state_dict())
++        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=3e-4)
++        self.critic_optimizer = torch.optim.Adam(list(self.critic_1.parameters()) + list(self.critic_2.parameters()), lr=3e-4)
++        self.log_alpha = torch.tensor(0.0, device=self.device, requires_grad=True)
++        self.alpha_optimizer = torch.optim.Adam([self.log_alpha], lr=3e-4)
++        self.gamma, self.tau, self.batch_size, self.capacity = gamma, tau, batch_size, capacity
++        self.replay: list[DirectTransition] = []
++        self.rng = np.random.default_rng(seed)
++
++    @property
++    def alpha(self):
++        return self.log_alpha.exp()
++
++    def _sample(self, observations, deterministic=False):
++        distribution = self.actor.distribution(observations)
++        u = distribution.mean if deterministic else distribution.rsample()
++        eta = torch.tanh(u)
++        action = self.action_max * eta
++        log_prob = distribution.log_prob(u).sum(-1) - FeedForwardAffineTanhActor.stable_tanh_log_jacobian(u) - torch.log(self.action_max).sum()
++        return action, log_prob
++
++    def select_action(self, observation: np.ndarray, context: dict | None = None, deterministic: bool = False) -> np.ndarray:
++        del context
++        with torch.no_grad():
++            action, _ = self._sample(torch.as_tensor(observation, dtype=torch.float32, device=self.device), deterministic)
++            return action.cpu().numpy().astype(np.float64)
++
++    def observe(self, transition: DirectTransition) -> None:
++        self.replay.append(transition)
++        if len(self.replay) > self.capacity:
++            del self.replay[0]
++
++    def update(self):
++        if len(self.replay) < self.batch_size:
++            return None
++        indices = self.rng.choice(len(self.replay), self.batch_size, replace=False)
++        batch = [self.replay[int(index)] for index in indices]
++        obs = torch.as_tensor(np.stack([item.observation for item in batch]), dtype=torch.float32, device=self.device)
++        next_obs = torch.as_tensor(np.stack([item.next_observation for item in batch]), dtype=torch.float32, device=self.device)
++        actions = torch.as_tensor(np.stack([item.executed_action for item in batch]), dtype=torch.float32, device=self.device)
++        rewards = torch.as_tensor([item.reward for item in batch], dtype=torch.float32, device=self.device)
++        done = torch.as_tensor([float(item.terminated) for item in batch], dtype=torch.float32, device=self.device)
++        with torch.no_grad():
++            next_action, next_log_prob = self._sample(next_obs)
++            target_q = torch.minimum(self.target_critic_1(next_obs, next_action), self.target_critic_2(next_obs, next_action))
++            target = rewards + self.gamma * (1.0 - done) * (target_q - self.alpha.detach() * next_log_prob)
++        pred_1, pred_2 = self.critic_1(obs, actions), self.critic_2(obs, actions)
++        loss_1, loss_2 = nn.functional.mse_loss(pred_1, target), nn.functional.mse_loss(pred_2, target)
++        self.critic_optimizer.zero_grad(set_to_none=True)
++        (loss_1 + loss_2).backward()
++        critic_grad = float(torch.nn.utils.clip_grad_norm_(list(self.critic_1.parameters()) + list(self.critic_2.parameters()), 100.0))
++        self.critic_optimizer.step()
++        sampled_action, log_prob = self._sample(obs)
++        actor_loss = (self.alpha.detach() * log_prob - torch.minimum(self.critic_1(obs, sampled_action), self.critic_2(obs, sampled_action))).mean()
++        self.actor_optimizer.zero_grad(set_to_none=True)
++        actor_loss.backward()
++        actor_grad = float(torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 100.0))
++        self.actor_optimizer.step()
++        alpha_loss = -(self.log_alpha * (log_prob.detach() - 3.0)).mean()
++        self.alpha_optimizer.zero_grad(set_to_none=True)
++        alpha_loss.backward()
++        self.alpha_optimizer.step()
++        with torch.no_grad():
++            for online, target_network in ((self.critic_1, self.target_critic_1), (self.critic_2, self.target_critic_2)):
++                for source, target_parameter in zip(online.parameters(), target_network.parameters()):
++                    target_parameter.mul_(1.0 - self.tau).add_(self.tau * source)
++        return {
++            "actor_loss": float(actor_loss.detach()), "critic_loss_1": float(loss_1.detach()), "critic_loss_2": float(loss_2.detach()),
++            "alpha": float(self.alpha.detach()), "entropy": float(-log_prob.mean().detach()),
++            "q_value_exec": float(torch.minimum(pred_1, pred_2).mean().detach()), "gradient_norm": max(actor_grad, critic_grad),
++        }
+diff --git a/review_bundle/experiments/aggregate.py b/review_bundle/experiments/aggregate.py
+new file mode 100644
+index 0000000..dd6613e
+--- /dev/null
++++ b/review_bundle/experiments/aggregate.py
+@@ -0,0 +1,54 @@
++from __future__ import annotations
++
++import json
++from pathlib import Path
++import csv
++import numpy as np
++
++
++def aggregate_results(root: str | Path) -> list[dict]:
++    root = Path(root)
++    records = [json.loads(path.read_text(encoding="utf-8")) for path in root.glob("mission_*/*/seed_*/runtime_profile.json")]
++    grouped: dict[tuple[str, str], list[dict]] = {}
++    for record in records:
++        grouped.setdefault((record["method"], record["scenario"]), []).append(record)
++    rows = []
++    metrics = ("task_success_rate", "return_success_rate", "collision_episode_rate", "energy_depletion_rate", "mean_episode_return", "fallback_rate", "mean_zonotope_volume", "runtime_p99_seconds", "wall_time_seconds")
++    for (method, scenario), values in sorted(grouped.items()):
++        row = {"method": method, "scenario": scenario, "seeds": len(values)}
++        for metric in metrics:
++            samples = [float(value[metric]) for value in values]
++            row[f"{metric}_mean"] = float(np.mean(samples))
++            row[f"{metric}_std"] = float(np.std(samples))
++        rows.append(row)
++    aggregate = root / "aggregate"
++    aggregate.mkdir(parents=True, exist_ok=True)
++    (aggregate / "summary.json").write_text(json.dumps(rows, indent=2), encoding="utf-8")
++    if rows:
++        with (aggregate / "summary.csv").open("w", newline="", encoding="utf-8") as handle:
++            writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
++            writer.writeheader(); writer.writerows(rows)
++    safety_fields = [field for field in rows[0] if field in {"method", "scenario", "seeds"} or any(token in field for token in ("task_success", "return_success", "collision", "energy_depletion", "fallback", "zonotope"))] if rows else []
++    runtime_fields = [field for field in rows[0] if field in {"method", "scenario", "seeds"} or "wall_time" in field] if rows else []
++    for path, fields in ((aggregate / "safety_performance_table.csv", safety_fields), (aggregate / "runtime_table.csv", runtime_fields)):
++        with path.open("w", newline="", encoding="utf-8") as handle:
++            if fields:
++                writer = csv.DictWriter(handle, fieldnames=fields)
++                writer.writeheader(); writer.writerows({field: row[field] for field in fields} for row in rows)
++    curve_groups: dict[tuple[str, str, int], list[float]] = {}
++    for path in root.glob("mission_*/*/seed_*/training_metrics.csv"):
++        scenario, method = path.parts[-4], path.parts[-3]
++        with path.open(encoding="utf-8") as handle:
++            for row in csv.DictReader(handle):
++                step = int(row["environment_step"])
++                bin_step = 100 * ((step - 1) // 100 + 1)
++                curve_groups.setdefault((method, scenario, bin_step), []).append(float(row["reward"]))
++    curve_rows = [
++        {"method": method, "scenario": scenario, "environment_step": step, "reward_mean": float(np.mean(values)), "reward_std": float(np.std(values)), "samples": len(values)}
++        for (method, scenario, step), values in sorted(curve_groups.items())
++    ]
++    with (aggregate / "learning_curves.csv").open("w", newline="", encoding="utf-8") as handle:
++        if curve_rows:
++            writer = csv.DictWriter(handle, fieldnames=list(curve_rows[0]))
++            writer.writeheader(); writer.writerows(curve_rows)
++    return rows
+diff --git a/review_bundle/experiments/configs/first_round.json b/review_bundle/experiments/configs/first_round.json
+new file mode 100644
+index 0000000..3e4b93e
+--- /dev/null
++++ b/review_bundle/experiments/configs/first_round.json
+@@ -0,0 +1,11 @@
++{
++  "methods": ["sac", "penalty_sac", "shield_sac", "generator_sac"],
++  "scenarios": ["mission_open", "mission_obstacle", "mission_narrow", "mission_energy_tight"],
++  "seeds": [0, 1, 2],
++  "validation_steps": 2000,
++  "formal_steps": 10000,
++  "warmup_steps": 500,
++  "batch_size": 64,
++  "hidden_dim": 128,
++  "evidence_scope": "synthetic empirical training only"
++}
+diff --git a/review_bundle/experiments/metrics.py b/review_bundle/experiments/metrics.py
+new file mode 100644
+index 0000000..a4a99ae
+--- /dev/null
++++ b/review_bundle/experiments/metrics.py
+@@ -0,0 +1,18 @@
++from __future__ import annotations
++
++import csv
++from pathlib import Path
++from typing import Iterable
++
++
++def write_csv(path: Path, rows: Iterable[dict]) -> None:
++    materialized = list(rows)
++    path.parent.mkdir(parents=True, exist_ok=True)
++    if not materialized:
++        path.write_text("", encoding="utf-8")
++        return
++    fields = sorted({key for row in materialized for key in row})
++    with path.open("w", newline="", encoding="utf-8") as handle:
++        writer = csv.DictWriter(handle, fieldnames=fields)
++        writer.writeheader()
++        writer.writerows(materialized)
+diff --git a/review_bundle/experiments/plots.py b/review_bundle/experiments/plots.py
+new file mode 100644
+index 0000000..c7c4be1
+--- /dev/null
++++ b/review_bundle/experiments/plots.py
+@@ -0,0 +1 @@
++"""Plotting is intentionally deferred; CSV outputs are the authoritative first-round artifact."""
+diff --git a/review_bundle/experiments/registry.py b/review_bundle/experiments/registry.py
+new file mode 100644
+index 0000000..68aaa70
+--- /dev/null
++++ b/review_bundle/experiments/registry.py
+@@ -0,0 +1,8 @@
++METHODS = ("sac", "penalty_sac", "shield_sac", "generator_sac")
++SCENARIOS = ("mission_open", "mission_obstacle", "mission_narrow", "mission_energy_tight")
++
++
++def validate_method(method: str) -> str:
++    if method not in METHODS:
++        raise ValueError(f"unknown method {method!r}; choose from {METHODS}")
++    return method
+diff --git a/review_bundle/experiments/runner.py b/review_bundle/experiments/runner.py
+new file mode 100644
+index 0000000..4276068
+--- /dev/null
++++ b/review_bundle/experiments/runner.py
+@@ -0,0 +1,280 @@
++from __future__ import annotations
++
++from dataclasses import asdict, dataclass
++import json
++from pathlib import Path
++import platform
++import subprocess
++from time import monotonic
++
++import numpy as np
++import torch
++
++from cert_runtime.generator_sac import GeneratorSAC, GeneratorSACConfig, GeneratorTransition
++from envs.certified_uav import make_certified_uav_env
++from envs.certified_uav.config import CertifiedUAVConfig, apply_configuration_overrides
++from envs.certified_uav.plant_env import CertifiedSingleUAVPlantEnv
++from envs.certified_uav.scenario import FixedCertificationScenario
++from envs.certified_uav.task_wrapper import CertifiedTaskWrapper
++
++from .agents import DirectSACAgent, DirectTransition
++from .metrics import write_csv
++from .registry import validate_method
++
++
++@dataclass(frozen=True)
++class ExperimentConfig:
++    method: str
++    scenario: str
++    seed: int
++    total_steps: int = 10_000
++    warmup_steps: int = 500
++    batch_size: int = 64
++    hidden_dim: int = 128
++    updates_per_step: int = 1
++    checkpoint_interval: int = 5_000
++    evaluation_interval: int = 5_000
++    output_root: str = "artifacts/comparison"
++    device: str = "cpu"
++
++
++def _git_sha() -> str:
++    try:
++        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL).strip()
++    except Exception:
++        return "unavailable"
++
++
++def _direct_environment(scenario_name: str):
++    scenario = FixedCertificationScenario(f"{scenario_name}.json").definition
++    config = apply_configuration_overrides(CertifiedUAVConfig(world_size=scenario.world_size), scenario.configuration_overrides)
++    return CertifiedTaskWrapper(CertifiedSingleUAVPlantEnv(config, scenario))
++
++
++def _terminal_context(current: dict) -> dict:
++    return {
++        "certificate_valid": False, "generator_available": False,
++        "c": None, "G": None, "kappa": np.asarray(current.get("kappa", np.zeros(3)), dtype=np.float32),
++        "certificate_epoch": current.get("certificate_epoch", "terminal"),
++        "geometry_version": current.get("geometry_version", "terminal"),
++        "corridor_version": current.get("corridor_version", "terminal"),
++        "energy_version": current.get("energy_version", "terminal"),
++        "recovery_hash": current.get("recovery_hash"), "zonotope_hash": None,
++    }
++
++
++def _evaluate(method: str, agent, scenario: str, seed: int, episodes: int = 2) -> list[dict]:
++    certified = method in {"shield_sac", "generator_sac"}
++    environment = make_certified_uav_env(f"{scenario}.json") if certified else _direct_environment(scenario)
++    rows = []
++    for episode in range(episodes):
++        observation, _ = environment.reset(seed=seed + episode)
++        episode_return = 0.0
++        task_success = return_success = False
++        for step in range(1, environment.plant.config.episode_limit + 1):
++            if method == "generator_sac":
++                next_observation, reward, terminated, truncated, info = environment.step(agent.select_u(observation, deterministic=True))
++            else:
++                action = agent.select_action(observation, {}, deterministic=True)
++                if method == "shield_sac":
++                    next_observation, reward, terminated, truncated, info = environment.step_nominal_action(action)
++                else:
++                    next_observation, reward, terminated, truncated, info = environment.step(action)
++            if method == "penalty_sac":
++                reward -= 20.0 * float(info.get("failure_reason") in {"collision", "energy_depleted", "velocity_limit_exceeded"})
++            episode_return += reward
++            task_success |= bool(info.get("task_completed", False))
++            return_success |= bool(info.get("terminal_return_success", False))
++            observation = next_observation
++            if terminated or truncated:
++                break
++        rows.append({
++            "evaluation_episode": episode, "episode_return": episode_return, "episode_length": step,
++            "task_success": int(task_success), "return_success": int(return_success),
++            "collision": int(info.get("failure_reason") == "collision"),
++            "energy_depleted": int(info.get("failure_reason") == "energy_depleted"),
++        })
++    return rows
++
++
++def run_experiment(config: ExperimentConfig) -> dict:
++    method = validate_method(config.method)
++    output = Path(config.output_root) / config.scenario / method / f"seed_{config.seed}"
++    output.mkdir(parents=True, exist_ok=True)
++    (output / "config.json").write_text(json.dumps(asdict(config) | {
++        "git_sha": _git_sha(), "python": platform.python_version(), "numpy": np.__version__, "torch": torch.__version__,
++        "evidence_scope": "synthetic empirical training only",
++    }, indent=2), encoding="utf-8")
++
++    certified = method in {"shield_sac", "generator_sac"}
++    environment = make_certified_uav_env(f"{config.scenario}.json") if certified else _direct_environment(config.scenario)
++    observation, reset_info = environment.reset(seed=config.seed)
++    rng = np.random.default_rng(config.seed)
++    action_max = environment.config.a_max if certified else environment.plant.config.a_max
++    if method == "generator_sac":
++        agent = GeneratorSAC(observation.size, GeneratorSACConfig(
++            batch_size=config.batch_size, warmup_steps=config.warmup_steps, hidden_dim=config.hidden_dim,
++            updates_per_step=config.updates_per_step, replay_capacity=max(10000, config.total_steps * 2),
++            epoch_replay_policy="group",
++        ), seed=config.seed, device=config.device)
++        current_context = environment.action_context()
++    else:
++        agent = DirectSACAgent(observation.size, action_max, seed=config.seed, batch_size=config.batch_size, hidden_dim=config.hidden_dim, device=config.device)
++        current_context = {}
++
++    episode_id = episode_step = 0
++    episode_return = path_length = outbound_path = return_path = 0.0
++    previous_position = environment.plant.state.position.copy()
++    training_rows: list[dict] = []
++    episode_rows: list[dict] = []
++    safety_events: list[dict] = []
++    latest_update: dict = {}
++    accepted_total = fallback_total = no_generator_total = 0
++    zonotope_volumes: list[float] = []
++    sigma_values: list[float] = []
++    condition_values: list[float] = []
++    cycle_times: list[float] = []
++    started = monotonic()
++
++    for environment_step in range(1, config.total_steps + 1):
++        phase_before = environment.task_env.phase.name if certified else environment.phase.name
++        if method == "generator_sac":
++            actor_u = rng.normal(size=3) if environment_step <= config.warmup_steps else agent.select_u(observation)
++            next_observation, reward, terminated, truncated, info = environment.step(actor_u)
++        else:
++            nominal_action = rng.uniform(-action_max, action_max) if environment_step <= config.warmup_steps else agent.select_action(observation, current_context)
++            if method == "shield_sac":
++                next_observation, reward, terminated, truncated, info = environment.step_nominal_action(nominal_action)
++            else:
++                next_observation, reward, terminated, truncated, info = environment.step(nominal_action)
++        telemetry = info["telemetry"]
++        cycle_times.append(float(info.get("stage_timings", {}).get("T_total", 0.0)))
++        executed = telemetry.action_trace.published.copy()
++        measured = telemetry.action_trace.measured.copy()
++        accepted = bool(info.get("accepted", method in {"sac", "penalty_sac"}))
++        fallback_reason = info.get("fallback_reason")
++        if method == "penalty_sac":
++            reward -= 20.0 * float(info.get("failure_reason") in {"collision", "energy_depleted", "velocity_limit_exceeded"})
++        next_phase = info.get("mission_phase", environment.task_env.phase.name if certified else environment.phase.name)
++        if method == "generator_sac":
++            next_context = _terminal_context(current_context) if terminated else environment.preview_next_action_context()
++            record = environment.replay.records[-1]
++            transition = GeneratorTransition(
++                observation, next_observation, reward, terminated, truncated, episode_id, phase_before, next_phase,
++                str(current_context["certificate_epoch"]), str(next_context["certificate_epoch"]),
++                record.nominal_pre_squash_u, record.squashed_eta, current_context.get("c"), current_context.get("G"),
++                record.candidate_action, record.recovery_action, record.executed_action, record.measured_tracking_action,
++                record.accepted, record.fallback_reason, next_context.get("c"), next_context.get("G"), next_context["kappa"],
++                bool(next_context["generator_available"]), bool(next_context["certificate_valid"]),
++                str(current_context["geometry_version"]), str(current_context["corridor_version"]), str(current_context["energy_version"]),
++                (current_context.get("recovery_hash"), current_context.get("zonotope_hash")),
++            )
++            agent.observe(transition)
++            current_context = next_context
++            if current_context.get("G") is not None:
++                determinant = abs(float(np.linalg.det(current_context["G"])))
++                zonotope_volumes.append(8.0 * determinant)
++                singular = np.linalg.svd(current_context["G"], compute_uv=False)
++                sigma_values.append(float(singular.min()))
++                condition_values.append(float(singular.max() / singular.min()))
++        else:
++            agent.observe(DirectTransition(observation, next_observation, reward, terminated, truncated, executed))
++        if accepted:
++            accepted_total += 1
++        else:
++            fallback_total += 1
++            no_generator_total += int(fallback_reason == "NO_GENERATOR_SET")
++        if environment_step > config.warmup_steps:
++            for _ in range(config.updates_per_step):
++                try:
++                    result = agent.update()
++                except ValueError as error:
++                    if "batch" not in str(error) and "epoch" not in str(error):
++                        raise
++                    result = None
++                if result:
++                    latest_update = result
++                    if any(isinstance(value, float) and not np.isfinite(value) for key, value in result.items() if "loss" in key and key != "actor_loss"):
++                        raise FloatingPointError(f"nonfinite update at step {environment_step}: {result}")
++
++        displacement = float(np.linalg.norm(environment.plant.state.position - previous_position))
++        path_length += displacement
++        if phase_before == "OUTBOUND": outbound_path += displacement
++        else:
++            return_path += displacement
++        previous_position = environment.plant.state.position.copy()
++        episode_step += 1
++        episode_return += reward
++        if info.get("failure_reason"):
++            safety_events.append({"step": environment_step, "episode_id": episode_id, "reason": info["failure_reason"], "executed_action": executed.tolist()})
++        row = {
++            "environment_step": environment_step, "episode_id": episode_id, "episode_step": episode_step,
++            "reward": reward, "mission_phase": next_phase, "accepted": int(accepted), "fallback": int(not accepted),
++            "fallback_reason": fallback_reason or "", "energy": environment.plant.state.energy,
++            "zonotope_volume": zonotope_volumes[-1] if zonotope_volumes else "", "elapsed_seconds": monotonic() - started,
++        } | latest_update
++        training_rows.append(row)
++        if terminated or truncated:
++            terminal_success = bool(info.get("terminal_return_success", False))
++            episode_rows.append({
++                "episode_id": episode_id, "episode_return": episode_return, "episode_length": episode_step,
++                "task_success": int(info.get("task_completed", False)), "return_success": int(terminal_success),
++                "collision": int(info.get("failure_reason") == "collision"),
++                "energy_depleted": int(info.get("failure_reason") == "energy_depleted"),
++                "timeout": int(truncated), "outbound_path_length": outbound_path, "return_path_length": return_path,
++                "total_path_length": path_length, "terminal_energy": environment.plant.state.energy,
++            })
++            episode_id += 1
++            observation, reset_info = environment.reset(seed=config.seed + episode_id)
++            current_context = environment.action_context() if method == "generator_sac" else {}
++            episode_step = 0
++            episode_return = path_length = outbound_path = return_path = 0.0
++            previous_position = environment.plant.state.position.copy()
++        else:
++            observation = next_observation
++        if environment_step % config.checkpoint_interval == 0:
++            state = agent.state_dict() if method == "generator_sac" else {
++                "actor": agent.actor.state_dict(), "critic_1": agent.critic_1.state_dict(), "critic_2": agent.critic_2.state_dict()
++            }
++            torch.save(state, output / "checkpoint_latest.pt")
++
++    write_csv(output / "training_metrics.csv", training_rows)
++    write_csv(output / "episode_metrics.csv", episode_rows)
++    evaluation_rows = _evaluate(method, agent, config.scenario, config.seed + 10_000)
++    write_csv(output / "evaluation_metrics.csv", evaluation_rows)
++    with (output / "safety_events.jsonl").open("w", encoding="utf-8") as handle:
++        for event in safety_events:
++            handle.write(json.dumps(event) + "\n")
++    runtime_summary = {
++        "method": method, "scenario": config.scenario, "seed": config.seed, "environment_steps": config.total_steps,
++        "episodes": len(episode_rows), "mean_episode_length": float(np.mean([row["episode_length"] for row in episode_rows])) if episode_rows else 0.0,
++        "task_success_rate": float(np.mean([row["task_success"] for row in episode_rows])) if episode_rows else 0.0,
++        "return_success_rate": float(np.mean([row["return_success"] for row in episode_rows])) if episode_rows else 0.0,
++        "collision_episode_rate": float(np.mean([row["collision"] for row in episode_rows])) if episode_rows else 0.0,
++        "energy_depletion_rate": float(np.mean([row["energy_depleted"] for row in episode_rows])) if episode_rows else 0.0,
++        "mean_episode_return": float(np.mean([row["episode_return"] for row in episode_rows])) if episode_rows else 0.0,
++        "generator_acceptance_rate": accepted_total / config.total_steps if method == "generator_sac" else 0.0,
++        "shield_acceptance_rate": accepted_total / config.total_steps if method == "shield_sac" else 0.0,
++        "task_action_execution_rate": accepted_total / config.total_steps,
++        "fallback_rate": fallback_total / config.total_steps,
++        "no_generator_set_rate": no_generator_total / config.total_steps,
++        "mean_zonotope_volume": float(np.mean(zonotope_volumes)) if zonotope_volumes else 0.0,
++        "min_zonotope_volume": float(np.min(zonotope_volumes)) if zonotope_volumes else 0.0,
++        "mean_sigma_min": float(np.mean(sigma_values)) if sigma_values else 0.0,
++        "mean_condition_number": float(np.mean(condition_values)) if condition_values else 0.0,
++        "runtime_median_seconds": float(np.median(cycle_times)) if cycle_times else 0.0,
++        "runtime_p95_seconds": float(np.quantile(cycle_times, 0.95)) if cycle_times else 0.0,
++        "runtime_p99_seconds": float(np.quantile(cycle_times, 0.99)) if cycle_times else 0.0,
++        "runtime_max_seconds": float(np.max(cycle_times)) if cycle_times else 0.0,
++        "wall_time_seconds": monotonic() - started, "evidence_scope": "synthetic empirical training only",
++        "evaluation_task_success_rate": float(np.mean([row["task_success"] for row in evaluation_rows])),
++        "evaluation_return_success_rate": float(np.mean([row["return_success"] for row in evaluation_rows])),
++    }
++    final_state = agent.state_dict() if method == "generator_sac" else {
++        "actor": agent.actor.state_dict(), "critic_1": agent.critic_1.state_dict(), "critic_2": agent.critic_2.state_dict(),
++        "target_critic_1": agent.target_critic_1.state_dict(), "target_critic_2": agent.target_critic_2.state_dict(),
++    }
++    torch.save(final_state, output / "checkpoint_latest.pt")
++    torch.save(final_state, output / "checkpoint_best.pt")
++    (output / "runtime_profile.json").write_text(json.dumps(runtime_summary, indent=2), encoding="utf-8")
++    return runtime_summary
+diff --git a/review_bundle/scripts/run_comparison.py b/review_bundle/scripts/run_comparison.py
+new file mode 100644
+index 0000000..7cb762c
+--- /dev/null
++++ b/review_bundle/scripts/run_comparison.py
+@@ -0,0 +1,40 @@
++from __future__ import annotations
++
++import argparse
++import json
++from pathlib import Path
++import sys
++
++ROOT = Path(__file__).resolve().parents[1]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
++from experiments.aggregate import aggregate_results
++from experiments.runner import ExperimentConfig, run_experiment
++from experiments.registry import METHODS, SCENARIOS
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--methods", nargs="+", default=list(METHODS))
++    parser.add_argument("--scenarios", nargs="+", default=list(SCENARIOS))
++    parser.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
++    parser.add_argument("--steps", type=int, default=10000)
++    parser.add_argument("--warmup-steps", type=int, default=500)
++    parser.add_argument("--batch-size", type=int, default=64)
++    parser.add_argument("--output-dir", default="artifacts/comparison")
++    parser.add_argument("--device", default="cpu")
++    args = parser.parse_args()
++    results = []
++    for scenario in args.scenarios:
++        for method in args.methods:
++            for seed in args.seeds:
++                result = run_experiment(ExperimentConfig(method, scenario, seed, args.steps, args.warmup_steps, args.batch_size, output_root=args.output_dir, device=args.device))
++                results.append(result)
++                print(json.dumps(result, sort_keys=True), flush=True)
++    aggregate = aggregate_results(args.output_dir)
++    print(json.dumps({"runs": len(results), "aggregate_rows": aggregate}, indent=2))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/review_bundle/scripts/run_single_experiment.py b/review_bundle/scripts/run_single_experiment.py
+new file mode 100644
+index 0000000..a5acfb0
+--- /dev/null
++++ b/review_bundle/scripts/run_single_experiment.py
+@@ -0,0 +1,31 @@
++from __future__ import annotations
++
++import argparse
++import json
++from pathlib import Path
++import sys
++
++ROOT = Path(__file__).resolve().parents[1]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
++from experiments.runner import ExperimentConfig, run_experiment
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser()
++    parser.add_argument("method")
++    parser.add_argument("scenario")
++    parser.add_argument("seed", type=int)
++    parser.add_argument("--steps", type=int, default=10000)
++    parser.add_argument("--warmup-steps", type=int, default=500)
++    parser.add_argument("--batch-size", type=int, default=64)
++    parser.add_argument("--output-dir", default="artifacts/comparison")
++    parser.add_argument("--device", default="cpu")
++    args = parser.parse_args()
++    result = run_experiment(ExperimentConfig(args.method, args.scenario, args.seed, args.steps, args.warmup_steps, args.batch_size, output_root=args.output_dir, device=args.device))
++    print(json.dumps(result, sort_keys=True))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/review_bundle/scripts/train_generator_sac.py b/review_bundle/scripts/train_generator_sac.py
+new file mode 100644
+index 0000000..2066386
+--- /dev/null
++++ b/review_bundle/scripts/train_generator_sac.py
+@@ -0,0 +1,30 @@
++from __future__ import annotations
++
++import argparse
++import json
++from pathlib import Path
++import sys
++
++ROOT = Path(__file__).resolve().parents[1]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
++from experiments.runner import ExperimentConfig, run_experiment
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--scenario", default="mission_open")
++    parser.add_argument("--seeds", nargs="+", type=int, default=[0])
++    parser.add_argument("--steps", type=int, default=10000)
++    parser.add_argument("--warmup-steps", type=int, default=500)
++    parser.add_argument("--batch-size", type=int, default=64)
++    parser.add_argument("--output-dir", default="artifacts/comparison")
++    parser.add_argument("--device", default="cpu")
++    args = parser.parse_args()
++    results = [run_experiment(ExperimentConfig("generator_sac", args.scenario, seed, args.steps, args.warmup_steps, args.batch_size, output_root=args.output_dir, device=args.device)) for seed in args.seeds]
++    print(json.dumps(results, indent=2))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/review_bundle/tests/test_multistep_generator_sac.py b/review_bundle/tests/test_multistep_generator_sac.py
+new file mode 100644
+index 0000000..1376179
+--- /dev/null
++++ b/review_bundle/tests/test_multistep_generator_sac.py
+@@ -0,0 +1,179 @@
++from __future__ import annotations
++
++import unittest
++
++import numpy as np
++import torch
++
++from cert_runtime.generator_sac import (
++    GeneratorReplayBuffer,
++    GeneratorSAC,
++    GeneratorSACConfig,
++    GeneratorTransition,
++)
++from envs.certified_uav import MissionPhase, make_certified_uav_env
++from experiments.agents import DirectSACAgent, DirectTransition
++
++
++def transition(*, accepted=True, next_generator=True, terminated=False, epoch="epoch-a", next_c=None, next_G=None):
++    observation = np.linspace(-0.2, 0.2, 12, dtype=np.float32)
++    c = np.zeros(3, dtype=np.float32)
++    G = np.diag([0.05, 0.06, 0.07]).astype(np.float32)
++    return GeneratorTransition(
++        observation, observation + 0.01, 1.0, terminated, False, 0, "OUTBOUND", "OUTBOUND",
++        epoch, epoch, np.zeros(3) if accepted else None, np.zeros(3) if accepted else None,
++        c if accepted else None, G if accepted else None, c if accepted else None,
++        np.zeros(3), np.zeros(3), np.zeros(3), accepted, None if accepted else "fallback",
++        (c if next_c is None else next_c) if next_generator else None,
++        (G if next_G is None else next_G) if next_generator else None,
++        np.array([0.01, -0.01, 0.0]), next_generator, True, "1", "1", "energy-v1", ("r", "z"),
++    )
++
++
++class MultiStepMissionTests(unittest.TestCase):
++    def test_mission_initial_state_is_not_terminal_and_does_not_auto_reset(self):
++        runtime = make_certified_uav_env("mission_open.json")
++        runtime.reset(seed=0)
++        initial = runtime.plant.state.copy()
++        self.assertFalse(runtime.plant.terminal.is_admissible(initial))
++        for step in range(5):
++            _, _, terminated, truncated, info = runtime.step(np.zeros(3))
++            self.assertFalse(terminated)
++            self.assertFalse(truncated)
++            self.assertEqual(info["episode_step"], step + 1)
++        self.assertEqual(runtime.plant.step_count, 5)
++        self.assertGreater(runtime.plant.state.timestamp, initial.timestamp)
++
++    def test_deterministic_fixture_completes_outbound_and_return(self):
++        runtime = make_certified_uav_env("mission_open.json")
++        runtime.reset(seed=0)
++        observed_return = False
++        for _ in range(runtime.config.episode_limit):
++            context = runtime.action_context()
++            target = runtime.task_env.active_goal
++            desired = np.clip(
++                0.5 * (target - runtime.plant.state.position) - 1.2 * runtime.plant.state.velocity,
++                -runtime.config.a_max,
++                runtime.config.a_max,
++            )
++            if context["G"] is None:
++                actor_u = np.zeros(3)
++            else:
++                eta = np.linalg.solve(context["G"], desired - context["c"])
++                actor_u = np.arctanh(np.clip(eta, -0.95, 0.95))
++            _, _, terminated, truncated, info = runtime.step(actor_u)
++            observed_return |= info["mission_phase"] == MissionPhase.RETURN.name
++            if terminated or truncated:
++                self.assertTrue(info["task_completed"])
++                self.assertTrue(info["terminal_return_success"])
++                self.assertEqual(info["mission_phase"], MissionPhase.SUCCESS.name)
++                self.assertGreater(info["episode_step"], 20)
++                break
++        else:
++            self.fail("mission fixture did not terminate")
++        self.assertTrue(observed_return)
++
++    def test_reward_weights_do_not_change_certificate_context(self):
++        first = make_certified_uav_env("mission_open.json")
++        second = make_certified_uav_env("mission_open.json")
++        first.reset(seed=1); second.reset(seed=1)
++        second.task_env.reward_config = second.task_env.reward_config.__class__(0.0, 0.0, 0.0, 0.0)
++        left, right = first.action_context(), second.action_context()
++        np.testing.assert_allclose(left["kappa"], right["kappa"])
++        np.testing.assert_allclose(left["c"], right["c"])
++        np.testing.assert_allclose(left["G"], right["G"])
++
++
++class GeneratorSACTests(unittest.TestCase):
++    def setUp(self):
++        self.config = GeneratorSACConfig(batch_size=4, hidden_dim=16, warmup_steps=0, epoch_replay_policy="group")
++        self.agent = GeneratorSAC(12, self.config, seed=0)
++
++    def test_fallback_target_uses_gamma_without_generator_entropy(self):
++        batch = [transition(accepted=False, next_generator=False) for _ in range(4)]
++        before = self.agent.generator_log_density_calls
++        target, counts = self.agent.bellman_target(batch)
++        self.assertEqual(self.agent.generator_log_density_calls, before)
++        self.assertEqual(counts["fallback_target_count"], 4)
++        self.assertTrue(torch.isfinite(target).all())
++
++    def test_generator_target_uses_next_context_and_entropy(self):
++        next_c = np.array([0.02, 0.01, -0.01], dtype=np.float32)
++        next_G = np.diag([0.03, 0.04, 0.05]).astype(np.float32)
++        batch = [transition(next_c=next_c, next_G=next_G) for _ in range(4)]
++        before = self.agent.generator_log_density_calls
++        target, counts = self.agent.bellman_target(batch)
++        self.assertEqual(counts["generator_target_count"], 4)
++        self.assertEqual(self.agent.generator_log_density_calls - before, 4)
++        self.assertTrue(torch.isfinite(target).all())
++
++    def test_terminal_transition_does_not_bootstrap(self):
++        batch = [transition(terminated=True, next_generator=False) for _ in range(4)]
++        target, _ = self.agent.bellman_target(batch)
++        torch.testing.assert_close(target, torch.ones(4))
++
++    def test_polyak_update_moves_target_toward_online(self):
++        target_before = next(self.agent.target_critic_1.parameters()).detach().clone()
++        with torch.no_grad():
++            next(self.agent.critic_1.parameters()).add_(1.0)
++        self.agent.polyak_update()
++        target_after = next(self.agent.target_critic_1.parameters()).detach()
++        self.assertFalse(torch.equal(target_before, target_after))
++
++    def test_fallback_only_batch_skips_actor_and_updates_critic(self):
++        batch = [transition(accepted=False, next_generator=False) for _ in range(4)]
++        actor_before = [parameter.detach().clone() for parameter in self.agent.actor.parameters()]
++        critic_before = [parameter.detach().clone() for parameter in self.agent.critic_1.parameters()]
++        metrics = self.agent.update(batch)
++        self.assertEqual(metrics["actor_status"], "zero-accepted-sample")
++        self.assertTrue(all(torch.equal(left, right) for left, right in zip(actor_before, self.agent.actor.parameters())))
++        self.assertTrue(any(not torch.equal(left, right) for left, right in zip(critic_before, self.agent.critic_1.parameters())))
++
++    def test_accepted_batch_updates_actor_and_critic_uses_exec(self):
++        batch = [transition() for _ in range(4)]
++        actor_before = [parameter.detach().clone() for parameter in self.agent.actor.parameters()]
++        metrics = self.agent.update(batch)
++        self.assertEqual(metrics["actor_status"], "updated")
++        self.assertTrue(any(not torch.equal(left, right) for left, right in zip(actor_before, self.agent.actor.parameters())))
++        self.assertGreater(metrics["accepted_batch_count"], 0)
++
++    def test_replay_epoch_policy_groups_and_arrays_do_not_alias(self):
++        replay = GeneratorReplayBuffer(10, "group", seed=0)
++        first = transition(epoch="a")
++        replay.add(first)
++        original = first.observation.copy()
++        source = np.zeros(12, dtype=np.float32)
++        item = transition(epoch="b")
++        replay.add(item)
++        source[:] = 2.0
++        np.testing.assert_array_equal(first.observation, original)
++        with self.assertRaises(ValueError):
++            replay.sample(2)
++
++
++class BaselineFairnessTests(unittest.TestCase):
++    def test_shield_critic_transition_uses_post_shield_action(self):
++        runtime = make_certified_uav_env("mission_open.json")
++        observation, _ = runtime.reset(seed=3)
++        next_observation, reward, terminated, truncated, info = runtime.step_nominal_action(runtime.config.a_max)
++        executed = info["telemetry"].action_trace.published
++        item = DirectTransition(observation, next_observation, reward, terminated, truncated, executed)
++        np.testing.assert_allclose(item.executed_action, executed, atol=1e-7)
++
++    def test_all_methods_share_same_plant_and_reward_types(self):
++        direct = make_certified_uav_env("mission_open.json").task_env
++        shield = make_certified_uav_env("mission_open.json")
++        self.assertEqual(type(direct.plant), type(shield.plant))
++        self.assertEqual(type(direct.reward_config), type(shield.task_env.reward_config))
++
++    def test_direct_sac_updates_from_executed_actions(self):
++        agent = DirectSACAgent(12, np.array([0.1, 0.1, 0.1]), seed=0, batch_size=2, hidden_dim=16)
++        for action in (np.array([0.1, 0.0, 0.0]), np.array([-0.1, 0.0, 0.0])):
++            agent.observe(DirectTransition(np.zeros(12), np.ones(12), 0.1, False, False, action))
++        metrics = agent.update()
++        self.assertIsNotNone(metrics)
++        self.assertTrue(np.isfinite(metrics["critic_loss_1"]))
++
++
++if __name__ == "__main__":
++    unittest.main()

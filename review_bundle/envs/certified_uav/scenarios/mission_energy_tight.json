@@ -1,0 +1,25 @@
+{
+  "base": "mission_open.json",
+  "name": "mission_energy_tight",
+  "initial_state": {"position": [3.15,0.50,1.0], "velocity": [0.0,0.0,0.0], "energy": 5.5, "timestamp": 0.0},
+  "configuration_overrides": {
+    "v_max": [0.30,0.30,0.12], "a_max": [0.18,0.18,0.08], "initial_energy": 5.5,
+    "episode_limit": 400, "minimum_generator_sigma": 0.01, "certification_deadline": 0.08
+  },
+  "mission": {
+    "enabled": true,
+    "certificate_mode": "synthetic_preverified",
+    "free_boxes": [[0.20,0.20,3.80,3.80]],
+    "occupied_boxes": [],
+    "return_waypoints": [[3.15,1.30,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
+    "goal_radius": 0.20,
+    "progress_weight": 10.0,
+    "task_reward": 20.0,
+    "return_reward": 30.0,
+    "energy_cost_weight": 0.01,
+    "generator_scale": [0.12,0.12,0.04],
+    "narrow_regions": [],
+    "energy_reserve_per_meter": 0.45,
+    "return_trigger_margin": 1.3
+  }
+}

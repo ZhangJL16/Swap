@@ -3182,3 +3182,43 @@ physical bounds **blocked-by-calibration**; hard timing and atomic actuator I/O
 **blocked-by-deployment-evidence**. The main theorem therefore remains a corridor-conditional
 robust guarantee under independently valid bounds. Zero synthetic collisions or finite training
 losses do not upgrade T1, T6, or T7 to real-flight claims.
+
+## 2026-08-07 Multi-Step Generator-SAC implementation addendum
+
+The single-step smoke optimizer remains only a formula/data-flow control. The formal implementation
+in `cert_runtime/generator_sac.py` instantiates the frozen-correspondence Route-A operator over
+multi-step trajectories with twin target critics. For transition (t), the critic input is the
+physically executed (a_t^{\rm exec}), never the nominal latent or rejected candidate. The target is
+
+\[
+y_t=r_t+\gamma(1-d_t)\begin{cases}
+\min_i Q_{\bar\psi_i}(o_{t+1},c_{t+1}+G_{t+1}\tanh u_{t+1})
+-\alpha\log q_G(a_{t+1}\mid z_{t+1}),&z_{t+1}\in\mathcal Z_G,\\
+\min_i Q_{\bar\psi_i}(o_{t+1},\kappa(z_{t+1})),&z_{t+1}\notin\mathcal Z_G.
+\end{cases}
+\]
+
+Here (d_t) is the physical termination indicator. Time-limit truncation bootstraps by default and
+is stored separately. The first branch uses next-state (c_{t+1},G_{t+1}), including the stable tanh
+Jacobian and (-\log|\det G_{t+1}|). The second branch is an atomic fallback and has no Generator
+density. Targets are detached, target critics are updated by Polyak averaging, and actor/temperature
+updates are restricted to accepted Generator rows with detached (c,G).
+
+This implements an engineering safeguarded-hybrid Bellman target. It does not prove A10c's global
+safeguarded-MDP kernel, deep-network convergence, or monotone improvement when certificate epochs
+change. Replay is grouped by epoch (or may be rejected/cleared under configured policies), so a
+batch never silently identifies incompatible state-dependent action correspondences.
+
+The training task adds explicit OUTBOUND and RETURN phases. These variables affect observations and
+reward but are not certificate sources. The deterministic synthetic mission fixture demonstrates
+that a mission can require many consecutive transitions and can complete task then return. Physical
+theorems remain conditional on independently valid calibration, corridor, κ, energy, numerical, and
+deadline premises.
+
+The first empirical matrix uses only 2,000 steps per method/scenario/seed and must not be interpreted
+as convergence evidence. Generator-SAC exhibited no sampled collision and high energy-triggered
+return success in the energy-tight fixture, while task success remained zero at this budget. Direct
+SAC variants showed occasional task completion but high collision rates. A shielded obstacle run
+still produced one sampled collision across three seeds, exposing that the fast synthetic waypoint
+κ is not a corridor-wide L4/L6 certificate. Accordingly, these results support implementation and
+experimental-design claims only; they do not upgrade T1, T3, T6, or T7.

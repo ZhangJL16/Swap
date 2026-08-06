@@ -9,7 +9,7 @@ from .plant_env import CertifiedSingleUAVPlantEnv
 from .runtime_wrapper import CertifiedRuntimeWrapper
 from .scenario import FixedCertificationScenario, RandomTrainingScenario, ScenarioDefinition, load_scenario
 from .state import UAVPhysicalState
-from .task_wrapper import CertifiedTaskWrapper
+from .task_wrapper import CertifiedTaskWrapper, MissionPhase, RewardBreakdown, TaskRewardConfig
 from .telemetry import StepTelemetry
 from .terminal import TerminalSpec
 
@@ -19,6 +19,9 @@ __all__ = [
     "CertifiedRuntimeWrapper",
     "CertifiedSingleUAVPlantEnv",
     "CertifiedTaskWrapper",
+    "MissionPhase",
+    "RewardBreakdown",
+    "TaskRewardConfig",
     "CertifiedUAVConfig",
     "FixedCertificationScenario",
     "EnergyModel",

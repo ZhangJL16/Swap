@@ -1,0 +1,20 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: review_bundle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv venv .venv
+      - run: uv pip install --python .venv/bin/python -r requirements.txt
+      - run: .venv/bin/python -m unittest discover -v -s tests -p 'test_*.py'

@@ -1,0 +1,14 @@
+{
+  "audit_date": "2026-08-07",
+  "scope": "pre-modification multi-step and SAC audit",
+  "items": [
+    {"item": 1, "finding": "train_generator_sac_smoke.py resets runtime after every step", "confirmed": true},
+    {"item": 2, "finding": "smoke replay contains independent one-step transitions", "confirmed": true},
+    {"item": 3, "finding": "smoke metrics hard-code episode_length=1 and episode_return=reward", "confirmed": true},
+    {"item": 4, "finding": "open_corridor starts adjacent to the terminal and is a one-step acceptance fixture", "confirmed": true},
+    {"item": 5, "finding": "MinimalGeneratorSAC critics regress directly to immediate rewards", "confirmed": true},
+    {"item": 6, "finding": "smoke trainer has no Bellman bootstrap, target critics, gamma, Polyak update, next action, or terminal mask", "confirmed": true},
+    {"item": 7, "finding": "stress script resets after each cycle and is interface stress only", "confirmed": true},
+    {"item": 8, "finding": "no unified baseline trainer or comparison runner exists", "confirmed": true}
+  ]
+}

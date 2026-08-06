@@ -1,0 +1,3 @@
+collision,energy_depleted,episode_length,episode_return,evaluation_episode,return_success,task_success
+0,0,51,-0.7357027698565541,0,0,0
+0,0,51,-0.7357027698565541,1,0,0
