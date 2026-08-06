@@ -1,0 +1,52 @@
+# Review bundle source diff and provenance
+
+source_commit=59fa35f4cdf82624f08da761fdc737cac77dd48d
+source_branch=master
+generated_at=2026-08-07T01:37:03+08:00
+
+## Included-path working-tree status
+ M envs/UAVEnergyDelivery.py
+?? DERIVATION_PACKAGE.md
+?? artifacts/environment_acceptance/
+?? artifacts/smoke_training/
+?? calibration/
+?? cert_runtime/
+?? docs/SINGLE_UAV_CERTIFICATION_ENV.md
+?? envs/certified_uav/
+?? envs/legacy/
+?? scripts/run_certified_env_acceptance.py
+?? scripts/run_certified_env_stress.py
+?? scripts/train_generator_sac_smoke.py
+?? tests/
+
+## Tracked diff for included paths
+diff --git a/envs/UAVEnergyDelivery.py b/envs/UAVEnergyDelivery.py
+index 24eb046..fd0d724 100755
+--- a/envs/UAVEnergyDelivery.py
++++ b/envs/UAVEnergyDelivery.py
+@@ -2058,6 +2058,10 @@ class UAVEnvDiscreteWrapper:
+         action = np.asarray(action, dtype=np.float32).reshape(-1)
+         if action.size < self.action_dim:
+             action = np.pad(action, (0, self.action_dim - action.size))
++        if getattr(self.env, "continuous_action_is_physical", False):
++            return np.clip(
++                action[: self.action_dim], -self.env.a_max, self.env.a_max
++            ).astype(np.float32)
+         action = np.clip(action[: self.action_dim], -1.0, 1.0)
+         return action.astype(np.float32) * float(self.env.a_max)
+
+@@ -2145,6 +2149,11 @@ class UAVEnvDiscreteWrapper:
+             "n_actions": self.n_actions,
+             "low_action_type": self.low_action_type,
+             "low_action_dim": self.action_dim,
++            "low_action_limit": float(
++                self.env.a_max
++                if getattr(self.env, "continuous_action_is_physical", False)
++                else 1.0
++            ),
+             "n_agents": self.n_agents,
+             "state_shape": int(state.shape[0]),
+             "obs_shape": int(obs.shape[-1]),
+
+## Note
+Most certification files are new/untracked in the source checkout, so their complete contents are supplied directly in this bundle rather than duplicated as no-index patches.

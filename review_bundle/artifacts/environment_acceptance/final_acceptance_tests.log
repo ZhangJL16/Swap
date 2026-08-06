@@ -1,0 +1,13 @@
+test_failure_matrix_fails_closed (tests.test_certified_env_acceptance.AcceptanceTraceTests.test_failure_matrix_fails_closed) ... ok
+test_open_trace_closes_execution_invariants (tests.test_certified_env_acceptance.AcceptanceTraceTests.test_open_trace_closes_execution_invariants) ... ok
+test_reward_parameters_and_goal_do_not_change_certificate_source (tests.test_certified_env_acceptance.AcceptanceTraceTests.test_reward_parameters_and_goal_do_not_change_certificate_source) ... ok
+test_world_change_does_not_magically_update_certificate_grid (tests.test_certified_env_acceptance.AcceptanceTraceTests.test_world_change_does_not_magically_update_certificate_grid) ... ok
+test_density_formula_and_gradient_acceptance (tests.test_certified_env_acceptance.TrainingSemanticsTests.test_density_formula_and_gradient_acceptance) ... ok
+test_fallback_only_batch_never_calls_generator_density (tests.test_certified_env_acceptance.TrainingSemanticsTests.test_fallback_only_batch_never_calls_generator_density) ... ok
+test_minimal_trainer_updates_actor_and_critics (tests.test_certified_env_acceptance.TrainingSemanticsTests.test_minimal_trainer_updates_actor_and_critics) ... ok
+test_mixed_epoch_is_rejected (tests.test_certified_env_acceptance.TrainingSemanticsTests.test_mixed_epoch_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 79.201s
+
+OK

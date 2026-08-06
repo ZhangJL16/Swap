@@ -1,0 +1,7 @@
+scenario=open_corridor
+accepted=True
+fallback_reason=None
+actor_called=True
+published_once=True
+elapsed_seconds=0.073824
+evidence_scope=synthetic-software-only
