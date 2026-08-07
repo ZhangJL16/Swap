@@ -253,7 +253,12 @@ def _build_synthetic_calibration(config: CertifiedUAVConfig, scenario: ScenarioD
 
 
 class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
-    """Certificate-first execution wrapper around the isolated plant/task layers."""
+    """Certificate-first execution wrapper around the isolated plant/task layers.
+
+    ``wall_clock`` is the fail-closed runtime default. ``functional`` preserves
+    certificate semantics while removing host scheduling from deterministic
+    algorithm tests; it is not deployment timing evidence.
+    """
 
     def __init__(
         self,
@@ -262,6 +267,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         allow_synthetic_certificates: bool = True,
         freeze_certificate_epoch: bool = False,
         generator_center_mode: str = "task_oriented",
+        timing_mode: str = "wall_clock",
     ) -> None:
         super().__init__()
         self.task_env = task_env
@@ -270,6 +276,9 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self.scenario = self.plant.scenario
         self.allow_synthetic_certificates = allow_synthetic_certificates
         self.freeze_certificate_epoch = freeze_certificate_epoch
+        if timing_mode not in {"wall_clock", "functional"}:
+            raise ValueError("timing_mode must be 'wall_clock' or 'functional'")
+        self.timing_mode = timing_mode
         self.action_space = gym.spaces.Box(np.full(3, -10.0, dtype=np.float32), np.full(3, 10.0, dtype=np.float32), dtype=np.float32)
         self.observation_space = task_env.observation_space
         self.calibration, self.calibration_reports = _build_synthetic_calibration(self.config, self.scenario)
@@ -348,6 +357,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             ),
             self.recovery_policy.config.parameter_version,
             clock=monotonic,
+            enforce_wall_clock_deadline=self.timing_mode == "wall_clock",
         )
         self.closure_pipeline = SingleCorridorClosurePipeline(
             self.calibration,
@@ -360,6 +370,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self.watchdog = SimulatedWatchdog(
             self.config.certification_deadline,
             WCETContract(control_period_seconds=self.config.dt),
+            enforce_wall_clock_deadline=self.timing_mode == "wall_clock",
         )
 
     def _corridor_cells(self) -> tuple[CorridorCell, ...]:
@@ -594,7 +605,8 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         bundle_holder: dict[str, Any] = {}
         self.last_bundle = None
         cycle_deadline_missed = (
-            self.watchdog.wcet_contract.status == "implemented"
+            self.timing_mode == "wall_clock"
+            and self.watchdog.wcet_contract.status == "implemented"
             and cycle_elapsed > self.config.certification_deadline
         )
         if cycle_deadline_missed or preparation.failure_reason is not None or recovery is None or not recovery.certified or closure is None or not closure.closed:
@@ -725,6 +737,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "actor_called": self.actor.calls,
             "certificate_cycle_profile_seconds": cycle_elapsed,
             "wcet_status": self.watchdog.wcet_contract.status,
+            "timing_mode": self.timing_mode,
             "candidate_bundle": self.last_bundle,
             "publication_count": publisher.publication_count,
             "action_context": self.action_context(preparation),

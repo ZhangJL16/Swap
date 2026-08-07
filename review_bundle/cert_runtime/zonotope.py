@@ -67,11 +67,14 @@ class ZonotopeConstructor:
         config: CertificateConfig,
         kappa_parameter_version: str,
         clock: Callable[[], float] = monotonic,
+        *,
+        enforce_wall_clock_deadline: bool = True,
     ) -> None:
         self.envelope_builder = envelope_builder
         self.config = config
         self.kappa_parameter_version = kappa_parameter_version
         self.clock = clock
+        self.enforce_wall_clock_deadline = enforce_wall_clock_deadline
         self.calls = 0
 
     @property
@@ -246,7 +249,10 @@ class ZonotopeConstructor:
         return envelope
 
     def _expired(self, started: float) -> bool:
-        return self.clock() - started > self.config.deadline_seconds
+        return (
+            self.enforce_wall_clock_deadline
+            and self.clock() - started > self.config.deadline_seconds
+        )
 
     def _failure(
         self,

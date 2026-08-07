@@ -10,7 +10,10 @@ from envs.certified_uav import MissionTerminationReason, make_certified_uav_env
 class MissionCertificateClosureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.environment = make_certified_uav_env("mission_open.json")
+        cls.environment = make_certified_uav_env(
+            "mission_open.json",
+            timing_mode="functional",
+        )
 
     def setUp(self) -> None:
         self.environment.reset(seed=0)

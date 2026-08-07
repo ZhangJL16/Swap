@@ -110,19 +110,27 @@ class AtomicCommandPublisher:
 
 
 class SimulatedWatchdog:
-    """Independent fail-default state machine; not an RTOS/WCET certificate."""
+    """Independent fail-default state machine; not an RTOS/WCET certificate.
+
+    Wall-clock enforcement is enabled by default. Disabling it is reserved for
+    deterministic functional tests; bundle, version, and one-shot publication
+    checks still execute synchronously in that mode.
+    """
 
     def __init__(
         self,
         deadline_seconds: float,
         wcet_contract: WCETContract,
         clock: Callable[[], float] = monotonic,
+        *,
+        enforce_wall_clock_deadline: bool = True,
     ) -> None:
         if deadline_seconds < 0.0:
             raise ValueError("deadline must be nonnegative")
         self.deadline_seconds = deadline_seconds
         self.wcet_contract = wcet_contract
         self.clock = clock
+        self.enforce_wall_clock_deadline = enforce_wall_clock_deadline
         self.last_trace: WatchdogTrace | None = None
 
     def execute(
@@ -156,31 +164,37 @@ class SimulatedWatchdog:
                 output.publish_once(fallback)
                 self.last_trace = WatchdogTrace(False, recovery_action, fallback.reason, 0.0, output.publication_count)
                 return output.command  # type: ignore[return-value]
-        queue: Queue[tuple[str, object]] = Queue(maxsize=1)
-
-        def worker() -> None:
-            try:
-                queue.put_nowait(("candidate", producer()))
-            except BaseException as error:
-                try:
-                    queue.put_nowait(("exception", error))
-                except Exception:
-                    pass
-
         started = self.clock()
-        thread = Thread(target=worker, daemon=True, name="certificate-producer")
-        thread.start()
-        remaining = max(0.0, self.deadline_seconds - (self.clock() - started))
-        thread.join(remaining)
-        if thread.is_alive():
-            command = PublishedCommand(staged_kappa.action, "kappa", "WATCHDOG_DEADLINE", snapshot.certificate_version)
-            output.publish_once(command)
-            self.last_trace = WatchdogTrace(True, recovery_action, command.reason, self.clock() - started, output.publication_count)
-            return output.command  # type: ignore[return-value]
-        try:
-            result_type, payload = queue.get_nowait()
-        except Empty:
-            result_type, payload = "exception", RuntimeError("producer returned no bundle")
+        if not self.enforce_wall_clock_deadline:
+            try:
+                result_type, payload = "candidate", producer()
+            except BaseException as error:
+                result_type, payload = "exception", error
+        else:
+            queue: Queue[tuple[str, object]] = Queue(maxsize=1)
+
+            def worker() -> None:
+                try:
+                    queue.put_nowait(("candidate", producer()))
+                except BaseException as error:
+                    try:
+                        queue.put_nowait(("exception", error))
+                    except Exception:
+                        pass
+
+            thread = Thread(target=worker, daemon=True, name="certificate-producer")
+            thread.start()
+            remaining = max(0.0, self.deadline_seconds - (self.clock() - started))
+            thread.join(remaining)
+            if thread.is_alive():
+                command = PublishedCommand(staged_kappa.action, "kappa", "WATCHDOG_DEADLINE", snapshot.certificate_version)
+                output.publish_once(command)
+                self.last_trace = WatchdogTrace(True, recovery_action, command.reason, self.clock() - started, output.publication_count)
+                return output.command  # type: ignore[return-value]
+            try:
+                result_type, payload = queue.get_nowait()
+            except Empty:
+                result_type, payload = "exception", RuntimeError("producer returned no bundle")
         current = current_version()
         current_matches = (
             current == snapshot
@@ -194,7 +208,10 @@ class SimulatedWatchdog:
                 and bundle.complete
                 and bundle.snapshot == snapshot
                 and current_matches
-                and self.clock() - started <= self.deadline_seconds
+                and (
+                    not self.enforce_wall_clock_deadline
+                    or self.clock() - started <= self.deadline_seconds
+                )
             ):
                 command = PublishedCommand(
                     bundle.final_action,

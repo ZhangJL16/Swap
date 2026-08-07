@@ -64,20 +64,40 @@ class AcceptanceTraceTests(unittest.TestCase):
 
 class TrainingSemanticsTests(unittest.TestCase):
     def _accepted_transition(self):
-        runtime = make_certified_uav_env(freeze_certificate_epoch=True)
+        runtime = make_certified_uav_env(
+            freeze_certificate_epoch=True,
+            timing_mode="functional",
+        )
         observation, _ = runtime.reset(seed=5)
         next_observation, reward, terminated, truncated, _ = runtime.step(np.zeros(3))
         record = runtime.replay.records[-1]
         return runtime, SmokeTransition(observation, next_observation, reward, terminated or truncated, record)
 
     def test_minimal_trainer_updates_actor_and_critics(self):
-        _, transition = self._accepted_transition()
+        runtime, transition = self._accepted_transition()
+        self.assertTrue(
+            transition.record.accepted,
+            msg=(
+                f"fallback_reason={transition.record.fallback_reason}, "
+                f"timing_mode={runtime.timing_mode}, "
+                f"watchdog_trace={runtime.watchdog.last_trace}, "
+                f"stage_timings={runtime.last_stage_timings}"
+            ),
+        )
         trainer = MinimalGeneratorSAC(transition.observation.size, 0)
         trainer.freeze_epoch(transition.record)
         before_actor = [parameter.detach().clone() for parameter in trainer.actor.parameters()]
         before_critic = [parameter.detach().clone() for parameter in trainer.critic_1.parameters()]
         result = trainer.update((transition,))
-        self.assertEqual(result["actor_status"], "updated")
+        self.assertEqual(
+            result["actor_status"],
+            "updated",
+            msg=(
+                f"accepted={transition.record.accepted}, "
+                f"fallback_reason={transition.record.fallback_reason}, "
+                f"timing_mode={runtime.timing_mode}"
+            ),
+        )
         self.assertTrue(any(not torch_equal(a, b) for a, b in zip(before_actor, trainer.actor.parameters())))
         self.assertTrue(any(not torch_equal(a, b) for a, b in zip(before_critic, trainer.critic_1.parameters())))
 

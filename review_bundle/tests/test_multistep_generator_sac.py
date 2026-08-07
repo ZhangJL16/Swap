@@ -45,7 +45,10 @@ class MultiStepMissionTests(unittest.TestCase):
         self.assertGreater(runtime.plant.state.timestamp, initial.timestamp)
 
     def test_deterministic_fixture_completes_outbound_and_return(self):
-        runtime = make_certified_uav_env("mission_open.json")
+        runtime = make_certified_uav_env(
+            "mission_open.json",
+            timing_mode="functional",
+        )
         runtime.reset(seed=0)
         observed_return = False
         for _ in range(runtime.config.episode_limit):

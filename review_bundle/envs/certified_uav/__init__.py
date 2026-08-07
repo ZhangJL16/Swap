@@ -45,6 +45,7 @@ def make_certified_uav_env(
     *,
     freeze_certificate_epoch: bool = False,
     generator_center_mode: str = "task_oriented",
+    timing_mode: str = "wall_clock",
 ) -> CertifiedRuntimeWrapper:
     scenario = FixedCertificationScenario(scenario_name).definition
     base = CertifiedUAVConfig(world_size=scenario.world_size) if config is None else config
@@ -54,4 +55,5 @@ def make_certified_uav_env(
         CertifiedTaskWrapper(plant),
         freeze_certificate_epoch=freeze_certificate_epoch,
         generator_center_mode=generator_center_mode,
+        timing_mode=timing_mode,
     )
