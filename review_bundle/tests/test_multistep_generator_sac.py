@@ -32,7 +32,10 @@ def transition(*, accepted=True, next_generator=True, terminated=False, epoch="e
 
 class MultiStepMissionTests(unittest.TestCase):
     def test_mission_initial_state_is_not_terminal_and_does_not_auto_reset(self):
-        runtime = make_certified_uav_env("mission_open.json")
+        runtime = make_certified_uav_env(
+            "mission_open.json",
+            timing_mode="functional",
+        )
         runtime.reset(seed=0)
         initial = runtime.plant.state.copy()
         self.assertFalse(runtime.plant.terminal.is_admissible(initial))

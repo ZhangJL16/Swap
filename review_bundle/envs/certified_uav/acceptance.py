@@ -36,6 +36,7 @@ def run_acceptance_cycle(
     actor_output: np.ndarray | None = None,
     *,
     freeze_certificate_epoch: bool = True,
+    timing_mode: str = "wall_clock",
 ) -> tuple[dict[str, Any], Any]:
     scenario_file = scenario_id if scenario_id.endswith(".json") else f"{scenario_id}.json"
     if scenario_id in {
@@ -54,6 +55,7 @@ def run_acceptance_cycle(
         scenario_file,
         config,
         freeze_certificate_epoch=freeze_certificate_epoch,
+        timing_mode=timing_mode,
     )
     observation, reset_info = runtime.reset(seed=seed)
     before_calls = runtime.actor.calls

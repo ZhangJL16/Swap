@@ -183,7 +183,7 @@ class EnergyLidarTerminalTests(unittest.TestCase):
 
 class RuntimeAndScenarioTests(unittest.TestCase):
     def test_open_corridor_closes_and_executes_affine_tanh_candidate(self):
-        runtime = make_certified_uav_env()
+        runtime = make_certified_uav_env(timing_mode="functional")
         observation, reset_info = runtime.reset(seed=7)
         self.assertTrue(reset_info["certificate_ready"])
         self.assertTrue(runtime.last_manifest.verify_integrity())
@@ -199,7 +199,7 @@ class RuntimeAndScenarioTests(unittest.TestCase):
         self.assertEqual(observation.shape, runtime.observation_space.shape)
 
     def test_actor_nan_falls_back_and_is_never_published(self):
-        runtime = make_certified_uav_env()
+        runtime = make_certified_uav_env(timing_mode="functional")
         runtime.reset(seed=8)
         _, _, _, _, info = runtime.step(np.array([np.nan, 0.0, 0.0]))
         trace = info["telemetry"].action_trace
@@ -249,7 +249,7 @@ class RuntimeAndScenarioTests(unittest.TestCase):
         self.assertEqual(runtime.watchdog.last_trace.publication_count, 1)
 
     def test_certificate_version_mutation_rejects_candidate(self):
-        runtime = make_certified_uav_env()
+        runtime = make_certified_uav_env(timing_mode="functional")
         runtime.reset(seed=14)
         original = runtime.actor.sample_u
 
@@ -263,7 +263,7 @@ class RuntimeAndScenarioTests(unittest.TestCase):
         self.assertEqual(info["fallback_reason"], "CERTIFIER_EXCEPTION")
 
     def test_replay_and_calibration_log_separate_actions_and_versions(self):
-        runtime = make_certified_uav_env()
+        runtime = make_certified_uav_env(timing_mode="functional")
         runtime.reset(seed=15)
         runtime.step(np.array([0.1, 0.0, -0.1]))
         record = runtime.replay.records[-1]

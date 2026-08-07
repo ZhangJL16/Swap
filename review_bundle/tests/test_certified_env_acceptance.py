@@ -14,7 +14,11 @@ from envs.certified_uav.task_wrapper import TaskRewardConfig
 
 class AcceptanceTraceTests(unittest.TestCase):
     def test_open_trace_closes_execution_invariants(self):
-        trace, _ = run_acceptance_cycle("open_corridor", 0)
+        trace, _ = run_acceptance_cycle(
+            "open_corridor",
+            0,
+            timing_mode="functional",
+        )
         self.assertTrue(trace["accepted"])
         self.assertTrue(trace["actor_called"])
         self.assertTrue(trace["plant_input_matches_exec"])
@@ -26,14 +30,18 @@ class AcceptanceTraceTests(unittest.TestCase):
             if scenario == "open_corridor":
                 continue
             with self.subTest(scenario=scenario):
-                trace, _ = run_acceptance_cycle(scenario, 1)
+                trace, _ = run_acceptance_cycle(
+                    scenario,
+                    1,
+                    timing_mode="functional",
+                )
                 self.assertFalse(trace["accepted"])
                 self.assertEqual(trace["fallback_reason"], reason)
                 np.testing.assert_array_equal(trace["a_exec"], trace["kappa"])
 
     def test_reward_parameters_and_goal_do_not_change_certificate_source(self):
-        first = make_certified_uav_env()
-        second = make_certified_uav_env()
+        first = make_certified_uav_env(timing_mode="functional")
+        second = make_certified_uav_env(timing_mode="functional")
         first.reset(seed=3)
         second.reset(seed=3)
         second.task_env.reward_config = TaskRewardConfig(0.0, 0.0, 0.0, 0.0)
