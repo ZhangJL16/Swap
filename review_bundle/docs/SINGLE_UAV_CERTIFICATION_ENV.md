@@ -408,3 +408,16 @@ lookup but cannot replace final cell-containment verification.
 The authoritative post-change suite is `128 tests in 176.973 s`, with 128 passes, zero failures,
 and zero skips. The four mission certificate gates also pass after regeneration. Exact raw outputs
 are stored in `artifacts/paper/`.
+
+## Persistent task and charging extension
+
+The persistent extension is isolated from all single-mission regression fixtures. It adds a finite
+certified service network, task pause/resume, event-level charging scheduling, hard forced-return
+and departure-energy gates, and synthetic net charging. Persistent configs set
+`terminate_on_terminal=false`; single-mission configs retain the default `true`.
+
+The low-level certificate chain is unchanged. The scheduler selects service versus charging, the
+certificate runtime may override it, and kappa remains independently certified. Scheduler
+categorical entropy is not Generator affine-tanh entropy. See
+`docs/PERSISTENT_TASK_CHARGING.md`. This round added code and deterministic unit tests only; no
+persistent gate, acceptance rollout, baseline comparison, or scheduler training result is claimed.

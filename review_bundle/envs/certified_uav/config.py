@@ -41,6 +41,7 @@ class CertifiedUAVConfig:
     maximum_generator_condition: float = 20.0
     generator_bisection_iterations: int = 8
     synthetic_fixture: bool = True
+    terminate_on_terminal: bool = True
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "world_size", _positive_vec3(self.world_size, "world_size"))

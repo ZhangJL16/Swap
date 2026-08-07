@@ -115,7 +115,12 @@ class CertifiedSingleUAVPlantEnv(gym.Env[np.ndarray, np.ndarray]):
             self.failure_reason = "velocity_limit_exceeded"
         else:
             self.failure_reason = None
-        terminated = collision or energy_next <= 0.0 or velocity_violation or terminal_admissible
+        terminated = bool(
+            collision
+            or energy_next <= 0.0
+            or velocity_violation
+            or (terminal_admissible and self.config.terminate_on_terminal)
+        )
         truncated = self.step_count >= self.config.episode_limit and not terminated
         plant_trace = ActionTrace(None, None, published, published, measured, False, "plant-only", "")
         self.last_telemetry = StepTelemetry(

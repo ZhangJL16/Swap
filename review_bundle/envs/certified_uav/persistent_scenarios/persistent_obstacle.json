@@ -1,0 +1,46 @@
+{
+  "base": "mission_obstacle.json",
+  "name": "persistent_obstacle",
+  "initial_state": {"position": [0.40, 0.50, 1.0], "velocity": [0.0, 0.0, 0.0], "energy": 24.0, "timestamp": 0.0},
+  "configuration_overrides": {
+    "initial_energy": 30.0,
+    "episode_limit": 5000,
+    "terminate_on_terminal": false
+  },
+  "mission": {
+    "persistent": {
+      "battery_capacity": 30.0,
+      "charging_rate": 2.0,
+      "charging_checkpoint_steps": 5,
+      "departure_energy_margin": 0.6,
+      "forced_return_margin": 1.2,
+      "task_reward": 12.0,
+      "goal_radius": 0.20,
+      "charging_station": "station",
+      "service_nodes": [
+        {"node_id": "station", "position": [0.40, 0.50, 1.0]},
+        {"node_id": "remote", "position": [3.15, 3.15, 1.0]}
+      ],
+      "service_edges": [
+        {
+          "edge_id": "station_to_remote",
+          "source": "station",
+          "target": "remote",
+          "task_waypoints": [[0.40,0.50,1.0],[0.80,0.50,1.0],[1.60,0.50,1.0],[2.40,0.50,1.0],[3.15,0.50,1.0],[3.62,0.90,1.0],[3.62,2.45,1.0],[3.62,3.15,1.0],[3.15,3.15,1.0]],
+          "return_waypoints": [[3.15,3.15,1.0],[3.62,3.15,1.0],[3.62,2.45,1.0],[3.62,0.90,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
+          "energy_upper": 3.0
+        },
+        {
+          "edge_id": "remote_to_station",
+          "source": "remote",
+          "target": "station",
+          "task_waypoints": [[3.15,3.15,1.0],[3.62,3.15,1.0],[3.62,2.45,1.0],[3.62,0.90,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
+          "return_waypoints": [[3.15,3.15,1.0],[3.62,3.15,1.0],[3.62,2.45,1.0],[3.62,0.90,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
+          "energy_upper": 3.0
+        }
+      ],
+      "task_edge_ids": ["station_to_remote", "remote_to_station"]
+    }
+  },
+  "expected_certificate_outcome": "persistent-certificate-required"
+}

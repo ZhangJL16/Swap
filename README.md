@@ -18,3 +18,8 @@ The current RL-contribution and held-out gates both pass their synthetic evidenc
 central result is negative but important: Center-Only matches Generator-SAC on the current open and
 obstacle missions, so demonstrated task competence is primarily attributable to the verified
 task-oriented center rather than learned residual optimization.
+
+The current development phase adds a separate persistent task/charging path. Code and deterministic
+unit tests are included; persistent certificate validation, baseline comparisons, and scheduler
+training are intentionally left for manual execution. See
+`review_bundle/docs/PERSISTENT_TASK_CHARGING.md`.

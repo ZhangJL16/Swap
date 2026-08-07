@@ -276,6 +276,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self.scenario = self.plant.scenario
         self.allow_synthetic_certificates = allow_synthetic_certificates
         self.freeze_certificate_epoch = freeze_certificate_epoch
+        self.generator_center_mode = generator_center_mode
         if timing_mode not in {"wall_clock", "functional"}:
             raise ValueError("timing_mode must be 'wall_clock' or 'functional'")
         self.timing_mode = timing_mode
@@ -298,7 +299,10 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self._build_certificate_objects()
         self.mission_provider = (
             SyntheticMissionCertificateProvider(self, generator_center_mode)
-            if self.scenario.mission_config.get("certificate_mode") == "synthetic_preverified"
+            if (
+                self.scenario.mission_config.get("certificate_mode") == "synthetic_preverified"
+                and not self.scenario.mission_config.get("persistent")
+            )
             else None
         )
 
@@ -669,10 +673,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         plant_started = monotonic()
         mission_context = self.mission_provider.last_context if self.mission_provider is not None else None
         if self.mission_provider is not None and command_source != "task" and execution_recovery.certified:
-            from .task_wrapper import MissionPhase
-
-            self.task_env.phase = MissionPhase.RETURN
-            self.task_env.return_triggered = True
+            self.task_env.on_runtime_recovery(command_reason or "RUNTIME_FALLBACK")
         observation, reward, terminated, truncated, info = self.task_env.step(np.asarray(command_action, dtype=np.float64))
         if self.mission_provider is not None and not execution_recovery.certified:
             from .task_wrapper import MissionPhase, MissionTerminationReason
@@ -833,10 +834,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         publisher.publish_once(PublishedCommand(tuple(float(value) for value in action), "task" if accepted else "kappa", reason, snapshot.certificate_version))
         publish_elapsed = monotonic() - publish_started
         if self.mission_provider is not None and not accepted and preparation.recovery is not None and preparation.recovery.certified:
-            from .task_wrapper import MissionPhase
-
-            self.task_env.phase = MissionPhase.RETURN
-            self.task_env.return_triggered = True
+            self.task_env.on_runtime_recovery(reason)
         plant_started = monotonic()
         observation, reward, terminated, truncated, info = self.task_env.step(action)
         plant_elapsed = monotonic() - plant_started
@@ -861,6 +859,93 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "publication_count": publisher.publication_count,
             "action_context": self.action_context(preparation),
             "stage_timings": dict(self.last_stage_timings),
+        }
+
+    def step_recovery(self, reason: str = "CERTIFIED_RECOVERY_REQUEST"):
+        """Execute the independently certified frozen recovery authority directly.
+
+        This path does not construct a task candidate and does not call the task actor.
+        It is used by persistent voluntary/forced-return modes.
+        """
+
+        total_started = monotonic()
+        state = self._certificate_state()
+        snapshot = state.snapshot()
+        pre_recovery = (
+            self.mission_provider.evaluate(state, self.plant.state.timestamp).recovery
+            if self.mission_provider is not None
+            else self.runtime_certifier.recovery_decision(state, self.plant.state.timestamp)
+        )
+        staged_action = np.asarray(
+            pre_recovery.action if pre_recovery.certified else self.recovery_policy.emergency_brake(state.velocity),
+            dtype=np.float64,
+        )
+        publisher = AtomicCommandPublisher()
+        self.last_publisher = publisher
+        publisher.stage_default(PublishedCommand(tuple(staged_action), "kappa", reason, snapshot.certificate_version))
+        certificate_started = monotonic()
+        preparation = self.prepare_certificate_cycle()
+        certificate_elapsed = monotonic() - certificate_started
+        recovery = preparation.recovery
+        certified = bool(
+            preparation.failure_reason is None
+            and recovery is not None
+            and recovery.certified
+        )
+        fallback = np.asarray(
+            recovery.action if certified else self.recovery_policy.emergency_brake(state.velocity),
+            dtype=np.float64,
+        )
+        publisher.publish_once(PublishedCommand(tuple(fallback), "kappa", reason, snapshot.certificate_version))
+        self.task_env.on_runtime_recovery(reason)
+        plant_started = monotonic()
+        observation, reward, terminated, truncated, info = self.task_env.step(fallback)
+        plant_elapsed = monotonic() - plant_started
+        if not certified:
+            terminated = True
+            info = info | {
+                "failure_reason": "recovery_certificate_invalid",
+                "mission_termination_reason": "RECOVERY_CERTIFICATE_INVALID",
+            }
+        measured = self.plant.last_telemetry.action_trace.measured
+        trace = ActionTrace(
+            None,
+            None,
+            fallback,
+            fallback,
+            measured,
+            False,
+            reason if certified else "RECOVERY_CERTIFICATE_INVALID",
+            str(snapshot.certificate_version),
+        )
+        telemetry = self.plant.attach_runtime_trace(
+            trace,
+            str(snapshot.certificate_version),
+            str(self.geometry.version),
+            str(self.corridor.version),
+        )
+        if self.mission_provider is not None and self.mission_provider.last_context is not None:
+            self.mission_provider.commit_execution(self.mission_provider.last_context, False)
+        self.current_epoch = CertificateEpoch.from_snapshot(preparation.state.snapshot())
+        self.last_fallback_reason = trace.fallback_reason
+        self.last_stage_timings = {
+            "T_certificate": certificate_elapsed,
+            "T_actor": 0.0,
+            "T_recheck": 0.0,
+            "T_publish": publisher.last_publish_elapsed,
+            "T_plant": plant_elapsed,
+            "T_total": monotonic() - total_started,
+        }
+        return observation, reward, terminated, truncated, info | {
+            "telemetry": telemetry,
+            "accepted": False,
+            "fallback_reason": trace.fallback_reason,
+            "critic_action": fallback.copy(),
+            "certificate_epoch": self.current_epoch,
+            "publication_count": publisher.publication_count,
+            "action_context": self.action_context(preparation),
+            "stage_timings": dict(self.last_stage_timings),
+            "command_source": "kappa",
         }
 
     def export_calibration_record(self):

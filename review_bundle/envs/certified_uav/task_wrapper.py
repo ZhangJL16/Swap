@@ -120,6 +120,12 @@ class CertifiedTaskWrapper(gym.Wrapper):
         self.return_triggered = False
         self.termination_reason = None
 
+    def on_runtime_recovery(self, reason: str) -> None:
+        del reason
+        if self.multi_step_mission:
+            self.phase = MissionPhase.RETURN
+            self.return_triggered = True
+
     @property
     def active_goal(self) -> np.ndarray:
         if self.multi_step_mission and self.phase == MissionPhase.RETURN:

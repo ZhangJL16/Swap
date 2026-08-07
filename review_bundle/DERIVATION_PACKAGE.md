@@ -3335,3 +3335,39 @@ Accordingly, 100k--200k training is not yet the next justified step. A harder ce
 which Center-Only is feasible but suboptimal is required before spending a larger budget to test
 whether residual learning adds value. The 50k multi-scenario interface remains available, grouped
 by immutable manifest epoch, but has not been used to manufacture a positive RL claim.
+
+## Persistent mission formulation (implementation-stage addendum)
+
+Let the service process generate point-to-point tasks \(\tau_1,\tau_2,\ldots\) on a finite
+certified service graph. Completing \(\tau_i\) assigns \(\tau_{i+1}\); task completion and station
+arrival do not terminate a persistent episode. During flight and admissible charging, respectively,
+
+\[
+e_{t+1}=e_t-c_t,
+\qquad
+e_{t+1}=\min\{e_{\max},e_t+r_c\Delta t\}.
+\]
+
+Charging availability does not alter the recovery first-passage value. The unchanged hard premise is
+
+\[
+e_t\ge E^\kappa(z_t)+e_G+m_e.
+\]
+
+Approach to its configured boundary forces kappa recovery regardless of the scheduler request. A
+departure request is separately feasible only when a version-matched route certificate establishes
+\(e\ge E_{\rm depart}^{\rm required}+m_e\). Future charging therefore cannot justify insufficient
+current return energy.
+
+The high-level scheduler acts at task boundaries and charging checkpoints. For scheduler decision
+times \(n_k\), replay uses accumulated reward and duration \(\Delta n_k=n_{k+1}-n_k\), so its
+bootstrap multiplier is \(\gamma^{\Delta n_k}\). This categorical SMDP policy is not part of
+T12A's affine-tanh density. Continuous physical actions still use the verified Generator or kappa;
+scheduler reward supplies performance preferences only and may be overridden by the safety layer.
+
+`PERSISTENT_CERTIFICATE_GATE` requires every service edge to retain complete task support and an
+independently certified strict-descent recovery chain, valid energy/E3 recursion, docking
+admissibility, departure data, closed task switching, and consistent hashes/versions. Charging
+does not forge or shorten that chain. Code and deterministic unit contracts are implemented, but
+the persistent gate and experiments were not executed in this round. Physical premises remain
+blocked-by-calibration and deployment timing remains blocked-by-deployment-evidence.

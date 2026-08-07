@@ -14,6 +14,17 @@ from .state import UAVPhysicalState
 from .task_wrapper import CertifiedTaskWrapper, MissionPhase, MissionTerminationReason, RewardBreakdown, TaskRewardConfig
 from .telemetry import StepTelemetry
 from .terminal import TerminalSpec
+from .charging import ChargingConfig, ChargingDynamics, DepartureGateResult, verify_departure_energy
+from .persistent_task import (
+    CertifiedServiceNetwork,
+    PersistentMissionMode,
+    PersistentTask,
+    PersistentTaskManager,
+    PersistentTaskStatus,
+    PersistentTaskWrapper,
+)
+from .persistent_wrapper import PersistentRuntimeWrapper
+from cert_runtime.charging_scheduler import make_scheduler
 
 __all__ = [
     "ActionTrace",
@@ -38,6 +49,18 @@ __all__ = [
     "integrate_double_integrator",
     "load_scenario",
     "make_certified_uav_env",
+    "make_persistent_uav_env",
+    "ChargingConfig",
+    "ChargingDynamics",
+    "DepartureGateResult",
+    "verify_departure_energy",
+    "CertifiedServiceNetwork",
+    "PersistentMissionMode",
+    "PersistentRuntimeWrapper",
+    "PersistentTask",
+    "PersistentTaskManager",
+    "PersistentTaskStatus",
+    "PersistentTaskWrapper",
 ]
 
 
@@ -83,3 +106,53 @@ def make_certified_uav_env(
         generator_center_mode=generator_center_mode,
         timing_mode=timing_mode,
     )
+
+
+def make_persistent_uav_env(
+    scenario_name: str = "persistent_open.json",
+    *,
+    scheduler_name: str = "reserve_only",
+    seed: int = 0,
+    timing_mode: str = "functional",
+    deterministic_scheduler: bool = False,
+) -> PersistentRuntimeWrapper:
+    scenario = FixedCertificationScenario(scenario_name).definition
+    persistent = dict(scenario.mission_config.get("persistent", {}))
+    if not persistent:
+        raise ValueError(f"scenario {scenario.name} does not define a persistent service network")
+    base = CertifiedUAVConfig(world_size=scenario.world_size)
+    configured = apply_configuration_overrides(base, scenario.configuration_overrides)
+    network = CertifiedServiceNetwork.from_config(persistent)
+    actuator = ActuatorTrackingModel(configured.tracking_error_bound)
+    lidar = HorizontalLidarModel(
+        configured.num_lasers,
+        configured.lidar_range,
+        "synthetic-sensor-v1",
+        configured.lidar_range_noise,
+        configured.lidar_pose_noise,
+        configured.lidar_heading_noise,
+        configured.lidar_invalid_probability,
+    )
+    plant = CertifiedSingleUAVPlantEnv(
+        configured,
+        scenario,
+        actuator_model=actuator,
+        energy_model=EnergyModel(SimulationEnergyConfig()),
+        lidar_model=lidar,
+    )
+    task = PersistentTaskWrapper(
+        plant,
+        network,
+        goal_radius=float(persistent.get("goal_radius", 0.20)),
+        task_reward=float(persistent.get("task_reward", 10.0)),
+    )
+    runtime = CertifiedRuntimeWrapper(task, generator_center_mode="task_oriented", timing_mode=timing_mode)
+    charging = ChargingConfig(
+        battery_capacity=float(persistent.get("battery_capacity", 30.0)),
+        charging_rate=float(persistent.get("charging_rate", 2.0)),
+        checkpoint_steps=int(persistent.get("charging_checkpoint_steps", 5)),
+        departure_energy_margin=float(persistent.get("departure_energy_margin", 0.5)),
+        forced_return_margin=float(persistent.get("forced_return_margin", 1.0)),
+    )
+    scheduler = make_scheduler(scheduler_name, observation_dim=15, seed=seed)
+    return PersistentRuntimeWrapper(runtime, network, scheduler, charging, deterministic_scheduler)

@@ -13,6 +13,24 @@ from .state import UAVPhysicalState, as_vec3
 from .terminal import TerminalSpec
 
 
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _scenario_resource(name: str) -> Path:
+    for package in ("envs.certified_uav.scenarios", "envs.certified_uav.persistent_scenarios"):
+        candidate = Path(str(files(package).joinpath(name)))
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(f"unknown certified UAV scenario: {name}")
+
+
 @dataclass(frozen=True)
 class CorridorCellSpec:
     cell_id: int
@@ -161,19 +179,12 @@ def _parse_scenario(payload: dict[str, Any]) -> ScenarioDefinition:
     )
 
 
-def load_scenario(path_or_name: str | Path) -> ScenarioDefinition:
-    path = Path(path_or_name)
-    if not path.exists():
-        path = Path(str(files("envs.certified_uav.scenarios").joinpath(str(path_or_name))))
+def _load_payload(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     if "base" in payload:
-        base_path = Path(str(files("envs.certified_uav.scenarios").joinpath(str(payload["base"]))))
-        with base_path.open("r", encoding="utf-8") as handle:
-            merged = json.load(handle)
-        for key, value in payload.items():
-            if key not in {"base", "initial_energy", "invalidate_last_corridor_overlap"}:
-                merged[key] = value
+        base_path = _scenario_resource(str(payload["base"]))
+        merged = _deep_merge(_load_payload(base_path), {key: value for key, value in payload.items() if key != "base"})
         if "initial_energy" in payload:
             merged["initial_state"]["energy"] = payload["initial_energy"]
         if payload.get("invalidate_last_corridor_overlap"):
@@ -181,8 +192,15 @@ def load_scenario(path_or_name: str | Path) -> ScenarioDefinition:
             merged["corridor_cells"][-1]["region_high_xy"] = [1.6, 0.78]
             merged["corridor_cells"][-1]["state_position_low"] = [1.42, 0.73, 0.98]
             merged["corridor_cells"][-1]["state_position_high"] = [1.58, 0.77, 1.025]
-        payload = merged
-    return _parse_scenario(payload)
+        return merged
+    return payload
+
+
+def load_scenario(path_or_name: str | Path) -> ScenarioDefinition:
+    path = Path(path_or_name)
+    if not path.exists():
+        path = _scenario_resource(str(path_or_name))
+    return _parse_scenario(_load_payload(path))
 
 
 class FixedCertificationScenario:
