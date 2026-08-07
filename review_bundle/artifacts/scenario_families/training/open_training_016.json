@@ -1,0 +1,398 @@
+{
+  "name": "open_training_016",
+  "world_size": [
+    4.0,
+    4.0,
+    2.0
+  ],
+  "initial_state": {
+    "position": [
+      3.0949491200651607,
+      0.47726126599853264,
+      1.0
+    ],
+    "velocity": [
+      -0.00411652162475671,
+      -0.0005273239014205481,
+      0.002784761554006498
+    ],
+    "energy": 28.521604066742512,
+    "timestamp": 0.0
+  },
+  "station_position": [
+    0.4,
+    0.5,
+    1.0
+  ],
+  "task_goal": [
+    3.1978742513794636,
+    1.2675453964138748,
+    1.0
+  ],
+  "terminal": {
+    "position_low": [
+      0.3,
+      0.4,
+      0.9
+    ],
+    "position_high": [
+      0.5,
+      0.6,
+      1.1
+    ],
+    "velocity_abs_max": [
+      0.05,
+      0.05,
+      0.04
+    ],
+    "minimum_energy": 1.0,
+    "continuation_modes": [
+      "hover"
+    ],
+    "version": "synthetic-mission-terminal-v1"
+  },
+  "aabb_obstacles": [],
+  "cylinder_obstacles": [],
+  "corridor_cells": [
+    {
+      "cell_id": 0,
+      "level": 0,
+      "region_low_xy": [
+        0.25,
+        0.35
+      ],
+      "region_high_xy": [
+        0.75,
+        0.65
+      ],
+      "altitude_limit": 1.3,
+      "state_position_low": [
+        0.25,
+        0.35,
+        0.85
+      ],
+      "state_position_high": [
+        0.75,
+        0.65,
+        1.15
+      ],
+      "state_velocity_low": [
+        -0.3,
+        -0.3,
+        -0.12
+      ],
+      "state_velocity_high": [
+        0.3,
+        0.3,
+        0.12
+      ],
+      "energy_low": 1.0,
+      "energy_high": 31.0
+    },
+    {
+      "cell_id": 1,
+      "level": 1,
+      "region_low_xy": [
+        0.65,
+        0.35
+      ],
+      "region_high_xy": [
+        1.25,
+        0.65
+      ],
+      "altitude_limit": 1.3,
+      "state_position_low": [
+        0.65,
+        0.35,
+        0.85
+      ],
+      "state_position_high": [
+        1.25,
+        0.65,
+        1.15
+      ],
+      "state_velocity_low": [
+        -0.3,
+        -0.3,
+        -0.12
+      ],
+      "state_velocity_high": [
+        0.3,
+        0.3,
+        0.12
+      ],
+      "energy_low": 1.0,
+      "energy_high": 31.0
+    },
+    {
+      "cell_id": 2,
+      "level": 2,
+      "region_low_xy": [
+        1.15,
+        0.35
+      ],
+      "region_high_xy": [
+        1.75,
+        0.65
+      ],
+      "altitude_limit": 1.3,
+      "state_position_low": [
+        1.15,
+        0.35,
+        0.85
+      ],
+      "state_position_high": [
+        1.75,
+        0.65,
+        1.15
+      ],
+      "state_velocity_low": [
+        -0.3,
+        -0.3,
+        -0.12
+      ],
+      "state_velocity_high": [
+        0.3,
+        0.3,
+        0.12
+      ],
+      "energy_low": 1.0,
+      "energy_high": 31.0
+    },
+    {
+      "cell_id": 3,
+      "level": 3,
+      "region_low_xy": [
+        1.65,
+        0.35
+      ],
+      "region_high_xy": [
+        2.25,
+        0.65
+      ],
+      "altitude_limit": 1.3,
+      "state_position_low": [
+        1.65,
+        0.35,
+        0.85
+      ],
+      "state_position_high": [
+        2.25,
+        0.65,
+        1.15
+      ],
+      "state_velocity_low": [
+        -0.3,
+        -0.3,
+        -0.12
+      ],
+      "state_velocity_high": [
+        0.3,
+        0.3,
+        0.12
+      ],
+      "energy_low": 1.0,
+      "energy_high": 31.0
+    },
+    {
+      "cell_id": 4,
+      "level": 4,
+      "region_low_xy": [
+        2.15,
+        0.35
+      ],
+      "region_high_xy": [
+        2.75,
+        0.65
+      ],
+      "altitude_limit": 1.3,
+      "state_position_low": [
+        2.15,
+        0.35,
+        0.85
+      ],
+      "state_position_high": [
+        2.75,
+        0.65,
+        1.15
+      ],
+      "state_velocity_low": [
+        -0.3,
+        -0.3,
+        -0.12
+      ],
+      "state_velocity_high": [
+        0.3,
+        0.3,
+        0.12
+      ],
+      "energy_low": 1.0,
+      "energy_high": 31.0
+    },
+    {
+      "cell_id": 5,
+      "level": 5,
+      "region_low_xy": [
+        2.65,
+        0.35
+      ],
+      "region_high_xy": [
+        3.35,
+        0.65
+      ],
+      "altitude_limit": 1.3,
+      "state_position_low": [
+        2.65,
+        0.35,
+        0.85
+      ],
+      "state_position_high": [
+        3.35,
+        0.65,
+        1.15
+      ],
+      "state_velocity_low": [
+        -0.3,
+        -0.3,
+        -0.12
+      ],
+      "state_velocity_high": [
+        0.3,
+        0.3,
+        0.12
+      ],
+      "energy_low": 1.0,
+      "energy_high": 31.0
+    }
+  ],
+  "bootstrap_lidar_poses": [],
+  "configuration_overrides": {
+    "v_max": [
+      0.3,
+      0.3,
+      0.12
+    ],
+    "a_max": [
+      0.18,
+      0.18,
+      0.08
+    ],
+    "initial_energy": 30.0,
+    "tracking_error_bound": [
+      0.0005,
+      0.0005,
+      0.00025
+    ],
+    "total_latency": 0.001,
+    "episode_limit": 500,
+    "minimum_generator_sigma": 0.004,
+    "certification_deadline": 0.15
+  },
+  "mission": {
+    "enabled": true,
+    "certificate_mode": "synthetic_preverified",
+    "free_boxes": [
+      [
+        0.2,
+        0.2,
+        3.8,
+        3.8
+      ]
+    ],
+    "occupied_boxes": [],
+    "task_waypoints": [
+      [
+        3.0949491200651607,
+        0.47726126599853264,
+        1.0
+      ],
+      [
+        3.1978742513794636,
+        1.2675453964138748,
+        1.0
+      ]
+    ],
+    "return_waypoints": [
+      [
+        3.15,
+        1.3,
+        1.0
+      ],
+      [
+        3.15,
+        0.5,
+        1.0
+      ],
+      [
+        2.4,
+        0.5,
+        1.0
+      ],
+      [
+        1.6,
+        0.5,
+        1.0
+      ],
+      [
+        0.8,
+        0.5,
+        1.0
+      ],
+      [
+        0.4,
+        0.5,
+        1.0
+      ]
+    ],
+    "goal_radius": 0.2,
+    "progress_weight": 10.0,
+    "task_reward": 20.0,
+    "return_reward": 30.0,
+    "energy_cost_weight": 0.01,
+    "generator_scale": [
+      0.009,
+      0.009,
+      0.004
+    ],
+    "certificate_position_gain": 1.0,
+    "certificate_velocity_gain": 1.4,
+    "certificate_nominal_action_limit": [
+      0.08,
+      0.08,
+      0.03
+    ],
+    "certificate_velocity_limit": [
+      0.22,
+      0.22,
+      0.06
+    ],
+    "certificate_energy_reserve": 0.25,
+    "certificate_bounds": {
+      "control_period_error": 0.0002,
+      "position_residual_radius": [
+        5e-05,
+        5e-05,
+        5e-05
+      ],
+      "velocity_residual_radius": [
+        5e-05,
+        5e-05,
+        5e-05
+      ],
+      "wind_acceleration_radius": [
+        0.0002,
+        0.0002,
+        0.0001
+      ]
+    },
+    "narrow_regions": [],
+    "energy_reserve_per_meter": 0.08,
+    "return_trigger_margin": 1.0,
+    "scenario_family": "open",
+    "scenario_split": "training",
+    "scenario_seed": 20260823,
+    "synthetic_disturbance_fraction": 1.0,
+    "evidence_scope": "synthetic scenario-family fixture"
+  },
+  "expected_certificate_outcome": "synthetic_training_enabled"
+}

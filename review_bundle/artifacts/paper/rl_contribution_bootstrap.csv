@@ -1,0 +1,11 @@
+ci95_high,ci95_low,interpretation,left_method,mean_difference_right_minus_left,metric,paired_seeds,right_method,scenario
+0.0,0.0,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,0.0,mission_completion_steps,5,generator_sac,mission_open
+9.589868968404858e-05,-8.298998614417741e-05,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,-1.2454671193040666e-06,total_path_length,5,generator_sac,mission_open
+4.613188147413183e-05,4.245805222407029e-05,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,4.434701677782371e-05,total_energy_consumed,5,generator_sac,mission_open
+-0.0274344420835547,-0.03138447749370812,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,-0.029246375401109505,episode_return,5,generator_sac,mission_open
+-4.245805222424792e-05,-4.6131881472888384e-05,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,-4.434701677666908e-05,terminal_energy,5,generator_sac,mission_open
+-0.0900000000000091,-0.21000000000000227,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,-0.15,mission_completion_steps,5,generator_sac,mission_obstacle
+-5.2716905754479626e-05,-0.0007325026662211798,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,-0.00039736198037196855,total_path_length,5,generator_sac,mission_obstacle
+-0.0009232730501890884,-0.002365164647595641,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,-0.0016447044128433674,total_energy_consumed,5,generator_sac,mission_obstacle
+0.008111900223951807,-0.0009676257078297112,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,0.002640162571168503,episode_return,5,generator_sac,mission_obstacle
+0.0023651646475968844,0.0009232730501913978,synthetic empirical paired-bootstrap interval; not a safety proof,center_only,0.0016447044128447886,terminal_energy,5,generator_sac,mission_obstacle

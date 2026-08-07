@@ -18,6 +18,28 @@ class ContinuousAgent(Protocol):
     def update(self) -> dict[str, float | int | str] | None: ...
 
 
+class StatelessGeneratorPolicy:
+    """Non-learning Generator ablation sharing the certified c, G, and kappa."""
+
+    def __init__(self, mode: str, seed: int) -> None:
+        if mode not in {"center_only", "random_generator"}:
+            raise ValueError(f"unsupported stateless Generator mode: {mode}")
+        self.mode = mode
+        self.rng = np.random.default_rng(seed)
+
+    def select_u(self, observation: np.ndarray, deterministic: bool = False) -> np.ndarray:
+        del observation
+        if self.mode == "center_only" or deterministic:
+            return np.zeros(3, dtype=np.float64)
+        return self.rng.normal(size=3)
+
+    def observe(self, transition) -> None:
+        del transition
+
+    def update(self) -> None:
+        return None
+
+
 @dataclass(frozen=True)
 class DirectTransition:
     observation: np.ndarray
@@ -128,3 +150,11 @@ class DirectSACAgent:
             "alpha": float(self.alpha.detach()), "entropy": float(-log_prob.mean().detach()),
             "q_value_exec": float(torch.minimum(pred_1, pred_2).mean().detach()), "gradient_norm": max(actor_grad, critic_grad),
         }
+
+    def load_state_dict(self, state: dict[str, object]) -> None:
+        self.actor.load_state_dict(state["actor"])
+        self.critic_1.load_state_dict(state["critic_1"])
+        self.critic_2.load_state_dict(state["critic_2"])
+        if "target_critic_1" in state:
+            self.target_critic_1.load_state_dict(state["target_critic_1"])
+            self.target_critic_2.load_state_dict(state["target_critic_2"])

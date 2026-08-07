@@ -1,4 +1,14 @@
-METHODS = ("sac", "penalty_sac", "shield_sac", "generator_sac")
+METHODS = (
+    "sac",
+    "penalty_sac",
+    "shield_sac",
+    "center_only",
+    "random_generator",
+    "generator_sac",
+)
+CERTIFIED_METHODS = ("shield_sac", "center_only", "random_generator", "generator_sac")
+GENERATOR_METHODS = ("center_only", "random_generator", "generator_sac")
+TRAINED_METHODS = ("sac", "penalty_sac", "shield_sac", "generator_sac")
 SCENARIOS = ("mission_open", "mission_obstacle", "mission_narrow", "mission_energy_tight")
 
 

@@ -29,6 +29,7 @@ def main() -> None:
     parser.add_argument("--evaluation-episodes", type=int, default=20)
     parser.add_argument("--generator-center-mode", choices=("braking", "zero", "task_oriented", "max_volume"), default="task_oriented")
     parser.add_argument("--torch-threads", type=int, default=1)
+    parser.add_argument("--timing-mode", choices=("wall_clock", "functional"), default="wall_clock")
     parser.add_argument("--skip-aggregate", action="store_true")
     args = parser.parse_args()
     torch.set_num_threads(args.torch_threads)
@@ -42,6 +43,7 @@ def main() -> None:
                     output_root=args.output_dir, device=args.device,
                     evaluation_episodes=args.evaluation_episodes,
                     generator_center_mode=args.generator_center_mode,
+                    timing_mode=args.timing_mode,
                 ))
                 results.append(result)
                 print(json.dumps(result, sort_keys=True), flush=True)

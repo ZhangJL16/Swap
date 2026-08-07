@@ -1,0 +1,31 @@
+{
+  "RL_CONTRIBUTION_GATE": "PASS",
+  "scenarios": [
+    "mission_open",
+    "mission_obstacle"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "episodes_per_seed": 20,
+  "metrics": [
+    "task_success",
+    "return_success",
+    "collision",
+    "mission_completion_steps",
+    "task_completion_steps",
+    "total_path_length",
+    "total_energy_consumed",
+    "episode_return",
+    "terminal_energy",
+    "outbound_intervention_rate",
+    "return_handoff_rate",
+    "mean_residual_norm",
+    "mean_residual_to_center_ratio"
+  ],
+  "scope": "synthetic empirical ablation; no physical-safety inference"
+}

@@ -230,6 +230,7 @@ class MultiStepSyntheticMissionCertificateProvider:
             raise ValueError(f"unsupported Generator center mode: {center_mode}")
         self.runtime = runtime
         self.profile = runtime.scenario.mission_config
+        self.synthetic_disturbance_fraction = float(self.profile.get("synthetic_disturbance_fraction", 0.0))
         self.center_mode = center_mode
         self.free_boxes = tuple(np.asarray(box, dtype=np.float64) for box in self.profile["free_boxes"])
         self.occupied_boxes = tuple(np.asarray(box, dtype=np.float64) for box in self.profile.get("occupied_boxes", ()))
@@ -687,6 +688,11 @@ class MultiStepSyntheticMissionCertificateProvider:
         task_radii = self._task_tube_radii()
         chains: list[MissionRecoveryChain] = []
         failures: list[MissionFailureWitness] = []
+        if not 0.0 <= self.synthetic_disturbance_fraction <= 1.0:
+            failures.append(MissionFailureWitness(
+                "SYNTHETIC_DISTURBANCE_OUTSIDE_CERTIFIED_BOUND",
+                f"fraction={self.synthetic_disturbance_fraction}",
+            ))
         task_verified: list[bool] = []
         for root_index, reference in enumerate(task_reference):
             try:

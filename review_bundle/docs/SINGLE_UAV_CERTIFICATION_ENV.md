@@ -337,3 +337,74 @@ explicit zero-deadline test continued to fail closed. The final authoritative su
   action readback.
 - **Unresolved:** transfer from synthetic corridor closure to real rolling geometry and HIL.
 - **Theory-only:** global convergence or monotonic improvement across changing certificate epochs.
+
+## RL Contribution and Scenario Families
+
+`center_only`, `random_generator`, and `generator_sac` execute through the same certified runtime.
+Center-Only publishes the verified center when a Generator exists and κ otherwise.
+Random-in-Generator samples `u ~ N(0,I)` without training and publishes `c + G tanh(u)`; membership
+comes from complete-zonotope verification, not random testing.
+
+Metrics separate outbound intervention from planned RETURN handoff, `NO_GENERATOR_SET`, certificate
+failure, and deadline failure. The previous overall fallback rate was dominated by planned recovery
+and must not be interpreted as an RL failure rate.
+
+Deterministic scenario families are materialized under `artifacts/scenario_families/` with disjoint
+training, validation, and held-out IDs. Each file carries scenario and geometry hashes; every usable
+file must independently produce a PASS manifest whose hash is stored in the index. Start, task,
+energy, bounded tracking disturbance, and conservative obstacle realization can vary only inside
+declared synthetic domains. A 110% disturbance case invalidates the certificate and is reported as
+an out-of-contract diagnostic. None of these tests constitutes physical calibration evidence.
+
+### Current ablation result
+
+The five-seed task-oriented-center ablation records success/return 1.0 and sampled collision 0 for
+Center-Only, Random-in-Generator, and Generator-SAC on both open and obstacle fixtures. Center-Only
+requires 226 steps in open and 451 in obstacle. Generator-SAC differs by 0 and -0.15 mean steps,
+respectively; path and energy differences are below 0.002 synthetic units. Hence current task
+success is predominantly produced by the verified center. Zero and braking centers do not approach
+the task in either fixture, despite passing the same complete-set verifier; center construction is
+a performance mechanism, while verification remains the certificate source.
+
+### Held-out scenario-family result
+
+The deterministic family generator produced 20 training, 10 validation, and 20 held-out synthetic
+scenarios. All 50 independently rebuilt manifests passed their synthetic mission-certificate gate,
+and all scenario IDs, scenario hashes, and manifest hashes are distinct and split-disjoint. The
+frozen-policy evaluation uses one available 10k checkpoint seed and 20 episodes for each held-out
+scenario; it is therefore a single-checkpoint-seed pilot rather than a multi-seed learning claim.
+
+On the five held-out open and five held-out obstacle scenarios, Generator-SAC and Center-Only both
+obtain task/return success 1.0, zero sampled collision, and zero OUTBOUND intervention. Shield-SAC
+returns successfully with zero sampled collision but task success 0, with mean OUTBOUND
+intervention 0.40 in open and 0.133 in obstacle. In narrow scenarios, Generator-SAC and Center-Only
+retain return success 1.0 with task success 0 and about 1.97% OUTBOUND intervention; this is the
+intended `kappa valid / no positive-volume Generator` behavior. In energy-tight held-out scenarios,
+Generator-SAC and Center-Only achieve task success 0.20 and return success 1.0. The identical
+center/actor result shows that this loss is driven by task/energy-trigger semantics rather than
+actor memorization. Across all 60 method-scenario rows there are zero sampled certified-method
+collisions, zero uncertified task publications, and zero invalid-kappa fallbacks.
+
+`RL_CONTRIBUTION_GATE` and `GENERALIZATION_GATE` both pass their software-evidence criteria. They do
+not imply physical calibration, hard WCET, or global safety. A 50k multi-scenario trainer is
+implemented but was not run in this round: the RL ablation shows negligible residual benefit, while
+the held-out failures are shared by Center-Only and Generator-SAC. Increasing actor training before
+changing the center/task-trigger challenge would not isolate an RL contribution.
+
+### Sensitivity and certificate scale
+
+The in-contract disturbance sweep from 0% through 100% of the declared synthetic bound preserves
+the open-fixture result; 110% is rejected as out of contract. Bound-scale factors 0.5, 0.75, and 1.0
+produce the same Generator volume in this fixture, showing that another configured limit is active;
+this sweep does not yet demonstrate a robustness-performance Pareto frontier.
+
+The four manifests contain 86,684 recovery cells. Desktop construction takes approximately
+5.3--5.5 s for each 8,221-cell manifest, 25.8 s for the 37,802-cell obstacle manifest, and 22.5 s
+for the 32,440-cell narrow manifest. Serialized sizes are 7.9--36.6 MiB. Current root lookup is a
+linear scan followed by exact containment and averages 1.7--3.5 ms in the recorded desktop profile.
+These are offline/profile measurements, not online WCET evidence; a spatial index may accelerate
+lookup but cannot replace final cell-containment verification.
+
+The authoritative post-change suite is `128 tests in 176.973 s`, with 128 passes, zero failures,
+and zero skips. The four mission certificate gates also pass after regeneration. Exact raw outputs
+are stored in `artifacts/paper/`.

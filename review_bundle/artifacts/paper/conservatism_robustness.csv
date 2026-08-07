@@ -1,0 +1,19 @@
+bound_scale,certificate_gate,classification,disturbance_fraction,mean_zonotope_volume,outbound_intervention,return_success,scenario,task_success
+0.5,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.0,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.5,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.25,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.5,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.5,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.5,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.75,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.5,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,1.0,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.5,blocked-by-mission-certificate,out-of-contract diagnostic,1.1,,,,mission_open,
+0.75,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.0,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.75,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.25,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.75,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.5,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.75,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.75,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.75,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,1.0,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+0.75,blocked-by-mission-certificate,out-of-contract diagnostic,1.1,,,,mission_open,
+1.0,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.0,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+1.0,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.25,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+1.0,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.5,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+1.0,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,0.75,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+1.0,PASS,synthetic sensitivity only; scaled bounds are not physical evidence,1.0,2.58637828665087e-06,0.0,1.0,mission_open,1.0
+1.0,blocked-by-mission-certificate,out-of-contract diagnostic,1.1,,,,mission_open,

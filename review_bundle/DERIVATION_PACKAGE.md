@@ -3274,3 +3274,64 @@ entire continuous certified-action domain. In mission-narrow, the state-uncertai
 a conservative task-authority exclusion while the independent κ certificate remains valid, which
 implements the distinction that this constructor has no runtime task set while
 \(\kappa(z)\in\mathcal A_{\rm cert}(z)\).
+
+## 2026-08-07 RL-Contribution and Generalization Refinement
+
+For the selected implementation,
+
+\[
+ a^{\rm exec}=c(z,a_{\rm pref})+G(z)\eta_\theta(o),\qquad \eta_\theta=\tanh u_\theta.
+\]
+
+This is interpreted as a **verified task reference plus a learned residual**, not as evidence that
+the residual improves performance. `center_only` fixes \(\eta=0\), and `random_generator` uses an
+untrained Gaussian latent. Both share the same independently verified \(c,G,\kappa\) and manifest
+as Generator-SAC. Their ablation is therefore required before attributing efficiency to SAC.
+
+The task proposal may affect \(c\), but the safety premise remains the independently verified
+inclusion
+\[
+ c(z,a_{\rm pref})+G(z)[-1,1]^3\subseteq\mathcal A_{\rm cert}(z).
+\]
+The proposal is not a certificate, and task gradients do not pass through \(c\), \(G\), or the
+verifier. This is a refinement of T0/T12A, not a new convergence theorem.
+
+Intervention is partitioned into task intervention during OUTBOUND, planned recovery handoff
+during RETURN, and failure fallback caused by certificate, version, numerical, or deadline failure.
+These categories are not interchangeable. Scenario-family replay stores scenario ID, family,
+scenario hash, and manifest hash; batches remain grouped by the frozen manifest epoch. No monotone
+improvement claim is made across manifests. Out-of-contract disturbance invalidates the synthetic
+gate rather than being counted as certified robustness.
+
+The first RL-contribution ablation supports only a limited performance claim. Across five seeds and
+20 evaluation episodes per seed, Center-Only, Random-in-Generator, and Generator-SAC all obtain
+task/return success 1.0 with zero sampled collision in mission-open and mission-obstacle.
+Generator-SAC matches Center-Only's 226-step open mission and improves the obstacle mean by only
+0.15 step, approximately 0.00040 m path length, and 0.00164 synthetic energy units. The open return
+is slightly lower because the stochastic residual adds cost without improving completion. Thus the
+present handcrafted fixtures are dominated by the task-aware center. The supported contribution is
+certified task-aware action-set construction, reduced OUTBOUND intervention relative to Shield, and
+a semantically correct residual optimizer; material RL efficiency gains remain unestablished.
+
+The held-out scenario-family experiment sharpens this non-claim. With one frozen 10k checkpoint
+seed and 20 episodes on each of 20 independently certified held-out scenarios, Generator-SAC and
+Center-Only have identical task-success patterns: 1.0 in open and obstacle, 0 in narrow, and 0.20
+in energy-tight families. Return success is 1.0 throughout. Thus the present evidence does not show
+that the learned residual improves generalization beyond the explicit center. It does show that
+the same verified support and independently certified recovery authority remain usable after
+bounded synthetic changes of start, task, obstacle realization, tracking, sensing, and energy.
+
+This evidence supports the following attribution boundary:
+
+1. corridor-wide certification and complete-set verification support the conditional membership
+   and recovery claims;
+2. task-aware center construction supplies nearly all demonstrated task competence;
+3. the SAC residual has the correct hybrid Bellman and density semantics, but its demonstrated
+   efficiency gain is negligible;
+4. sampled held-out success and zero sampled collision are empirical observations, not replacements
+   for calibrated envelopes or deployment timing premises.
+
+Accordingly, 100k--200k training is not yet the next justified step. A harder certified family in
+which Center-Only is feasible but suboptimal is required before spending a larger budget to test
+whether residual learning adds value. The 50k multi-scenario interface remains available, grouped
+by immutable manifest epoch, but has not been used to manufacture a positive RL claim.

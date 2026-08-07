@@ -1,0 +1,9 @@
+{
+  "method": "center_only",
+  "scenario": "mission_obstacle",
+  "seed": 0,
+  "evaluation_episodes": 20,
+  "wall_time_seconds": 141.35662788600894,
+  "training": "not_applicable",
+  "evidence_scope": "synthetic empirical stateless ablation"
+}

@@ -1,0 +1,23 @@
+{
+  "method": "generator_sac",
+  "scenario": "mission_energy_tight",
+  "seed": 0,
+  "total_steps": 10000,
+  "warmup_steps": 1000,
+  "batch_size": 128,
+  "hidden_dim": 128,
+  "updates_per_step": 1,
+  "checkpoint_interval": 5000,
+  "evaluation_interval": 5000,
+  "output_root": "artifacts/checkpoints",
+  "device": "cpu",
+  "evaluation_episodes": 20,
+  "generator_center_mode": "task_oriented",
+  "checkpoint_path": null,
+  "timing_mode": "functional",
+  "git_sha": "092a6920b77262213353f617ebe9669e26866674",
+  "python": "3.12.3",
+  "numpy": "1.26.4",
+  "torch": "2.7.1+cu128",
+  "evidence_scope": "synthetic empirical training only"
+}

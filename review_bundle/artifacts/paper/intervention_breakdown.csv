@@ -1,0 +1,17 @@
+certificate_failure_mean,method,no_generator_mean,outbound_intervention_mean,overall_fallback_mean,scenario
+0.0,generator_sac,0.0,0.0,0.9342,mission_energy_tight
+0.0,generator_sac,0.0048,0.019607843137254943,0.76,mission_narrow
+0.0,generator_sac,0.0,0.0,0.671,mission_obstacle
+0.0,generator_sac,0.0,0.0,0.9055,mission_open
+0.0,penalty_sac,0.0,0.0,0.0,mission_energy_tight
+0.0,penalty_sac,0.0,0.0,0.0,mission_narrow
+0.0,penalty_sac,0.0,0.0,0.0,mission_obstacle
+0.0,penalty_sac,0.0,0.0,0.0,mission_open
+0.0,sac,0.0,0.0,0.0,mission_energy_tight
+0.0,sac,0.0,0.0,0.0,mission_narrow
+0.0,sac,0.0,0.0,0.0,mission_obstacle
+0.0,sac,0.0,0.0,0.0,mission_open
+0.0,shield_sac,0.0,0.5202767787767788,0.99092,mission_energy_tight
+0.0,shield_sac,0.0,0.40032564228440515,0.9800000000000001,mission_narrow
+0.0,shield_sac,0.0,0.32998046398046393,0.98246,mission_obstacle
+0.0,shield_sac,0.0,0.4934011544011545,0.9900400000000001,mission_open

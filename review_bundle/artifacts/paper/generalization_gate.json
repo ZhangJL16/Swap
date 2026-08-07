@@ -1,0 +1,14 @@
+{
+  "GENERALIZATION_GATE": "PASS",
+  "heldout_scenarios": 20,
+  "methods": [
+    "center_only",
+    "generator_sac",
+    "shield_sac"
+  ],
+  "rows": 60,
+  "sampled_certified_method_collisions": 0,
+  "uncertified_task_publication_count": 0,
+  "invalid_kappa_fallback_count": 0,
+  "scope": "synthetic held-out generalization evidence only"
+}

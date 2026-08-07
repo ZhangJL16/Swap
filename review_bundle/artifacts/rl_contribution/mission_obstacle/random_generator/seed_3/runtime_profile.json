@@ -1,0 +1,9 @@
+{
+  "method": "random_generator",
+  "scenario": "mission_obstacle",
+  "seed": 3,
+  "evaluation_episodes": 20,
+  "wall_time_seconds": 163.286778772017,
+  "training": "not_applicable",
+  "evidence_scope": "synthetic empirical stateless ablation"
+}

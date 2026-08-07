@@ -1,0 +1,17 @@
+energy_depletion_mean,method,minimum_energy_margin_mean,return_success_mean,scenario,terminal_energy_mean
+0.0,generator_sac,1.2831029389271555,1.0,mission_energy_tight,2.89712235287882
+0.0,generator_sac,25.903006763892233,1.0,mission_narrow,27.46300243932864
+0.0,generator_sac,22.689134369402552,1.0,mission_obstacle,24.534109677325475
+0.0,generator_sac,25.640712802750794,1.0,mission_open,27.262661499142347
+0.0,penalty_sac,,0.0,mission_energy_tight,5.040349220170653
+0.0,penalty_sac,,0.0,mission_narrow,29.626520226731305
+0.0,penalty_sac,,0.0,mission_obstacle,29.61297688629623
+0.0,penalty_sac,,0.0,mission_open,29.506296625228266
+0.0,sac,,0.0,mission_energy_tight,5.157081113554358
+0.0,sac,,0.0,mission_narrow,29.646831101549946
+0.0,sac,,0.0,mission_obstacle,29.651528464353028
+0.0,sac,,0.0,mission_open,29.652574252110618
+0.0,shield_sac,1.9193406938536377,1.0,mission_energy_tight,3.669597174569656
+0.0,shield_sac,27.23997755656863,1.0,mission_narrow,28.75659151329247
+0.0,shield_sac,26.329440767316576,1.0,mission_obstacle,28.150220496443836
+0.0,shield_sac,26.444156496216447,1.0,mission_open,28.169189808259716

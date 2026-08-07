@@ -65,6 +65,10 @@ class GeneratorTransition:
     corridor_version: str
     energy_version: str
     certificate_hashes: tuple[str | None, str | None]
+    scenario_id: str | None = None
+    scenario_family: str | None = None
+    scenario_hash: str | None = None
+    certificate_manifest_hash: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("observation", "next_observation", "u", "eta", "c", "G", "candidate_action", "kappa_action", "executed_action", "measured_action", "next_c", "next_G", "next_kappa"):
@@ -77,6 +81,11 @@ class GeneratorTransition:
             raise ValueError("accepted transition requires u,c,G")
         if self.next_generator_available and (self.next_c is None or self.next_G is None):
             raise ValueError("generator-valid next state requires next c,G")
+        if (
+            self.certificate_manifest_hash is not None
+            and self.certificate_manifest_hash != self.certificate_epoch
+        ):
+            raise ValueError("scenario certificate manifest does not match certificate epoch")
 
 
 class GeneratorReplayBuffer:
@@ -92,6 +101,11 @@ class GeneratorReplayBuffer:
         return len(self.transitions)
 
     def add(self, transition: GeneratorTransition) -> bool:
+        if (
+            transition.certificate_manifest_hash is not None
+            and transition.certificate_manifest_hash != transition.certificate_epoch
+        ):
+            raise ValueError("scenario/certificate manifest mismatch")
         epoch = transition.certificate_epoch
         if self.active_epoch is None:
             self.active_epoch = epoch
@@ -290,3 +304,13 @@ class GeneratorSAC:
             "target_critic_1": self.target_critic_1.state_dict(), "target_critic_2": self.target_critic_2.state_dict(),
             "log_alpha": self.log_alpha.detach().cpu(), "config": self.config.__dict__.copy(), "gradient_steps": self.gradient_steps,
         }
+
+    def load_state_dict(self, state: dict[str, object]) -> None:
+        self.actor.load_state_dict(state["actor"])
+        self.critic_1.load_state_dict(state["critic_1"])
+        self.critic_2.load_state_dict(state["critic_2"])
+        self.target_critic_1.load_state_dict(state["target_critic_1"])
+        self.target_critic_2.load_state_dict(state["target_critic_2"])
+        with torch.no_grad():
+            self.log_alpha.copy_(torch.as_tensor(state["log_alpha"], device=self.device))
+        self.gradient_steps = int(state.get("gradient_steps", 0))

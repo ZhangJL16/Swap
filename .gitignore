@@ -2,4 +2,13 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 review_bundle/artifacts/**/checkpoint_*.pt
+!review_bundle/artifacts/checkpoints/
+!review_bundle/artifacts/checkpoints/**
+review_bundle/artifacts/checkpoints/logs/
+review_bundle/artifacts/checkpoints/**/trajectory_diagnostics.csv
+review_bundle/artifacts/checkpoints/**/episode_metrics.csv
+review_bundle/artifacts/checkpoints/**/evaluation_metrics.csv
+review_bundle/artifacts/checkpoints/**/safety_events.jsonl
 review_bundle/artifacts/**/training_metrics.csv
+review_bundle/artifacts/paper/*.log
+review_bundle/artifacts/paper/generalization_*_heldout_*.csv
