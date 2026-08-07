@@ -1,0 +1,10 @@
+{
+  "cpu": "x86_64",
+  "cuda_available": true,
+  "gpu": "NVIDIA GeForce RTX 5060",
+  "logical_cpus": 16,
+  "numpy": "1.26.4",
+  "os": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "torch": "2.7.1+cu128"
+}

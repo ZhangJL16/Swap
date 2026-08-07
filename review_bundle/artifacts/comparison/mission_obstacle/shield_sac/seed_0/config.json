@@ -1,0 +1,19 @@
+{
+  "method": "shield_sac",
+  "scenario": "mission_obstacle",
+  "seed": 0,
+  "total_steps": 2000,
+  "warmup_steps": 200,
+  "batch_size": 64,
+  "hidden_dim": 128,
+  "updates_per_step": 1,
+  "checkpoint_interval": 5000,
+  "evaluation_interval": 5000,
+  "output_root": "review_bundle/artifacts/comparison",
+  "device": "cpu",
+  "git_sha": "59fa35f4cdf82624f08da761fdc737cac77dd48d",
+  "python": "3.12.3",
+  "numpy": "1.26.4",
+  "torch": "2.7.1+cu128",
+  "evidence_scope": "synthetic empirical training only"
+}

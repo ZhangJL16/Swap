@@ -1,0 +1,25 @@
+{
+  "base": "mission_open.json",
+  "name": "mission_obstacle",
+  "task_goal": [3.15,3.15,1.0],
+  "aabb_obstacles": [
+    {"low": [2.10,1.25,0.0], "high": [2.55,2.55,2.0]},
+    {"low": [2.75,2.65,0.0], "high": [3.45,2.90,2.0]}
+  ],
+  "mission": {
+    "enabled": true,
+    "certificate_mode": "synthetic_preverified",
+    "free_boxes": [[0.20,0.20,3.80,1.10],[0.20,0.90,1.90,3.80],[1.75,2.75,3.80,3.80],[2.55,0.90,3.80,2.70]],
+    "occupied_boxes": [[2.10,1.25,2.55,2.55],[2.75,2.65,3.45,2.90]],
+    "return_waypoints": [[3.15,3.15,1.0],[1.75,3.15,1.0],[1.30,1.00,1.0],[1.30,0.50,1.0],[0.40,0.50,1.0]],
+    "generator_scale": [0.12,0.12,0.05],
+    "narrow_regions": [],
+    "energy_reserve_per_meter": 0.10,
+    "return_trigger_margin": 1.2,
+    "goal_radius": 0.20,
+    "progress_weight": 10.0,
+    "task_reward": 20.0,
+    "return_reward": 30.0,
+    "energy_cost_weight": 0.01
+  }
+}

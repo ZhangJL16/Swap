@@ -1,0 +1,19 @@
+{
+  "method": "sac",
+  "scenario": "mission_open",
+  "seed": 0,
+  "total_steps": 20,
+  "warmup_steps": 5,
+  "batch_size": 4,
+  "hidden_dim": 128,
+  "updates_per_step": 1,
+  "checkpoint_interval": 5000,
+  "evaluation_interval": 5000,
+  "output_root": "review_bundle/artifacts/comparison_debug",
+  "device": "cpu",
+  "git_sha": "59fa35f4cdf82624f08da761fdc737cac77dd48d",
+  "python": "3.12.3",
+  "numpy": "1.26.4",
+  "torch": "2.7.1+cu128",
+  "evidence_scope": "synthetic empirical training only"
+}

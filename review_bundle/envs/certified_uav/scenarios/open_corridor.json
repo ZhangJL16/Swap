@@ -1,0 +1,32 @@
+{
+  "name": "open_corridor",
+  "world_size": [4.0, 4.0, 2.0],
+  "initial_state": {"position": [1.02, 0.75, 1.0], "velocity": [0.0, 0.0, 0.08], "energy": 100.0, "timestamp": 0.0},
+  "station_position": [0.98, 0.75, 1.0],
+  "task_goal": [3.5, 3.5, 1.0],
+  "terminal": {
+    "position_low": [0.91, 0.71, 0.92],
+    "position_high": [1.12, 0.79, 1.12],
+    "velocity_abs_max": [0.012, 0.012, 0.079],
+    "minimum_energy": 1.0,
+    "continuation_modes": ["hover"],
+    "version": "synthetic-terminal-v1"
+  },
+  "aabb_obstacles": [
+    {"low": [2.0, 1.5, 0.0], "high": [2.25, 2.6, 2.0]},
+    {"low": [2.15, 2.9, 0.0], "high": [3.3, 3.15, 2.0]}
+  ],
+  "cylinder_obstacles": [
+    {"center_xy": [2.6, 1.0], "radius": 0.2, "z_low": 0.0, "z_high": 2.0},
+    {"center_xy": [3.25, 2.15], "radius": 0.18, "z_low": 0.0, "z_high": 2.0}
+  ],
+  "corridor_cells": [
+    {"cell_id": 0, "level": 0, "region_low_xy": [0.9, 0.7], "region_high_xy": [1.12, 0.8], "altitude_limit": 1.3, "state_position_low": [0.92, 0.72, 0.935], "state_position_high": [1.11, 0.78, 1.095], "state_velocity_low": [-0.009, -0.009, -0.03], "state_velocity_high": [0.009, 0.009, 0.075], "energy_low": 2.4, "energy_high": 101.2},
+    {"cell_id": 1, "level": 1, "region_low_xy": [0.9, 0.7], "region_high_xy": [1.12, 0.8], "altitude_limit": 1.3, "state_position_low": [0.925, 0.725, 0.96], "state_position_high": [1.105, 0.775, 1.075], "state_velocity_low": [-0.007, -0.007, 0.035], "state_velocity_high": [0.007, 0.007, 0.075], "energy_low": 2.7, "energy_high": 101.1},
+    {"cell_id": 2, "level": 2, "region_low_xy": [0.9, 0.7], "region_high_xy": [1.12, 0.8], "altitude_limit": 1.3, "state_position_low": [0.93, 0.73, 0.975], "state_position_high": [1.10, 0.77, 1.055], "state_velocity_low": [-0.005, -0.005, 0.05], "state_velocity_high": [0.005, 0.005, 0.078], "energy_low": 3.0, "energy_high": 101.0},
+    {"cell_id": 3, "level": 3, "region_low_xy": [0.9, 0.7], "region_high_xy": [1.12, 0.8], "altitude_limit": 1.3, "state_position_low": [0.93, 0.73, 0.98], "state_position_high": [1.10, 0.77, 1.025], "state_velocity_low": [-0.005, -0.005, 0.065], "state_velocity_high": [0.005, 0.005, 0.08], "energy_low": 3.0, "energy_high": 101.0}
+  ],
+  "bootstrap_lidar_poses": [[0.7, 0.6, 1.0], [1.2, 0.6, 1.0], [0.7, 0.9, 1.0], [1.2, 0.9, 1.0], [0.5, 0.75, 1.0], [1.4, 0.75, 1.0]],
+  "configuration_overrides": {},
+  "expected_certificate_outcome": "closed"
+}

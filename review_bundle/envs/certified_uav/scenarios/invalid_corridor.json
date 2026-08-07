@@ -1,0 +1,6 @@
+{
+  "base": "open_corridor.json",
+  "name": "invalid_corridor",
+  "invalidate_last_corridor_overlap": true,
+  "expected_certificate_outcome": "invalid-corridor"
+}

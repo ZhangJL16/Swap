@@ -1,0 +1,22 @@
+{
+  "method": "generator_sac",
+  "scenario": "mission_open",
+  "seed": 0,
+  "environment_steps": 1000,
+  "episodes": 2,
+  "mean_episode_length": 315.0,
+  "task_success_rate": 0.0,
+  "return_success_rate": 0.0,
+  "collision_episode_rate": 0.0,
+  "energy_depletion_rate": 0.0,
+  "mean_episode_return": -4.009078247003541,
+  "generator_acceptance_rate": 0.977,
+  "fallback_rate": 0.023,
+  "no_generator_set_rate": 0.02,
+  "mean_zonotope_volume": 0.007832778410356305,
+  "min_zonotope_volume": 0.007560000289231539,
+  "mean_sigma_min": 0.05000000074505806,
+  "mean_condition_number": 2.799999952316284,
+  "wall_time_seconds": 34.05706493402249,
+  "evidence_scope": "synthetic empirical training only"
+}
