@@ -1,0 +1,13 @@
+scenario,seed,unique_c,unique_G,unique_zonotope_volume,state_dependent
+mission_narrow,1,491,50,50,1
+mission_narrow,0,491,50,50,1
+mission_narrow,2,491,50,50,1
+mission_energy_tight,1,131,14,14,1
+mission_energy_tight,0,131,14,14,1
+mission_energy_tight,2,131,14,14,1
+mission_open,1,181,21,21,1
+mission_open,0,181,21,21,1
+mission_open,2,181,21,21,1
+mission_obstacle,1,726,79,79,1
+mission_obstacle,0,726,79,79,1
+mission_obstacle,2,727,79,79,1

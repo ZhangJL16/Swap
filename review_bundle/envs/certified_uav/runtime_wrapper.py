@@ -10,6 +10,7 @@ import numpy as np
 
 from calibration.confidence import BoundEstimate
 from calibration.dynamics import DynamicsSample, build_dynamics_contract
+from calibration.energy import EnergySample, build_energy_contract
 from calibration.schema import ConfidenceSemantics, DataSplit, RawCalibrationRecord
 from calibration.sensor import build_sensor_contract
 from calibration.synthetic import build_synthetic_calibration_bundle, synthetic_metadata
@@ -93,6 +94,7 @@ def _operating_point(config: CertifiedUAVConfig, state) -> dict[str, float | str
 def _build_synthetic_calibration(config: CertifiedUAVConfig, scenario: ScenarioDefinition):
     contracts, reports = build_synthetic_calibration_bundle()
     _, _, _, energy, _ = contracts
+    mission_bounds = scenario.mission_config.get("certificate_bounds", {})
     point = tuple(sorted(_operating_point(config, scenario.initial_state).items()))
     sensor_metadata = synthetic_metadata("cert-uav-sensor-evidence", "synthetic-sensor-v2")
     sensor_records = tuple(
@@ -184,14 +186,53 @@ def _build_synthetic_calibration(config: CertifiedUAVConfig, scenario: ScenarioD
         initial_position_radius=(0.001, 0.001, 0.001),
         initial_velocity_radius=(0.001, 0.001, 0.001),
         control_period=config.dt,
-        control_period_error=0.001,
+        control_period_error=float(mission_bounds.get("control_period_error", 0.001)),
         sensor_latency_upper=config.total_latency / 3.0,
         compute_latency_upper=config.total_latency / 3.0,
         switch_latency_upper=config.total_latency / 3.0,
-        position_residual_radius=(0.0002, 0.0002, 0.0002),
-        velocity_residual_radius=(0.0002, 0.0002, 0.0002),
-        wind_acceleration_radius=(0.001, 0.001, 0.001),
+        position_residual_radius=tuple(mission_bounds.get("position_residual_radius", (0.0002, 0.0002, 0.0002))),
+        velocity_residual_radius=tuple(mission_bounds.get("velocity_residual_radius", (0.0002, 0.0002, 0.0002))),
+        wind_acceleration_radius=tuple(mission_bounds.get("wind_acceleration_radius", (0.001, 0.001, 0.001))),
     )
+    if scenario.mission_config.get("enabled", False):
+        energy_metadata = synthetic_metadata(
+            f"{scenario.name}-energy-evidence",
+            "synthetic-mission-energy-v2",
+        )
+        energy_samples = tuple(
+            EnergySample(
+                f"mission-energy-{index}",
+                float(index),
+                float(index) + config.dt,
+                20.0,
+                20.0,
+                0.1,
+                0.1,
+                0.013,
+                (0.1, 0.1, 0.0),
+                (0.05, 0.05, 0.0),
+                True,
+                1.0,
+                20.0,
+                0.5,
+                split,
+            )
+            for index, split in enumerate((DataSplit.CALIBRATION, DataSplit.VALIDATION), start=1)
+        )
+        energy, energy_report = build_energy_contract(
+            energy_samples,
+            energy_metadata,
+            "synthetic-mission-energy-v2",
+            avionics_cost=0.006,
+            hover_cost=0.004,
+            velocity_coefficients=(0.001, 0.001, 0.001),
+            action_coefficients=(0.001, 0.001, 0.0015),
+            communication_cost=0.001,
+            computation_cost=0.001,
+            measurement_error=0.0005,
+            underestimation_margin=0.001,
+        )
+        reports = reports + (energy_report,)
     terminal_metadata = synthetic_metadata("cert-uav-terminal-evidence", scenario.terminal.version)
     terminal = build_terminal_contract(
         terminal_metadata,
@@ -220,6 +261,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         *,
         allow_synthetic_certificates: bool = True,
         freeze_certificate_epoch: bool = False,
+        generator_center_mode: str = "task_oriented",
     ) -> None:
         super().__init__()
         self.task_env = task_env
@@ -246,7 +288,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self._prepare_stage_timings: dict[str, float] = {}
         self._build_certificate_objects()
         self.mission_provider = (
-            SyntheticMissionCertificateProvider(self)
+            SyntheticMissionCertificateProvider(self, generator_center_mode)
             if self.scenario.mission_config.get("certificate_mode") == "synthetic_preverified"
             else None
         )
@@ -347,7 +389,10 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             tuple(float(value) for value in self.scenario.station_position),
             self.geometry,
             self.corridor,
-            explicit_task_state={"scenario": self.scenario.name},
+            explicit_task_state={
+                "scenario": self.scenario.name,
+                "mission_phase": self.task_env.phase.name,
+            },
             position_error_radius=self.calibration.dynamics.initial_position_radius,
             velocity_error_radius=self.calibration.dynamics.initial_velocity_radius,
             energy_error_radius=self.calibration.energy.measurement_error,
@@ -369,7 +414,11 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             state.explicit_task_state["mission_phase"] = self.task_env.phase.name
             context = self.mission_provider.evaluate(state, self.plant.state.timestamp)
         observation = self.task_env.build_observation(self._map_encoding(), self._corridor_encoding())
-        failure = None if context.closure.closed else context.closure.status
+        failure = (
+            None
+            if context.recovery.certified and self.mission_provider.gate_pass
+            else context.closure.status
+        )
         preparation = RuntimeCyclePreparation(state, observation, context.closure, context.recovery, failure)
         self.last_preparation = preparation
         self._prepare_stage_timings = {name: 0.0 for name in ("T_sensor", "T_update", "T_snapshot", "T_corridor", "T_energy", "T_set")}
@@ -498,6 +547,8 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
                         self.sensor_bounds,
                         packet.timestamp,
                     )
+        if self.mission_provider is not None:
+            self.mission_provider.reset()
         preparation = self.prepare_certificate_cycle()
         if self.freeze_certificate_epoch and preparation.failure_reason is None:
             self._frozen_preparation = preparation
@@ -552,7 +603,9 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             command_reason = (
                 "CERTIFICATION_CYCLE_DEADLINE"
                 if cycle_deadline_missed
-                else preparation.failure_reason or (recovery.reason if recovery is not None else "CERTIFICATE_UNAVAILABLE")
+                else preparation.failure_reason
+                or (closure.status if closure is not None and not closure.closed else None)
+                or (recovery.reason if recovery is not None else "CERTIFICATE_UNAVAILABLE")
             )
             publisher.publish_once(
                 PublishedCommand(pre_fallback, "kappa", command_reason, pre_snapshot.certificate_version)
@@ -602,7 +655,24 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             execution_snapshot = snapshot
             execution_recovery = recovery
         plant_started = monotonic()
+        mission_context = self.mission_provider.last_context if self.mission_provider is not None else None
+        if self.mission_provider is not None and command_source != "task" and execution_recovery.certified:
+            from .task_wrapper import MissionPhase
+
+            self.task_env.phase = MissionPhase.RETURN
+            self.task_env.return_triggered = True
         observation, reward, terminated, truncated, info = self.task_env.step(np.asarray(command_action, dtype=np.float64))
+        if self.mission_provider is not None and not execution_recovery.certified:
+            from .task_wrapper import MissionPhase, MissionTerminationReason
+
+            terminated = True
+            self.task_env.phase = MissionPhase.FAILURE
+            self.task_env.termination_reason = MissionTerminationReason.RECOVERY_CERTIFICATE_INVALID
+            info = info | {
+                "failure_reason": "recovery_certificate_invalid",
+                "mission_phase": MissionPhase.FAILURE.name,
+                "mission_termination_reason": MissionTerminationReason.RECOVERY_CERTIFICATE_INVALID.value,
+            }
         timings["T_plant"] = monotonic() - plant_started
         measured = self.plant.last_telemetry.action_trace.measured
         fallback_action = np.asarray(recovery.action if recovery is not None else command_action, dtype=np.float64)
@@ -640,6 +710,8 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             bundle,
             tuple(float(value) for value in measured),
         )
+        if self.mission_provider is not None and mission_context is not None:
+            self.mission_provider.commit_execution(mission_context, command_source == "task")
         timings["T_log"] = monotonic() - plant_started - timings["T_plant"]
         self.last_fallback_reason = trace.fallback_reason
         next_observation = self.task_env.build_observation(self._map_encoding(), self._corridor_encoding())
@@ -673,13 +745,18 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         certificate = None if closure is None else closure.zonotope_certificate
         zonotope = None if certificate is None else certificate.zonotope
         recovery = selected.recovery
+        mission_context = self.mission_provider.last_context if self.mission_provider is not None else None
         return {
             "certificate_valid": bool(recovery is not None and recovery.certified),
             "generator_available": bool(certificate is not None and certificate.verified and zonotope is not None),
             "c": None if zonotope is None else np.asarray(zonotope.center, dtype=np.float32),
             "G": None if zonotope is None else np.asarray(zonotope.generators, dtype=np.float32),
             "kappa": None if recovery is None else np.asarray(recovery.action, dtype=np.float32),
-            "certificate_epoch": None if self.current_epoch is None else self.current_epoch.epoch_id,
+            "certificate_epoch": (
+                self.mission_provider.manifest.manifest_hash
+                if self.mission_provider is not None
+                else None if self.current_epoch is None else self.current_epoch.epoch_id
+            ),
             "certificate_version": selected.state.certificate_version,
             "geometry_version": self.geometry.version,
             "corridor_version": self.corridor.version,
@@ -687,6 +764,16 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "recovery_hash": None if recovery is None else recovery.certificate_hash,
             "zonotope_hash": None if certificate is None else certificate.complete_set_inclusion_hash,
             "failure_reason": selected.failure_reason,
+            "generator_status": None if closure is None else closure.status,
+            "mission_certificate_gate": (
+                None
+                if self.mission_provider is None
+                else "PASS" if self.mission_provider.gate_pass else "blocked-by-mission-certificate"
+            ),
+            "recovery_level": None if mission_context is None else mission_context.recovery_level,
+            "recovery_energy_required": None if mission_context is None else mission_context.required_energy,
+            "energy_margin": None if mission_context is None else mission_context.current_energy_margin,
+            "recovery_cell_id": None if mission_context is None else mission_context.recovery_cell_id,
         }
 
     def preview_next_action_context(self) -> dict[str, Any]:
@@ -706,28 +793,52 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self.last_publisher = publisher
         snapshot = pre_state.snapshot()
         publisher.stage_default(PublishedCommand(tuple(fallback), "kappa", "STAGED_BEFORE_NOMINAL_CHECK", snapshot.certificate_version))
+        certificate_started = monotonic()
         preparation = self.prepare_certificate_cycle()
+        certificate_elapsed = monotonic() - certificate_started
         selected = np.asarray(nominal_action, dtype=np.float64)
         closure = preparation.closure_result
         certificate = None if closure is None else closure.zonotope_certificate
         zonotope = None if certificate is None else certificate.zonotope
+        point_verified = bool(
+            self.mission_provider is not None
+            and self.mission_provider.verify_task_action(preparation.state, selected)
+        )
         accepted = bool(
             preparation.failure_reason is None
             and preparation.recovery is not None
             and preparation.recovery.certified
-            and certificate is not None
-            and certificate.verified
-            and zonotope is not None
-            and zonotope.contains(selected)
+            and (
+                point_verified
+                if self.mission_provider is not None
+                else certificate is not None and certificate.verified and zonotope is not None and zonotope.contains(selected)
+            )
         )
         action = selected if accepted else fallback
         reason = "VERIFIED_NOMINAL_MEMBERSHIP" if accepted else (preparation.failure_reason or "NOMINAL_OUTSIDE_CERTIFIED_SET")
+        publish_started = monotonic()
         publisher.publish_once(PublishedCommand(tuple(float(value) for value in action), "task" if accepted else "kappa", reason, snapshot.certificate_version))
+        publish_elapsed = monotonic() - publish_started
+        if self.mission_provider is not None and not accepted and preparation.recovery is not None and preparation.recovery.certified:
+            from .task_wrapper import MissionPhase
+
+            self.task_env.phase = MissionPhase.RETURN
+            self.task_env.return_triggered = True
+        plant_started = monotonic()
         observation, reward, terminated, truncated, info = self.task_env.step(action)
+        plant_elapsed = monotonic() - plant_started
         measured = self.plant.last_telemetry.action_trace.measured
         trace = ActionTrace(selected, selected if accepted else None, fallback, action, measured, accepted, None if accepted else reason, str(snapshot.certificate_version))
         telemetry = self.plant.attach_runtime_trace(trace, str(snapshot.certificate_version), str(self.geometry.version), str(self.corridor.version))
-        self.last_stage_timings = {"T_total": monotonic() - total_started}
+        if self.mission_provider is not None and self.mission_provider.last_context is not None:
+            self.mission_provider.commit_execution(self.mission_provider.last_context, accepted)
+        self.last_stage_timings = {
+            "T_certificate": certificate_elapsed,
+            "T_recheck": 0.0,
+            "T_publish": publish_elapsed,
+            "T_plant": plant_elapsed,
+            "T_total": monotonic() - total_started,
+        }
         return observation, reward, terminated, truncated, info | {
             "telemetry": telemetry,
             "accepted": accepted,

@@ -1,0 +1,26 @@
+{
+  "audit_skill": "experiment-audit",
+  "date": "2026-08-07",
+  "overall_verdict": "warn",
+  "integrity_status": "warn",
+  "acceptance_status": "provisional",
+  "review_independence": "executor-only",
+  "evaluation_type": "simulation_only",
+  "scope": {
+    "methods": 4,
+    "scenarios": 4,
+    "seeds": 5,
+    "steps_per_run": 10000,
+    "runs": 80,
+    "evaluation_episodes_per_seed": 20
+  },
+  "checks": {
+    "ground_truth_provenance": "pass",
+    "score_normalization": "pass",
+    "result_existence": "pass",
+    "termination_completeness": "pass",
+    "certified_path_software_checks": "pass",
+    "scope": "warn"
+  },
+  "summary": "Synthetic mechanism comparison is internally consistent; convergence and physical-safety claims remain unsupported."
+}

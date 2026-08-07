@@ -98,6 +98,12 @@ test_watchdog_deadline_keeps_kappa_published (test_certified_uav_environment.Run
 test_calibration_residual_uses_authoritative_integrator (test_certified_uav_environment.UnifiedDynamicsTests.test_calibration_residual_uses_authoritative_integrator) ... ok
 test_constant_acceleration_formula (test_certified_uav_environment.UnifiedDynamicsTests.test_constant_acceleration_formula) ... ok
 test_zero_action_preserves_velocity (test_certified_uav_environment.UnifiedDynamicsTests.test_zero_action_preserves_velocity) ... ok
+test_deterministic_generator_mission_completes_and_returns (test_mission_certificate_closure.MissionCertificateClosureTests.test_deterministic_generator_mission_completes_and_returns) ... ok
+test_generator_varies_along_outbound_trajectory (test_mission_certificate_closure.MissionCertificateClosureTests.test_generator_varies_along_outbound_trajectory) ... ok
+test_narrow_exclusion_removes_generator_but_not_kappa_certificate (test_mission_certificate_closure.MissionCertificateClosureTests.test_narrow_exclusion_removes_generator_but_not_kappa_certificate) ... ok
+test_open_mission_has_corridor_wide_hash_linked_certificate (test_mission_certificate_closure.MissionCertificateClosureTests.test_open_mission_has_corridor_wide_hash_linked_certificate) ... ok
+test_shield_rejection_uses_certified_kappa_not_generator_membership (test_mission_certificate_closure.MissionCertificateClosureTests.test_shield_rejection_uses_certified_kappa_not_generator_membership) ... ok
+test_task_oriented_center_is_not_recovery_action (test_mission_certificate_closure.MissionCertificateClosureTests.test_task_oriented_center_is_not_recovery_action) ... ok
 test_all_methods_share_same_plant_and_reward_types (test_multistep_generator_sac.BaselineFairnessTests.test_all_methods_share_same_plant_and_reward_types) ... ok
 test_direct_sac_updates_from_executed_actions (test_multistep_generator_sac.BaselineFairnessTests.test_direct_sac_updates_from_executed_actions) ... ok
 test_shield_critic_transition_uses_post_shield_action (test_multistep_generator_sac.BaselineFairnessTests.test_shield_critic_transition_uses_post_shield_action) ... ok
@@ -113,8 +119,6 @@ test_mission_initial_state_is_not_terminal_and_does_not_auto_reset (test_multist
 test_reward_weights_do_not_change_certificate_context (test_multistep_generator_sac.MultiStepMissionTests.test_reward_weights_do_not_change_certificate_context) ... ok
 
 ----------------------------------------------------------------------
-Ran 113 tests in 134.185s
+Ran 119 tests in 160.314s
 
 OK
-
-WALL=130.92

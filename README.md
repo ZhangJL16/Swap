@@ -10,5 +10,5 @@ uv pip install --python .venv/bin/python -r requirements.txt
 ```
 
 See `review_bundle/README.md` for multi-step Generator-SAC and comparison commands.
-All checked-in calibration and experiments are synthetic software evidence, not real-flight safety
-evidence.
+The checked-in mission gate, repaired 2k matrix, and five-seed 10k matrix are synthetic software
+and empirical evidence only, not calibrated real-flight safety evidence.

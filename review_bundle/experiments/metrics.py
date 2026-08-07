@@ -13,6 +13,6 @@ def write_csv(path: Path, rows: Iterable[dict]) -> None:
         return
     fields = sorted({key for row in materialized for key in row})
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(materialized)

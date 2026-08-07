@@ -1,3 +1,5 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+review_bundle/artifacts/**/checkpoint_*.pt
+review_bundle/artifacts/**/training_metrics.csv

@@ -1,0 +1,24 @@
+{
+  "audited_commit": "11a4a596721c40f0456b3fdf66c26dee344f5c2a",
+  "mission_certificate_gate": "PASS",
+  "reduced_runs": 48,
+  "formal_runs": 80,
+  "methods": 4,
+  "scenarios": 4,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "steps_per_run": 10000,
+  "evaluation_episodes_per_seed": 20,
+  "unit_tests": {
+    "passed": 119,
+    "failed": 0,
+    "skipped": 0,
+    "runtime_seconds": 160.314
+  },
+  "evidence_scope": "synthetic empirical and software verification only"
+}

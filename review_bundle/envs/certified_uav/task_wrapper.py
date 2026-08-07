@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from enum import IntEnum
+from enum import Enum, IntEnum
 from typing import Any
 
 import gymnasium as gym
@@ -27,6 +27,20 @@ class MissionPhase(IntEnum):
     RETURN = 1
     SUCCESS = 2
     FAILURE = 3
+
+
+class MissionTerminationReason(str, Enum):
+    TASK_AND_RETURN_SUCCESS = "TASK_AND_RETURN_SUCCESS"
+    COLLISION = "COLLISION"
+    ENERGY_DEPLETED = "ENERGY_DEPLETED"
+    VELOCITY_LIMIT = "VELOCITY_LIMIT"
+    PREMATURE_TERMINAL = "PREMATURE_TERMINAL"
+    CORRIDOR_EXIT = "CORRIDOR_EXIT"
+    RECOVERY_CERTIFICATE_INVALID = "RECOVERY_CERTIFICATE_INVALID"
+    CERTIFICATE_EXPIRED = "CERTIFICATE_EXPIRED"
+    DEADLINE = "DEADLINE"
+    EPISODE_TIMEOUT = "EPISODE_TIMEOUT"
+    OTHER_FAILURE = "OTHER_FAILURE"
 
 
 @dataclass(frozen=True)
@@ -72,6 +86,7 @@ class CertifiedTaskWrapper(gym.Wrapper):
         self.episode_step = 0
         self.task_completed = False
         self.return_triggered = False
+        self.termination_reason: MissionTerminationReason | None = None
         self.last_reward_breakdown = RewardBreakdown(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         config = plant.config
         self.observation_layout: dict[str, slice] = {}
@@ -103,6 +118,7 @@ class CertifiedTaskWrapper(gym.Wrapper):
         self.episode_step = 0
         self.task_completed = False
         self.return_triggered = False
+        self.termination_reason = None
 
     @property
     def active_goal(self) -> np.ndarray:
@@ -180,20 +196,39 @@ class CertifiedTaskWrapper(gym.Wrapper):
             self.task_completed = True
             self.return_triggered = True
             self.phase = MissionPhase.RETURN
-        terminal_success = bool(
+        terminal_return = bool(
             telemetry.terminal_admissible
             and (not self.multi_step_mission or self.phase == MissionPhase.RETURN)
         )
         failure = bool(telemetry.collision or info.get("failure_reason") in {"energy_depleted", "velocity_limit_exceeded"})
-        if terminal_success:
+        if terminal_return:
             self.phase = MissionPhase.SUCCESS
-        elif failure or truncated or (terminated and not terminal_success):
+        elif failure or truncated or (terminated and not terminal_return):
             self.phase = MissionPhase.FAILURE
+        termination_reason = None
+        if terminal_return and self.task_completed:
+            termination_reason = MissionTerminationReason.TASK_AND_RETURN_SUCCESS
+        elif terminal_return:
+            termination_reason = MissionTerminationReason.PREMATURE_TERMINAL
+        elif telemetry.collision:
+            termination_reason = MissionTerminationReason.COLLISION
+        elif info.get("failure_reason") == "energy_depleted":
+            termination_reason = MissionTerminationReason.ENERGY_DEPLETED
+        elif info.get("failure_reason") == "velocity_limit_exceeded":
+            termination_reason = MissionTerminationReason.VELOCITY_LIMIT
+        elif terminated and telemetry.terminal_admissible and not self.task_completed:
+            termination_reason = MissionTerminationReason.PREMATURE_TERMINAL
+        elif truncated:
+            termination_reason = MissionTerminationReason.EPISODE_TIMEOUT
+        elif terminated:
+            termination_reason = MissionTerminationReason.OTHER_FAILURE
+        if terminated or truncated:
+            self.termination_reason = termination_reason or MissionTerminationReason.OTHER_FAILURE
         reward = self.reward(
             telemetry.state_before,
             telemetry.state_after,
             telemetry.collision,
-            terminal_success,
+            terminal_return,
             telemetry.energy_cost,
             task_completed_now,
             reward_target,
@@ -203,9 +238,10 @@ class CertifiedTaskWrapper(gym.Wrapper):
             "task_completed": self.task_completed,
             "task_completed_now": task_completed_now,
             "return_triggered": self.return_triggered,
-            "terminal_return_success": terminal_success,
+            "terminal_return_success": terminal_return,
             "mission_phase": self.phase.name,
             "episode_step": self.episode_step,
+            "mission_termination_reason": None if self.termination_reason is None else self.termination_reason.value,
             "reward_components": self.last_reward_breakdown.__dict__.copy() | {"total_reward": reward},
         }
         return self.build_observation(), reward, terminated, truncated, info

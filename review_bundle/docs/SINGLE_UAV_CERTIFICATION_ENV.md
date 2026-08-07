@@ -171,37 +171,51 @@ The acceptance-round unittest result is 100 passed, 0 skipped, and 0 failed in 1
 - HIL, command readback, power instrumentation, and real actuator tracking are unresolved.
 - No global unknown-environment safety, automatic docking, charging handoff, dynamic obstacle, multi-UAV, or large-scale training claim is made.
 
-## First Multi-Step Comparison (Reduced Validation Budget)
+## Mission Certificate Gate and Comparative Validation
 
-The checked-in matrix runs four methods, four mission scenarios, three seeds, and 2,000 environment
-steps per run (96,000 total transitions). This is deliberately below the planned 10k--20k first
-paper-training budget and is therefore a pipeline/semantic validation, not a converged comparison.
-All runs use 200 warmup steps, batch size 64, the same plant/task/scenario seeds, and the actual
-executed action in each critic replay row.
+The one-step mission fixture was replaced by a corridor-wide synthetic recovery manifest. For every
+task-tube root it contains a finite strict-descent chain to the terminal set, complete correlated
+state-tube propagation, actuator/velocity bounds, swept FREE-union geometry, robust energy recursion,
+E3 residuals, and hash-linked dependencies. The mandatory gate passed for all four mission scenarios.
+The strengthened verifier checked 86,684 recovery cells in total; 48 sampled chain rollouts were used
+only as debugging evidence and recorded zero sampled collision, level, energy, or terminal-arrival
+failures. These bounds remain synthetic and are not physical calibration evidence.
 
-| Method | Scenario | Task success | Return success | Collision episode rate | Fallback rate |
+The repaired 2,000-step matrix contains 48 runs. Both certified methods recorded zero sampled
+collisions, zero uncertified task publications, and zero fallbacks with invalid κ. In
+`mission_narrow`, κ remains certified while the state-uncertainty box intersects a conservative
+Generator-exclusion region; the observed `NO_GENERATOR_SET` rate is 0.005 and recovery still reaches
+the terminal. This status means that this constructor produced no verified full-rank set, not that
+no mathematical feasible set can exist.
+
+The formal validation contains four methods, four scenarios, five seeds, 10,000 environment steps,
+1,000 warmup steps, batch size 128, and 20 deterministic evaluation episodes per seed. The complete
+mean/std table is `artifacts/comparison/aggregate/summary.csv`; raw per-episode rows, evaluation rows,
+safety events, compact learning curves, runtime data, and safety-performance data are stored beside
+it. Selected training means are:
+
+| Method | Scenario | Task success | Return success | Collision rate | Fallback rate |
 |---|---|---:|---:|---:|---:|
-| Generator-SAC | energy-tight | 0.000 | 0.930 | 0.000 | 0.160 |
-| Generator-SAC | open | 0.000 | 0.000 | 0.000 | 0.111 |
-| Generator-SAC | obstacle | 0.000 | 0.000 | 0.000 | 0.094 |
-| Generator-SAC | narrow | 0.000 | 0.000 | 0.000 | 0.087 |
-| SAC | open | 0.024 | 0.000 | 0.607 | 0.000 |
-| Penalty SAC | energy-tight | 0.049 | 0.000 | 0.613 | 0.000 |
-| Shield SAC | open | 0.000 | 0.000 | 0.000 | 0.780 |
-| Shield SAC | obstacle | 0.000 | 0.000 | 0.022 | 0.817 |
+| Generator-SAC | open | 1.000 | 1.000 | 0.000 | 0.9055 |
+| Generator-SAC | obstacle | 1.000 | 1.000 | 0.000 | 0.6710 |
+| Generator-SAC | narrow | 0.000 | 1.000 | 0.000 | 0.7600 |
+| Generator-SAC | energy-tight | 0.000 | 1.000 | 0.000 | 0.9342 |
+| Shield-SAC | open | 0.000 | 1.000 | 0.000 | 0.9900 ± 0.0014 |
+| Shield-SAC | obstacle | 0.000 | 1.000 | 0.000 | 0.9825 ± 0.0007 |
+| SAC | open | 0.0278 ± 0.0160 | 0.000 | 0.2424 ± 0.2665 | N/A |
+| Penalty-SAC | obstacle | 0.000 | 0.000 | 0.2349 ± 0.0595 | N/A |
 
-Values are means over three seeds. The full 16-row mean/std table is
-`artifacts/comparison/aggregate/summary.csv`; learning-curve bins, safety-performance data, and
-runtime data are adjacent CSV files. The energy-tight Generator result represents mostly
-energy-triggered return, not outbound task completion. The zero task-success values for the main
-method show that 2,000 steps are insufficient for a learning claim. The sampled shield-obstacle
-collision demonstrates that the fast synthetic mission κ/waypoint profile is not yet a closed
-corridor-wide recovery certificate. It must be repaired or replaced by the full closure pipeline
-before using that scenario for theorem-facing safety evidence.
+Generator-SAC lowers intervention relative to Shield-SAC in every fixture, by about 8.45 percentage
+points in open, 31.15 in obstacle, 22.00 in narrow, and 5.67 in energy-tight. The task-oriented
+Generator completes task and return in open/obstacle, but the narrow exclusion and energy trigger
+intentionally cause early certified return before task completion. All 20 Generator runs performed
+8,998--9,000 finite actor updates and 9,000 critic updates. Identical task/return rates across seeds
+show that the synthetic certificate geometry and deterministic evaluation dominate this 10k study;
+the result validates mechanism semantics rather than establishing learning convergence.
 
-No sampled Generator-SAC collision occurred in these 48 reduced runs, but that observation is only
-synthetic empirical evidence. It does not establish calibrated physical safety or continuous-domain
-coverage.
+Runtime values are desktop profiling. Direct methods report certificate timing as N/A, never zero.
+Generator total p99 is approximately 15.9 ms (open), 23.2 ms (obstacle), 23.1 ms (narrow), and
+14.8 ms (energy-tight); these measurements are not hard WCET or RTOS evidence.
 
 Reproduce the checked-in reduced matrix with:
 
@@ -209,11 +223,43 @@ Reproduce the checked-in reduced matrix with:
 .venv/bin/python scripts/run_comparison.py \
   --methods sac penalty_sac shield_sac generator_sac \
   --scenarios mission_open mission_obstacle mission_narrow mission_energy_tight \
-  --seeds 0 1 2 --steps 2000 --warmup-steps 200 --batch-size 64
+  --seeds 0 1 2 --steps 2000 --warmup-steps 200 --batch-size 64 \
+  --evaluation-episodes 20 --output-dir artifacts/comparison_2k_closed
 ```
 
-The authoritative post-change suite contains 113 tests. It includes the original acceptance,
-calibration, interval, watchdog, environment, and Torch tests plus 13 multi-step/SAC/fairness tests.
+The formal command is the same with seeds `0 1 2 3 4`, 10,000 steps, 1,000 warmup steps, batch size
+128, and output directory `artifacts/comparison`. Parallel scenario workers may use
+`--skip-aggregate`; `experiments.aggregate.aggregate_results` is run once after all workers finish.
+The final post-closure authoritative suite ran 119 tests in 160.314 seconds: 119 passed, zero
+failed, and zero skipped under the UV-managed environment.
+
+## Mission certificate closure and diagnosis
+
+The former `SyntheticMissionCertificateProvider` checked only a fast one-step task successor and
+could not support recursive feasibility.  `MultiStepSyntheticMissionCertificateProvider` now
+builds a levelled, hash-linked recovery chain for every synthetic task-tube root.  Every complete
+cell verifies the full correlated state tube, tracking/timing/model disturbance, actuator and
+velocity bounds, swept FREE-union geometry, strict lower-level descent, robust energy recursion,
+and terminal linkage.  `scripts/validate_mission_recovery_certificate.py` is the mandatory gate;
+training aborts with `blocked-by-mission-certificate` when any declared cell fails.
+
+Generator and Shield SAC use the same frozen certified κ.  They differ only in task-action
+parameterization: Shield verifies a nominal point action against the task successor predicate,
+whereas Generator verifies the complete full-rank affine set before sampling.  A missing Generator
+set does not invalidate κ.  Conversely, a valid Generator set is not evidence that κ is certified.
+
+The earlier zero task-success result had two implementation causes.  First, the purported
+task-oriented center used the recovery-chain root action, which points toward the station.  It now
+uses the explicit outbound task reference and is independently re-verified as a complete zonotope.
+Second, an 80 ms desktop watchdog window caused irreversible recovery under Python scheduling; the
+synthetic mission fixture now uses 150 ms, below its 200 ms control period.  This remains desktop
+profiling, not hard-WCET evidence.
+
+The deterministic center ablation in `artifacts/generator_center_ablation/results.csv` shows that
+the verified braking center stays 0.8 m from the task for 400 steps, while the verified
+task-oriented center completes the task and certified return in 226 steps for all three fixture
+seeds.  This supports a performance-design choice only: the complete set verifier, not the task
+proposal, remains the certificate source.
 ## Acceptance and Generator-SAC smoke protocol (2026-08-07)
 
 This environment is a synthetic software fixture. Its strongest supported statement is a

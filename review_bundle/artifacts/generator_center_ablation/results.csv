@@ -1,0 +1,7 @@
+mode,seed,scenario,episode_length,task_success,return_success,collision,minimum_distance_to_task,fallback_rate,acceptance_rate,mean_zonotope_volume,unique_centers,evidence_scope
+braking,0,mission_open,400,0,0,0,0.8,0.0,1.0,2.58637828665087e-06,1,deterministic synthetic center-construction ablation
+braking,1,mission_open,400,0,0,0,0.8,0.0,1.0,2.58637828665087e-06,1,deterministic synthetic center-construction ablation
+braking,2,mission_open,400,0,0,0,0.8,0.0,1.0,2.58637828665087e-06,1,deterministic synthetic center-construction ablation
+task_oriented,0,mission_open,226,1,1,0,0.0036983999999997685,0.9070796460176991,0.09292035398230089,1.7045012880730197e-06,5,deterministic synthetic center-construction ablation
+task_oriented,1,mission_open,226,1,1,0,0.0036983999999997685,0.9070796460176991,0.09292035398230089,1.7045012880730197e-06,5,deterministic synthetic center-construction ablation
+task_oriented,2,mission_open,226,1,1,0,0.0036983999999997685,0.9070796460176991,0.09292035398230089,1.7045012880730197e-06,5,deterministic synthetic center-construction ablation

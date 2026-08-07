@@ -3215,10 +3215,62 @@ that a mission can require many consecutive transitions and can complete task th
 theorems remain conditional on independently valid calibration, corridor, κ, energy, numerical, and
 deadline premises.
 
-The first empirical matrix uses only 2,000 steps per method/scenario/seed and must not be interpreted
-as convergence evidence. Generator-SAC exhibited no sampled collision and high energy-triggered
-return success in the energy-tight fixture, while task success remained zero at this budget. Direct
-SAC variants showed occasional task completion but high collision rates. A shielded obstacle run
-still produced one sampled collision across three seeds, exposing that the fast synthetic waypoint
-κ is not a corridor-wide L4/L6 certificate. Accordingly, these results support implementation and
-experimental-design claims only; they do not upgrade T1, T3, T6, or T7.
+The former 2,000-step result exposed that the fast synthetic waypoint κ was not a corridor-wide
+L4/L6 certificate. That defect was closed before further comparison: Shield-SAC and Generator-SAC
+now share the same finite, hash-linked, strict-descent κ manifest with complete synthetic
+state-tube, geometry, energy, and terminal checks. The mandatory mission gate passes all four
+scenarios. In the repaired 48-run reduced matrix and the subsequent 80-run 10k matrix, both
+certified methods recorded zero sampled collisions, zero uncertified task publications, and zero
+fallbacks with invalid κ. These observations validate the synthetic implementation chain only and
+do not upgrade T1, T3, T6, or T7 without calibrated physical bounds and deployment evidence.
+
+## 2026-08-07 Mission-certificate closure refinement
+
+The mission fixture now distinguishes a one-step task-set test from a corridor-wide recovery
+certificate.  For every declared recovery cell (B_\ell), the proof manifest stores a complete
+ellipsoidal/interval successor enclosure, actuator and velocity bounds, verified-free swept-tube
+containment, a lower-level dependency hash, a robust one-step energy upper bound, and an E3
+residual.  The executable profile implements only strict one-step descent:
+
+\[
+  \operatorname{Post}(B_\ell,\kappa)\subseteq B_{\ell-1},
+  \qquad
+  \bar R(B_\ell)\ge \bar c(B_\ell,\kappa)+\bar R(B_{\ell-1}).
+\]
+
+The finite FREE geometry is a union of AABBs.  Complete swept-rectangle inclusion in that union is
+decided by the finite partition induced by every AABB boundary; one midpoint per partition cell is
+complete because membership is constant on each open cell.  These checks remain synthetic software
+evidence because their physical error bounds are not calibrated.
+
+**Task-aware-center proposition (performance only).**  Let (a_{\rm pref}(z)) be any measurable
+task proposal and let a deterministic constructor choose (c=c(z,a_{\rm pref})) and full-rank
+(G).  If an independent complete-set verifier establishes
+
+\[
+  c(z,a_{\rm pref})+G(z)[-1,1]^3\subseteq\mathcal A_{\rm cert}(z),
+\]
+
+then every affine-tanh candidate belongs to \(\mathcal A_{\rm cert}(z)\), irrespective of how the
+proposal was produced.  The proposal changes performance but is not a certificate source.  During
+the SAC update (c,G) remain frozen/detached, so T12A's density is unchanged.  This proposition
+does not authorize gradients through the verifier or remove the need to certify \(\kappa\)
+independently.
+
+The final post-closure software suite ran 119 tests in 160.314 seconds with 119 passes, zero failures,
+and zero skips. This test result supports code-path and synthetic proof-object claims only; it does
+not alter the blocked-by-calibration or blocked-by-deployment-evidence statuses in the ledger.
+
+The three-seed center diagnosis isolates the earlier zero-task-success mechanism. With a verified
+braking center, the deterministic trajectory remains 0.8 m from the task for 400 steps. With the
+verified task-oriented center, all three fixture seeds complete task and certified return in 226
+steps. The 10k matrix then obtains task/return success 1.0 in mission-open and mission-obstacle,
+while mission-narrow and mission-energy-tight intentionally return before task completion. This is
+a performance result about center selection; complete-set verification remains the certificate.
+
+`NO_GENERATOR_SET` is interpreted operationally: the configured deterministic constructor cannot
+produce a verified positive-volume full-rank set at that state. It does not prove emptiness of the
+entire continuous certified-action domain. In mission-narrow, the state-uncertainty box intersects
+a conservative task-authority exclusion while the independent κ certificate remains valid, which
+implements the distinction that this constructor has no runtime task set while
+\(\kappa(z)\in\mathcal A_{\rm cert}(z)\).

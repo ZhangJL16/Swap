@@ -236,7 +236,7 @@ class GeneratorSAC:
         self.critic_optimizer.step()
         accepted_indices = [index for index, transition in enumerate(selected) if transition.accepted and transition.c is not None and transition.G is not None]
         actor_status = "zero-accepted-sample"
-        actor_loss_value = alpha_loss_value = mean_log_prob = mean_log_det = mean_jacobian = float("nan")
+        actor_loss_value = alpha_loss_value = mean_log_prob = mean_log_det = mean_jacobian = None
         actor_gradient_norm = 0.0
         if accepted_indices:
             index_tensor = torch.as_tensor(accepted_indices, dtype=torch.long, device=self.device)

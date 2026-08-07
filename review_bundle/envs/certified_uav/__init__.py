@@ -9,7 +9,7 @@ from .plant_env import CertifiedSingleUAVPlantEnv
 from .runtime_wrapper import CertifiedRuntimeWrapper
 from .scenario import FixedCertificationScenario, RandomTrainingScenario, ScenarioDefinition, load_scenario
 from .state import UAVPhysicalState
-from .task_wrapper import CertifiedTaskWrapper, MissionPhase, RewardBreakdown, TaskRewardConfig
+from .task_wrapper import CertifiedTaskWrapper, MissionPhase, MissionTerminationReason, RewardBreakdown, TaskRewardConfig
 from .telemetry import StepTelemetry
 from .terminal import TerminalSpec
 
@@ -20,6 +20,7 @@ __all__ = [
     "CertifiedSingleUAVPlantEnv",
     "CertifiedTaskWrapper",
     "MissionPhase",
+    "MissionTerminationReason",
     "RewardBreakdown",
     "TaskRewardConfig",
     "CertifiedUAVConfig",
@@ -43,6 +44,7 @@ def make_certified_uav_env(
     config: CertifiedUAVConfig | None = None,
     *,
     freeze_certificate_epoch: bool = False,
+    generator_center_mode: str = "task_oriented",
 ) -> CertifiedRuntimeWrapper:
     scenario = FixedCertificationScenario(scenario_name).definition
     base = CertifiedUAVConfig(world_size=scenario.world_size) if config is None else config
@@ -51,4 +53,5 @@ def make_certified_uav_env(
     return CertifiedRuntimeWrapper(
         CertifiedTaskWrapper(plant),
         freeze_certificate_epoch=freeze_certificate_epoch,
+        generator_center_mode=generator_center_mode,
     )
