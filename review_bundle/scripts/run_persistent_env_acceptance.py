@@ -18,12 +18,17 @@ from envs.certified_uav import make_persistent_uav_env
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a deterministic persistent software acceptance trajectory.")
     parser.add_argument("--scenario", default="persistent_open")
-    parser.add_argument("--scheduler", default="reserve_only")
+    parser.add_argument("--energy-management", default="reserve_only")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--steps", type=int, default=500)
     parser.add_argument("--output", default="artifacts/persistent/acceptance.json")
     args = parser.parse_args()
-    env = make_persistent_uav_env(f"{args.scenario}.json", scheduler_name=args.scheduler, seed=args.seed, timing_mode="functional")
+    env = make_persistent_uav_env(
+        f"{args.scenario}.json",
+        energy_management_name=args.energy_management,
+        seed=args.seed,
+        timing_mode="functional",
+    )
     _, reset_info = env.reset(seed=args.seed)
     records = []
     for step in range(args.steps):
@@ -43,10 +48,10 @@ def main() -> None:
             break
     payload = {
         "scenario": args.scenario,
-        "scheduler": args.scheduler,
+        "energy_management": args.energy_management,
         "reset": {key: str(value) for key, value in reset_info.items() if key != "action_context"},
         "metrics": env.metric_snapshot(),
-        "scheduler_transition_count": len(env.scheduler_transitions),
+        "energy_management_transition_count": len(env.energy_management_transitions),
         "records": records,
         "synthetic_only": True,
     }

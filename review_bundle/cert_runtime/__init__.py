@@ -27,6 +27,18 @@ from .state import CertificateState, CertificateStateSnapshot
 from .types import AABB2, Interval3, Zonotope3
 from .watchdog import AtomicCommandPublisher, CandidateBundle, SimulatedWatchdog
 from .zonotope import CertificateConfig, ZonotopeCertificate, ZonotopeConstructor
+from .energy_management import (
+    EnergyDecision,
+    EnergyManagementPolicy,
+    EnergyManagementReplayBuffer,
+    EnergyManagementSAC,
+    EnergyManagementSACConfig,
+    EnergyManagementTransition,
+    FixedThresholdEnergyPolicy,
+    FullChargeEnergyPolicy,
+    ReserveOnlyEnergyPolicy,
+    make_energy_management_policy,
+)
 from .charging_scheduler import (
     ChargingScheduler,
     ChargingSchedulerSAC,
@@ -82,6 +94,16 @@ __all__ = [
     "Zonotope3",
     "ZonotopeCertificate",
     "ZonotopeConstructor",
+    "EnergyDecision",
+    "EnergyManagementPolicy",
+    "EnergyManagementReplayBuffer",
+    "EnergyManagementSAC",
+    "EnergyManagementSACConfig",
+    "EnergyManagementTransition",
+    "FixedThresholdEnergyPolicy",
+    "FullChargeEnergyPolicy",
+    "ReserveOnlyEnergyPolicy",
+    "make_energy_management_policy",
     "ChargingScheduler",
     "ChargingSchedulerSAC",
     "ChargingSchedulerSACConfig",

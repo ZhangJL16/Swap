@@ -1,95 +1,122 @@
-# Persistent Task Assignment and Autonomous Charging
+# Persistent Goal Stream and Autonomous Charging
 
 ## Status and scope
 
-This module is an implementation scaffold with deterministic unit coverage. The persistent
-certificate gate, environment acceptance, scheduler baselines, scheduler training, and evaluation
-scripts have **not** been run in this development round. All charging and physical-bound values are
-synthetic. No real-flight, physical-calibration, HIL, or WCET claim follows from this code.
+This path is a single-UAV implementation scaffold with deterministic unit coverage. It contains no
+fleet, order, or pickup/dropoff allocation layer. The persistent certificate gate,
+acceptance rollout, energy-management baselines, learning, and evaluation scripts were not run in
+this development round. All charging and physical-bound values are synthetic; no real-flight,
+physical-calibration, HIL, or WCET claim follows.
 
-The pre-existing single-mission environments and mission gates remain unchanged. Persistent
-fixtures use separate files: `persistent_open`, `persistent_obstacle`, and
-`persistent_energy_tight`.
+The single-mission fixtures remain unchanged. Persistent fixtures are isolated as
+`persistent_open`, `persistent_obstacle`, and `persistent_energy_tight`.
 
-## Architecture
-
-`PersistentTaskManager` samples only declared directed edges of a finite
-`CertifiedServiceNetwork`. A task contains an ID, pickup, dropoff, reward, optional deadline, and
-one of `PENDING`, `TO_PICKUP`, `CARRYING`, `COMPLETED`, or `PAUSED_FOR_CHARGE`. Delivery assigns the
-next task and does not terminate the episode. A charge interruption preserves the task and resumes
-the same pickup/dropoff obligation.
-
-`PersistentTaskWrapper` owns task state and reward. `CertifiedRuntimeWrapper` remains the sole
-continuous-action certificate path: it stages independently certified kappa first, verifies the
-Generator set, and passes only `a_exec` to the unchanged plant. `PersistentRuntimeWrapper` composes
-the event-level scheduler, hard energy override, departure gate, certified return calls, and
-charging dynamics around those existing layers.
+## Division of responsibility
 
 ```text
-TO_PICKUP -> TO_DROPOFF -> next task
-     |             |
-     +--- VOLUNTARY_RETURN / FORCED_RETURN -> CHARGING -> resume task
+Environment                 assigns the next certified goal
+Low-level policy            flies toward that fixed current goal
+EnergyManagementPolicy      requests voluntary return or charger departure
+Certificate runtime         verifies actions, forces recovery, and gates departure
 ```
 
-Only collision, energy depletion, velocity violation, unrecoverable certificate failure, or the
-configurable long-horizon limit ends a persistent episode. Persistent configs set
-`terminate_on_terminal=false`; the default remains `true`, preserving single-mission behavior.
+The policy never selects a destination. `PersistentGoalTaskManager` samples a new node from the
+finite `CertifiedGoalNetwork` after the current goal is reached. The charging station `S` is
+excluded from `goal_node_ids`, so it cannot appear as a normal task goal.
 
-## Charging and energy authority
+The network distinguishes three route types:
 
-The first synthetic baseline uses capacity `30.0`, net charging rate `2.0` energy units/s, and
-`dt=0.2` s, hence a gain of `0.4` per charging step. When and only when terminal position,
-velocity, minimum energy, station availability, and evidenced hover continuation are valid,
+- `TASK_EDGE`: service-node transit only; neither endpoint is `S`;
+- `RECOVERY_EDGE`: a certified route from a service node to `S`;
+- `DEPARTURE_EDGE`: a certified route from `S` to a pending goal.
+
+The persistent state machine is:
+
+```text
+TASK -> next goal -> TASK -> ...
+  |                         ^
+  +-> VOLUNTARY_RETURN -----|
+  +-> FORCED_RETURN -> CHARGING -> verified departure
+```
+
+A charging interruption marks the current `PersistentGoalTask` as interrupted but preserves its
+task ID and goal. Leaving the charger plans a `DEPARTURE_EDGE` route to that same pending goal. A
+new goal is assigned only after the pending goal is actually reached. Goal completion, station
+arrival, and charging do not terminate the persistent episode.
+
+## Charging and hard energy authority
+
+The synthetic baseline uses capacity `30.0`, net rate `2.0` energy units/s, and `dt=0.2` s, hence
+`0.4` energy units per admissible charging step:
 
 \[
 e_{t+1}=\min(e_{\max},e_t+r_c\Delta t).
 \]
 
-Charging uses `charger_hold`, does not invoke the task actor, and does not reset or teleport state.
-A moving or non-docked UAV cannot charge.
+Charging requires terminal position, terminal velocity, minimum energy, station availability, and
+evidenced hover continuation. It uses `charger_hold`, never teleports the UAV, and never resets
+position, velocity, or battery. A moving or non-docked UAV cannot charge.
 
-The recovery certificate retains its first-passage meaning:
+The frozen recovery certificate keeps its first-passage meaning:
 
 \[
 m_E(z)=e-E^\kappa(z)-e_G.
 \]
 
-Future charging is not subtracted from current return cost. Reaching the forced-return margin
-overrides service. Departure is accepted only with a valid persistent manifest and
+Approaching the configured margin forces `FORCED_RETURN` regardless of the requested energy
+decision. Future charging is never subtracted from the energy needed to reach the station.
+Departure is allowed only when a version-matched manifest proves a route to the pending goal plus
+its certified return reserve:
 
 \[
-e\ge E_{\rm depart}^{\rm required}+m_e.
+e\ge E_{S\rightarrow g}^{\rm depart}+E_{g\rightarrow S}^{\kappa}+e_G+m_e.
 \]
 
-Otherwise the UAV remains charging with `INSUFFICIENT_DEPARTURE_ENERGY`.
+Otherwise `SERVE_OR_LEAVE` is overridden by `INSUFFICIENT_DEPARTURE_ENERGY` and charging continues.
 
-## Event-level scheduler
+## Energy management SMDP
 
-`reserve_only`, `fixed_threshold_30`, `fixed_threshold_50`, `full_charge`, and `scheduler_sac`
-share task stream, plant, charging model, service manifest, Generator, and kappa. Decisions occur at
-task boundaries and charging checkpoints, not every 0.2 s. The discrete scheduler is separate from
-the affine-tanh physical actor and never uses Generator log density.
+`EnergyDecision` has two context-dependent actions:
 
-Scheduler replay stores requested/executed decisions, override reason, cumulative reward, duration,
-scenario ID, and manifest hash. Its bootstrap multiplier is `gamma ** duration_steps`.
-Scenario/manifest mismatches are rejected. Reward is based on persistent task efficiency and is not
-a certificate source.
+- flight: `SERVE_OR_LEAVE` continues the fixed goal; `CHARGE_OR_STAY` requests voluntary return;
+- charging: `CHARGE_OR_STAY` continues charging; `SERVE_OR_LEAVE` requests departure.
+
+Decisions occur at new-goal/task-completion events and charging checkpoints. The safety runtime may
+force return at any flight step. `EnergyManagementSAC` is an independent categorical SMDP learner;
+it is not part of the Generator affine-tanh density. Replay stores requested/executed decisions,
+override reason, accumulated reward, duration, scenario ID, and manifest hash, with bootstrap
+factor `gamma ** duration_steps`.
+
+Available energy-management policies are `reserve_only`, `fixed_threshold_30`,
+`fixed_threshold_50`, `full_charge`, and `energy_management_sac`. All share the same goal stream,
+plant, charging model, Generator, kappa, and certificate manifest. Legacy scheduler class/script
+names are deprecated aliases only.
 
 ## Persistent certificate gate
 
-`PersistentCertificateProvider` builds an edge-level mission certificate for every declared service
-edge and composes their hashes. The gate requires complete task support, corridor-wide kappa chains,
-docking admissibility, energy/E3 validity, departure data, switching closure, and version
-consistency. Kappa and Generator certification remain separate. Charging creates no certificate.
+`PersistentGoalCertificateProvider` composes typed edge manifests. `PERSISTENT_CERTIFICATE_GATE`
+requires:
 
-The gate must be run manually before experiments; this round did not run it.
+1. every pair of service goals has a certified task route;
+2. every service goal has a certified recovery route to `S`;
+3. `S` has a certified departure route to every pending goal;
+4. complete successor support and corridor-wide kappa recovery remain valid;
+5. energy recursion/E3, terminal docking, hashes, and versions are consistent;
+6. interruption/resume changes route semantics but never forges a certificate.
+
+Kappa and Generator certificates remain distinct. Charging does not reduce the return-energy bound
+and creates no physical certificate.
+
+## Manual experiment commands
+
+These scripts were created but intentionally not run in this round:
 
 ```bash
 .venv/bin/python scripts/validate_persistent_certificate.py
 .venv/bin/python scripts/run_persistent_env_acceptance.py --scenario persistent_open
-.venv/bin/python scripts/run_persistent_scheduler_baselines.py
-.venv/bin/python scripts/train_persistent_scheduler_sac.py --scenario persistent_energy_tight --steps 50000
-.venv/bin/python scripts/evaluate_persistent_scheduler.py --scenario persistent_energy_tight --checkpoint <path>
+.venv/bin/python scripts/run_energy_management_baselines.py
+.venv/bin/python scripts/train_energy_management_sac.py --scenario persistent_energy_tight --steps 50000
+.venv/bin/python scripts/evaluate_energy_management.py --scenario persistent_energy_tight --checkpoint <path>
 ```
 
-These commands produce synthetic empirical evidence only.
+Any output is synthetic empirical evidence only.

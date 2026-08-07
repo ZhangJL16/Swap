@@ -1,12 +1,8 @@
 {
   "base": "mission_open.json",
   "name": "persistent_open",
-  "initial_state": {"position": [0.40, 0.50, 1.0], "velocity": [0.0, 0.0, 0.0], "energy": 24.0, "timestamp": 0.0},
-  "configuration_overrides": {
-    "initial_energy": 30.0,
-    "episode_limit": 5000,
-    "terminate_on_terminal": false
-  },
+  "initial_state": {"position": [3.15, 0.5, 1.0], "velocity": [0.0, 0.0, 0.0], "energy": 24.0, "timestamp": 0.0},
+  "configuration_overrides": {"initial_energy": 30.0, "episode_limit": 5000, "terminate_on_terminal": false},
   "mission": {
     "persistent": {
       "battery_capacity": 30.0,
@@ -16,31 +12,34 @@
       "forced_return_margin": 1.0,
       "task_reward": 10.0,
       "goal_radius": 0.20,
-      "charging_station": "station",
-      "service_nodes": [
-        {"node_id": "station", "position": [0.40, 0.50, 1.0]},
-        {"node_id": "remote", "position": [3.15, 1.30, 1.0]}
+      "charging_station": "S",
+      "goal_node_ids": ["A", "B", "C", "D"],
+      "goal_nodes": [
+        {"node_id": "S", "position": [0.4, 0.5, 1.0]},
+        {"node_id": "A", "position": [3.15, 0.5, 1.0]},
+        {"node_id": "B", "position": [3.15, 1.3, 1.0]},
+        {"node_id": "C", "position": [3.0, 3.0, 1.0]},
+        {"node_id": "D", "position": [1.0, 3.0, 1.0]}
       ],
-      "service_edges": [
-        {
-          "edge_id": "station_to_remote",
-          "source": "station",
-          "target": "remote",
-          "task_waypoints": [[0.40,0.50,1.0],[0.80,0.50,1.0],[1.60,0.50,1.0],[2.40,0.50,1.0],[3.15,0.50,1.0],[3.15,1.30,1.0]],
-          "return_waypoints": [[3.15,1.30,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
-          "energy_upper": 2.0
-        },
-        {
-          "edge_id": "remote_to_station",
-          "source": "remote",
-          "target": "station",
-          "task_waypoints": [[3.15,1.30,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
-          "return_waypoints": [[3.15,1.30,1.0],[3.15,0.50,1.0],[2.40,0.50,1.0],[1.60,0.50,1.0],[0.80,0.50,1.0],[0.40,0.50,1.0]],
-          "energy_upper": 2.0
-        }
-      ],
-      "task_edge_ids": ["station_to_remote", "remote_to_station"]
+      "goal_edges": [
+        {"edge_id":"task_A_B","source":"A","target":"B","edge_type":"TASK_EDGE","waypoints":[[3.15,0.5,1],[3.15,1.3,1]],"energy_upper":1.0},
+        {"edge_id":"task_B_A","source":"B","target":"A","edge_type":"TASK_EDGE","waypoints":[[3.15,1.3,1],[3.15,0.5,1]],"energy_upper":1.0},
+        {"edge_id":"task_B_C","source":"B","target":"C","edge_type":"TASK_EDGE","waypoints":[[3.15,1.3,1],[3,2,1],[3,3,1]],"energy_upper":2.0},
+        {"edge_id":"task_C_B","source":"C","target":"B","edge_type":"TASK_EDGE","waypoints":[[3,3,1],[3,2,1],[3.15,1.3,1]],"energy_upper":2.0},
+        {"edge_id":"task_C_D","source":"C","target":"D","edge_type":"TASK_EDGE","waypoints":[[3,3,1],[2,3,1],[1,3,1]],"energy_upper":2.0},
+        {"edge_id":"task_D_C","source":"D","target":"C","edge_type":"TASK_EDGE","waypoints":[[1,3,1],[2,3,1],[3,3,1]],"energy_upper":2.0},
+        {"edge_id":"task_D_A","source":"D","target":"A","edge_type":"TASK_EDGE","waypoints":[[1,3,1],[1,0.5,1],[3.15,0.5,1]],"energy_upper":4.5},
+        {"edge_id":"task_A_D","source":"A","target":"D","edge_type":"TASK_EDGE","waypoints":[[3.15,0.5,1],[1,0.5,1],[1,3,1]],"energy_upper":4.5},
+        {"edge_id":"recover_A_S","source":"A","target":"S","edge_type":"RECOVERY_EDGE","waypoints":[[3.15,0.5,1],[2,0.5,1],[0.4,0.5,1]],"energy_upper":2.8},
+        {"edge_id":"recover_B_S","source":"B","target":"S","edge_type":"RECOVERY_EDGE","waypoints":[[3.15,1.3,1],[3.15,0.5,1],[2,0.5,1],[0.4,0.5,1]],"energy_upper":3.6},
+        {"edge_id":"recover_C_S","source":"C","target":"S","edge_type":"RECOVERY_EDGE","waypoints":[[3,3,1],[3.15,1.3,1],[3.15,0.5,1],[2,0.5,1],[0.4,0.5,1]],"energy_upper":5.6},
+        {"edge_id":"recover_D_S","source":"D","target":"S","edge_type":"RECOVERY_EDGE","waypoints":[[1,3,1],[1,0.5,1],[0.4,0.5,1]],"energy_upper":3.0},
+        {"edge_id":"depart_S_A","source":"S","target":"A","edge_type":"DEPARTURE_EDGE","waypoints":[[0.4,0.5,1],[2,0.5,1],[3.15,0.5,1]],"energy_upper":2.8},
+        {"edge_id":"depart_S_B","source":"S","target":"B","edge_type":"DEPARTURE_EDGE","waypoints":[[0.4,0.5,1],[2,0.5,1],[3.15,0.5,1],[3.15,1.3,1]],"energy_upper":3.6},
+        {"edge_id":"depart_S_C","source":"S","target":"C","edge_type":"DEPARTURE_EDGE","waypoints":[[0.4,0.5,1],[2,0.5,1],[3.15,0.5,1],[3.15,1.3,1],[3,3,1]],"energy_upper":5.6},
+        {"edge_id":"depart_S_D","source":"S","target":"D","edge_type":"DEPARTURE_EDGE","waypoints":[[0.4,0.5,1],[1,0.5,1],[1,3,1]],"energy_upper":3.0}
+      ]
     }
   },
-  "expected_certificate_outcome": "persistent-certificate-required"
+  "expected_certificate_outcome": "persistent-goal-certificate-required"
 }

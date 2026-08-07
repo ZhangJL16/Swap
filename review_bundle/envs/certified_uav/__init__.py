@@ -16,15 +16,26 @@ from .telemetry import StepTelemetry
 from .terminal import TerminalSpec
 from .charging import ChargingConfig, ChargingDynamics, DepartureGateResult, verify_departure_energy
 from .persistent_task import (
+    CertifiedGoalNetwork,
     CertifiedServiceNetwork,
+    GoalEdge,
+    GoalEdgeType,
+    GoalNode,
     PersistentMissionMode,
+    PersistentGoalTask,
+    PersistentGoalTaskManager,
+    PersistentGoalWrapper,
     PersistentTask,
     PersistentTaskManager,
-    PersistentTaskStatus,
     PersistentTaskWrapper,
 )
 from .persistent_wrapper import PersistentRuntimeWrapper
-from cert_runtime.charging_scheduler import make_scheduler
+from .persistent_certificate import (
+    PersistentGoalCertificateManifest,
+    PersistentGoalCertificateProvider,
+    PersistentGoalEdgeCertificate,
+)
+from cert_runtime.energy_management import make_energy_management_policy
 
 __all__ = [
     "ActionTrace",
@@ -54,12 +65,21 @@ __all__ = [
     "ChargingDynamics",
     "DepartureGateResult",
     "verify_departure_energy",
-    "CertifiedServiceNetwork",
+    "CertifiedGoalNetwork",
+    "GoalEdge",
+    "GoalEdgeType",
+    "GoalNode",
     "PersistentMissionMode",
     "PersistentRuntimeWrapper",
+    "PersistentGoalTask",
+    "PersistentGoalTaskManager",
+    "PersistentGoalWrapper",
+    "PersistentGoalCertificateManifest",
+    "PersistentGoalCertificateProvider",
+    "PersistentGoalEdgeCertificate",
+    "CertifiedServiceNetwork",
     "PersistentTask",
     "PersistentTaskManager",
-    "PersistentTaskStatus",
     "PersistentTaskWrapper",
 ]
 
@@ -111,18 +131,20 @@ def make_certified_uav_env(
 def make_persistent_uav_env(
     scenario_name: str = "persistent_open.json",
     *,
-    scheduler_name: str = "reserve_only",
+    energy_management_name: str = "reserve_only",
+    scheduler_name: str | None = None,
     seed: int = 0,
     timing_mode: str = "functional",
-    deterministic_scheduler: bool = False,
+    deterministic_energy_management: bool = False,
+    deterministic_scheduler: bool | None = None,
 ) -> PersistentRuntimeWrapper:
     scenario = FixedCertificationScenario(scenario_name).definition
     persistent = dict(scenario.mission_config.get("persistent", {}))
     if not persistent:
-        raise ValueError(f"scenario {scenario.name} does not define a persistent service network")
+        raise ValueError(f"scenario {scenario.name} does not define a persistent goal network")
     base = CertifiedUAVConfig(world_size=scenario.world_size)
     configured = apply_configuration_overrides(base, scenario.configuration_overrides)
-    network = CertifiedServiceNetwork.from_config(persistent)
+    network = CertifiedGoalNetwork.from_config(persistent)
     actuator = ActuatorTrackingModel(configured.tracking_error_bound)
     lidar = HorizontalLidarModel(
         configured.num_lasers,
@@ -140,7 +162,7 @@ def make_persistent_uav_env(
         energy_model=EnergyModel(SimulationEnergyConfig()),
         lidar_model=lidar,
     )
-    task = PersistentTaskWrapper(
+    task = PersistentGoalWrapper(
         plant,
         network,
         goal_radius=float(persistent.get("goal_radius", 0.20)),
@@ -154,5 +176,11 @@ def make_persistent_uav_env(
         departure_energy_margin=float(persistent.get("departure_energy_margin", 0.5)),
         forced_return_margin=float(persistent.get("forced_return_margin", 1.0)),
     )
-    scheduler = make_scheduler(scheduler_name, observation_dim=15, seed=seed)
-    return PersistentRuntimeWrapper(runtime, network, scheduler, charging, deterministic_scheduler)
+    selected_name = energy_management_name if scheduler_name is None else scheduler_name
+    deterministic = deterministic_energy_management if deterministic_scheduler is None else deterministic_scheduler
+    policy = make_energy_management_policy(
+        selected_name,
+        observation_dim=PersistentRuntimeWrapper.energy_observation_dim,
+        seed=seed,
+    )
+    return PersistentRuntimeWrapper(runtime, network, policy, charging, deterministic)

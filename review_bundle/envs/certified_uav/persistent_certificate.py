@@ -11,31 +11,40 @@ from cert_runtime.interval import round_up
 from cert_runtime.types import Interval3
 
 from .mission_certificate import MissionActionContext, MultiStepSyntheticMissionCertificateProvider
-from .persistent_task import CertifiedServiceNetwork, PersistentTask, PersistentTaskStatus, ServiceEdge
+from .persistent_task import (
+    CertifiedGoalNetwork,
+    GoalEdge,
+    GoalEdgeType,
+    PersistentGoalTask,
+)
 
 
 @dataclass(frozen=True, slots=True)
-class PersistentServiceEdgeCertificate:
+class PersistentGoalEdgeCertificate:
     edge_id: str
     source: str
     target: str
+    edge_type: str
     recovery_manifest_hash: str
     recovery_gate_pass: bool
-    task_support_complete: bool
-    departure_energy_upper: float
+    complete_successor_support: bool
+    energy_upper: float
     dependency_hashes: tuple[str, ...]
     certificate_hash: str
 
 
 @dataclass(frozen=True, slots=True)
-class PersistentCertificateManifest:
+class PersistentGoalCertificateManifest:
     scenario_id: str
-    service_network_hash: str
-    edge_certificates: tuple[PersistentServiceEdgeCertificate, ...]
+    goal_network_hash: str
+    edge_certificates: tuple[PersistentGoalEdgeCertificate, ...]
+    task_routes_valid: bool
+    recovery_routes_valid: bool
+    departure_routes_valid: bool
     docking_valid: bool
     energy_recursion_valid: bool
     departure_gate_valid: bool
-    task_switching_valid: bool
+    interruption_resume_valid: bool
     charging_separated_from_return_energy: bool
     version_consistent: bool
     gate_pass: bool
@@ -43,12 +52,12 @@ class PersistentCertificateManifest:
     manifest_hash: str
 
 
-class PersistentCertificateProvider:
-    """Finite persistent service certificate composed from edge-level T4a manifests."""
+class PersistentGoalCertificateProvider:
+    """Persistent gate composed from typed edge certificates and the frozen κ chain."""
 
-    version = "persistent-service-certificate-v1"
+    version = "persistent-goal-certificate-v2"
 
-    def __init__(self, runtime: Any, network: CertifiedServiceNetwork, battery_capacity: float) -> None:
+    def __init__(self, runtime: Any, network: CertifiedGoalNetwork, battery_capacity: float) -> None:
         self.runtime = runtime
         self.network = network
         self.battery_capacity = float(battery_capacity)
@@ -56,59 +65,73 @@ class PersistentCertificateProvider:
         self.edge_energy_upper: dict[str, float] = {}
         self.active_edge_id = sorted(network.edges)[0]
         failures: list[str] = []
-        certificates: list[PersistentServiceEdgeCertificate] = []
+        certificates: list[PersistentGoalEdgeCertificate] = []
         for edge_id, edge in sorted(network.edges.items()):
             provider = self._build_edge_provider(edge)
             self.providers[edge_id] = provider
-            certified_energy_upper = self._edge_energy_bound(provider)
-            self.edge_energy_upper[edge_id] = certified_energy_upper
-            complete = bool(provider.manifest.task_transition_verified and all(provider.manifest.task_transition_verified))
-            certificate_payload = {
+            energy_upper = self._edge_energy_bound(provider)
+            self.edge_energy_upper[edge_id] = energy_upper
+            complete = bool(
+                provider.manifest.task_transition_verified
+                and all(provider.manifest.task_transition_verified)
+            )
+            payload = {
                 "edge": edge_id,
                 "source": edge.source,
                 "target": edge.target,
+                "type": edge.edge_type.value,
                 "manifest": provider.manifest.manifest_hash,
                 "gate": provider.gate_pass,
-                "task_support": complete,
-                "energy": certified_energy_upper,
+                "support": complete,
+                "energy": energy_upper,
                 "network": network.network_hash,
             }
-            edge_hash = certificate_hash(certificate_payload)
-            certificates.append(
-                PersistentServiceEdgeCertificate(
-                    edge_id,
-                    edge.source,
-                    edge.target,
-                    provider.manifest.manifest_hash,
-                    provider.gate_pass,
-                    complete,
-                    certified_energy_upper,
-                    (provider.manifest.manifest_hash, network.network_hash),
-                    edge_hash,
-                )
-            )
+            edge_hash = certificate_hash(payload)
+            certificates.append(PersistentGoalEdgeCertificate(
+                edge_id,
+                edge.source,
+                edge.target,
+                edge.edge_type.value,
+                provider.manifest.manifest_hash,
+                provider.gate_pass,
+                complete,
+                energy_upper,
+                (provider.manifest.manifest_hash, network.network_hash),
+                edge_hash,
+            ))
             if not provider.gate_pass:
                 failures.append(f"EDGE_RECOVERY_GATE_FAILED:{edge_id}")
             if not complete:
-                failures.append(f"EDGE_TASK_SUPPORT_INCOMPLETE:{edge_id}")
-        docking_valid = bool(
-            runtime.scenario.terminal.is_charge_admissible(
-                replace(runtime.scenario.initial_state, position=runtime.scenario.station_position.copy(), velocity=np.zeros(3), energy=max(runtime.scenario.terminal.minimum_energy, 1.0))
-            )
-        )
+                failures.append(f"EDGE_SUCCESSOR_SUPPORT_INCOMPLETE:{edge_id}")
+
+        task_routes_valid = self._all_task_routes_valid()
+        recovery_routes_valid = self._all_recovery_routes_valid()
+        departure_routes_valid = self._all_departure_routes_valid()
+        docking_valid = bool(runtime.scenario.terminal.is_charge_admissible(replace(
+            runtime.scenario.initial_state,
+            position=runtime.scenario.station_position.copy(),
+            velocity=np.zeros(3),
+            energy=max(runtime.scenario.terminal.minimum_energy, 1.0),
+        )))
         energy_valid = all(
             cell.e3_residual >= -1e-12 and cell.energy_upper >= 0.0
             for provider in self.providers.values()
             for cell in provider.manifest.cells
         )
         departure_valid = self._all_departures_fit_capacity()
-        task_switching_valid = self._task_switching_valid()
-        version_consistent = len({provider.runtime.recovery_policy.config.parameter_version for provider in self.providers.values()}) == 1
+        interruption_resume_valid = recovery_routes_valid and departure_routes_valid
+        version_consistent = len({
+            provider.runtime.recovery_policy.config.parameter_version
+            for provider in self.providers.values()
+        }) == 1
         checks = {
+            "TASK_ROUTE_GRAPH_INVALID": task_routes_valid,
+            "RECOVERY_ROUTE_GRAPH_INVALID": recovery_routes_valid,
+            "DEPARTURE_ROUTE_GRAPH_INVALID": departure_routes_valid,
             "DOCKING_INVALID": docking_valid,
             "ENERGY_RECURSION_INVALID": energy_valid,
             "DEPARTURE_GATE_INVALID": departure_valid,
-            "TASK_SWITCH_GRAPH_INVALID": task_switching_valid,
+            "INTERRUPTION_RESUME_INVALID": interruption_resume_valid,
             "VERSION_MISMATCH": version_consistent,
         }
         failures.extend(name for name, valid in checks.items() if not valid)
@@ -117,22 +140,28 @@ class PersistentCertificateProvider:
             "scenario": runtime.scenario.name,
             "network": network.network_hash,
             "edges": tuple(certificate.certificate_hash for certificate in certificates),
+            "task_routes": task_routes_valid,
+            "recovery_routes": recovery_routes_valid,
+            "departure_routes": departure_routes_valid,
             "docking": docking_valid,
             "energy": energy_valid,
-            "departure": departure_valid,
-            "switching": task_switching_valid,
+            "departure_gate": departure_valid,
+            "interruption_resume": interruption_resume_valid,
             "charging_separated": True,
             "versions": version_consistent,
             "failures": tuple(failures),
         }
-        self.persistent_manifest = PersistentCertificateManifest(
+        self.persistent_manifest = PersistentGoalCertificateManifest(
             runtime.scenario.name,
             network.network_hash,
             tuple(certificates),
+            task_routes_valid,
+            recovery_routes_valid,
+            departure_routes_valid,
             docking_valid,
             energy_valid,
             departure_valid,
-            task_switching_valid,
+            interruption_resume_valid,
             True,
             version_consistent,
             gate_pass,
@@ -145,42 +174,64 @@ class PersistentCertificateProvider:
         action = Interval3(-self.runtime.config.a_max, self.runtime.config.a_max)
         velocity = Interval3(-self.runtime.config.v_max, self.runtime.config.v_max)
         task_step_upper = self.runtime.envelope_builder.energy.cost_upper(action, velocity)
-        task_transition_count = max(0, len(provider.task_reference) - 1)
+        transition_count = max(0, len(provider.task_reference) - 1)
         task_upper = 0.0
-        for _ in range(task_transition_count):
+        for _ in range(transition_count):
             task_upper = round_up(task_upper + task_step_upper)
         recovery_upper = max((cell.energy_upper for cell in provider.root_cells), default=float("inf"))
         return round_up(task_upper + recovery_upper)
 
-    def path_energy_upper(self, source: str, target: str) -> float:
+    def _typed_path_energy(self, source: str, target: str, edge_type: GoalEdgeType) -> float:
+        path = self.network.shortest_path(source, target, {edge_type})
+        return float(sum(self.edge_energy_upper[edge.edge_id] for edge in path))
+
+    def path_energy_upper(
+        self,
+        source: str,
+        target: str,
+        edge_type: GoalEdgeType | None = None,
+    ) -> float:
         if source == target:
             return 0.0
-        frontier: list[tuple[float, str]] = [(0.0, source)]
-        best = {source: 0.0}
-        while frontier:
-            frontier.sort(key=lambda item: (item[0], item[1]))
-            cost, node_id = frontier.pop(0)
-            if node_id == target:
-                return float(cost)
-            if cost > best.get(node_id, float("inf")) + 1e-12:
-                continue
-            for edge in self.network._outgoing[node_id]:
-                candidate = round_up(cost + self.edge_energy_upper[edge.edge_id])
-                if candidate + 1e-12 < best.get(edge.target, float("inf")):
-                    best[edge.target] = candidate
-                    frontier.append((candidate, edge.target))
-        raise ValueError(f"no certified energy path from {source} to {target}")
+        allowed = None if edge_type is None else {edge_type}
+        path = self.network.shortest_path(source, target, allowed)
+        return float(sum(self.edge_energy_upper[edge.edge_id] for edge in path))
+
+    def _all_task_routes_valid(self) -> bool:
+        try:
+            for source in self.network.goal_node_ids:
+                for target in self.network.goal_node_ids:
+                    if source != target:
+                        self.network.shortest_path(source, target, {GoalEdgeType.TASK_EDGE})
+            return True
+        except ValueError:
+            return False
+
+    def _all_recovery_routes_valid(self) -> bool:
+        try:
+            for goal in self.network.goal_node_ids:
+                self.network.shortest_path(goal, self.network.charging_station, {GoalEdgeType.RECOVERY_EDGE})
+            return True
+        except ValueError:
+            return False
+
+    def _all_departure_routes_valid(self) -> bool:
+        try:
+            for goal in self.network.goal_node_ids:
+                self.network.shortest_path(self.network.charging_station, goal, {GoalEdgeType.DEPARTURE_EDGE})
+            return True
+        except ValueError:
+            return False
 
     def _all_departures_fit_capacity(self) -> bool:
         station = self.network.charging_station
+        terminal_energy = self.runtime.scenario.terminal.minimum_energy
         try:
-            for edge_id in self.network.task_edge_ids:
-                edge = self.network.edges[edge_id]
+            for goal in self.network.goal_node_ids:
                 required = (
-                    self.path_energy_upper(station, edge.source)
-                    + self.edge_energy_upper[edge_id]
-                    + self.path_energy_upper(edge.target, station)
-                    + self.runtime.scenario.terminal.minimum_energy
+                    self._typed_path_energy(station, goal, GoalEdgeType.DEPARTURE_EDGE)
+                    + self._typed_path_energy(goal, station, GoalEdgeType.RECOVERY_EDGE)
+                    + terminal_energy
                 )
                 if not np.isfinite(required) or required > self.battery_capacity:
                     return False
@@ -188,11 +239,27 @@ class PersistentCertificateProvider:
         except ValueError:
             return False
 
-    def _build_edge_provider(self, edge: ServiceEdge) -> MultiStepSyntheticMissionCertificateProvider:
+    def _recovery_waypoints(self, source: str) -> list[list[float]]:
+        station = self.network.charging_station
+        path = self.network.shortest_path(source, station, {GoalEdgeType.RECOVERY_EDGE})
+        points: list[np.ndarray] = []
+        for edge in path:
+            segment = list(edge.waypoints)
+            if points and np.allclose(points[-1], segment[0]):
+                segment = segment[1:]
+            points.extend(segment)
+        return [point.tolist() for point in points]
+
+    def _build_edge_provider(self, edge: GoalEdge) -> MultiStepSyntheticMissionCertificateProvider:
         profile = dict(self.runtime.scenario.mission_config)
-        profile["task_waypoints"] = [point.tolist() for point in edge.task_waypoints]
-        profile["return_waypoints"] = [point.tolist() for point in edge.return_waypoints]
+        profile["task_waypoints"] = [point.tolist() for point in edge.waypoints]
+        if edge.edge_type == GoalEdgeType.RECOVERY_EDGE:
+            recovery = [point.tolist() for point in edge.waypoints]
+        else:
+            recovery = self._recovery_waypoints(edge.target)
+        profile["return_waypoints"] = recovery
         profile["persistent_edge_id"] = edge.edge_id
+        profile["persistent_edge_type"] = edge.edge_type.value
         scenario = replace(
             self.runtime.scenario,
             name=f"{self.runtime.scenario.name}:{edge.edge_id}",
@@ -214,17 +281,6 @@ class PersistentCertificateProvider:
             recovery_policy=self.runtime.recovery_policy,
         )
         return MultiStepSyntheticMissionCertificateProvider(proxy, self.runtime.generator_center_mode)
-
-    def _task_switching_valid(self) -> bool:
-        station = self.network.charging_station
-        try:
-            for edge_id in self.network.task_edge_ids:
-                edge = self.network.edges[edge_id]
-                self.network.shortest_path(station, edge.source)
-                self.network.shortest_path(edge.target, station)
-            return True
-        except ValueError:
-            return False
 
     @property
     def manifest(self):
@@ -264,32 +320,18 @@ class PersistentCertificateProvider:
     def verify_task_action(self, state, action: np.ndarray) -> bool:
         return self.providers[self.active_edge_id].verify_task_action(state, action)
 
-    def required_departure_energy(self, task: PersistentTask | None, paused_status: PersistentTaskStatus | None = None) -> float:
-        station = self.network.charging_station
+    def required_departure_energy(self, task: PersistentGoalTask | None) -> float:
         if task is None:
             return 0.0
-        status = task.status if paused_status is None else paused_status
-        if status == PersistentTaskStatus.CARRYING and task.dropoff_node == station:
-            next_task_requirements = []
-            for edge_id in self.network.task_edge_ids:
-                edge = self.network.edges[edge_id]
-                if edge.source != station:
-                    continue
-                next_task_requirements.append(
-                    self.edge_energy_upper[edge_id]
-                    + self.path_energy_upper(edge.target, station)
-                )
-            route = max(next_task_requirements, default=0.0)
-            return float(route + self.runtime.scenario.terminal.minimum_energy)
-        if status in {PersistentTaskStatus.TO_PICKUP, PersistentTaskStatus.PAUSED_FOR_CHARGE}:
-            route = (
-                self.path_energy_upper(station, task.pickup_node)
-                + self.path_energy_upper(task.pickup_node, task.dropoff_node)
-                + self.path_energy_upper(task.dropoff_node, station)
-            )
-        else:
-            route = (
-                self.path_energy_upper(station, task.dropoff_node)
-                + self.path_energy_upper(task.dropoff_node, station)
-            )
+        station = self.network.charging_station
+        route = (
+            self._typed_path_energy(station, task.goal_node, GoalEdgeType.DEPARTURE_EDGE)
+            + self._typed_path_energy(task.goal_node, station, GoalEdgeType.RECOVERY_EDGE)
+        )
         return float(route + self.runtime.scenario.terminal.minimum_energy)
+
+
+# Compatibility names; the manifest now represents a goal network, not logistics.
+PersistentServiceEdgeCertificate = PersistentGoalEdgeCertificate
+PersistentCertificateManifest = PersistentGoalCertificateManifest
+PersistentCertificateProvider = PersistentGoalCertificateProvider

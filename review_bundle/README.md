@@ -103,19 +103,19 @@ The post-change regression record is 128/128 tests. A 50k multi-scenario entry p
 but larger training is intentionally deferred until a certified family demonstrates room for the
 learned residual to improve over Center-Only.
 
-## Persistent Tasks and Autonomous Charging
+## Persistent Goals and Autonomous Charging
 
-The separate persistent path adds a certified service network, continuous task stream, task
-pause/resume, event-level charging scheduling, hard forced-return/departure gates, and synthetic net
+The separate persistent path adds a certified goal network, continuous environment-assigned goal
+stream, pending-goal preservation, event-level energy management, hard forced-return/departure gates, and synthetic net
 charging (`30.0` capacity, `2.0` units/s, `0.4` per 0.2 s). Only static checks and unit tests were
 run while adding it.
 
 ```bash
 .venv/bin/python scripts/validate_persistent_certificate.py
 .venv/bin/python scripts/run_persistent_env_acceptance.py --scenario persistent_open
-.venv/bin/python scripts/run_persistent_scheduler_baselines.py
-.venv/bin/python scripts/train_persistent_scheduler_sac.py --scenario persistent_energy_tight --steps 50000
-.venv/bin/python scripts/evaluate_persistent_scheduler.py --scenario persistent_energy_tight --checkpoint <path>
+.venv/bin/python scripts/run_energy_management_baselines.py
+.venv/bin/python scripts/train_energy_management_sac.py --scenario persistent_energy_tight --steps 50000
+.venv/bin/python scripts/evaluate_energy_management.py --scenario persistent_energy_tight --checkpoint <path>
 ```
 
 See `docs/PERSISTENT_TASK_CHARGING.md`. These commands remain synthetic and do not provide real

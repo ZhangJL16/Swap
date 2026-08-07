@@ -14,7 +14,7 @@ from envs.certified_uav import make_persistent_uav_env
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build synthetic persistent service manifests and report their gates.")
+    parser = argparse.ArgumentParser(description="Build synthetic persistent goal-network manifests and report their gates.")
     parser.add_argument("--scenarios", nargs="+", default=["persistent_open", "persistent_obstacle", "persistent_energy_tight"])
     parser.add_argument("--output", default="artifacts/persistent/certificate_gate.json")
     args = parser.parse_args()
@@ -27,7 +27,7 @@ def main() -> None:
             "scenario": name,
             "gate": "PASS" if manifest.gate_pass else "FAIL",
             "manifest_hash": manifest.manifest_hash,
-            "network_hash": manifest.service_network_hash,
+            "network_hash": manifest.goal_network_hash,
             "edge_count": len(manifest.edge_certificates),
             "failure_reasons": manifest.failure_reasons,
             "synthetic_only": True,

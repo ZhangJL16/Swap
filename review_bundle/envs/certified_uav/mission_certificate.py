@@ -873,7 +873,7 @@ class MultiStepSyntheticMissionCertificateProvider:
     def evaluate(self, state: CertificateState, timestamp: float | None = None) -> MissionActionContext:
         now = monotonic() if timestamp is None else timestamp
         phase = str(state.explicit_task_state.get("mission_phase", "OUTBOUND"))
-        task_execution_modes = {"OUTBOUND", "TO_PICKUP", "TO_DROPOFF"}
+        task_execution_modes = {"OUTBOUND", "TASK"}
         recovery_requested = self.recovery_active or phase not in task_execution_modes
         cell = self._locate_recovery_cell(state) if recovery_requested else self._locate_root(state)
         if cell is None or not self.gate_pass:

@@ -409,15 +409,16 @@ The authoritative post-change suite is `128 tests in 176.973 s`, with 128 passes
 and zero skips. The four mission certificate gates also pass after regeneration. Exact raw outputs
 are stored in `artifacts/paper/`.
 
-## Persistent task and charging extension
+## Persistent goal stream and charging extension
 
 The persistent extension is isolated from all single-mission regression fixtures. It adds a finite
-certified service network, task pause/resume, event-level charging scheduling, hard forced-return
-and departure-energy gates, and synthetic net charging. Persistent configs set
+certified goal network, pending-goal preservation across charging, event-level energy management,
+hard forced-return and departure-energy gates, and synthetic net charging. The environment assigns
+the goals; the policy does not schedule or select them. Persistent configs set
 `terminate_on_terminal=false`; single-mission configs retain the default `true`.
 
-The low-level certificate chain is unchanged. The scheduler selects service versus charging, the
-certificate runtime may override it, and kappa remains independently certified. Scheduler
+The low-level certificate chain is unchanged. The energy-management policy requests service versus
+charging, the certificate runtime may override it, and kappa remains independently certified. Its
 categorical entropy is not Generator affine-tanh entropy. See
 `docs/PERSISTENT_TASK_CHARGING.md`. This round added code and deterministic unit tests only; no
-persistent gate, acceptance rollout, baseline comparison, or scheduler training result is claimed.
+persistent gate, acceptance rollout, baseline comparison, or energy-management training result is claimed.
