@@ -292,7 +292,13 @@ class RecoverabilityVerifier:
         condition = float(zonotope.condition_number_upper_bound)
         full_rank = bool(abs(zonotope.determinant) > 0.0 and np.linalg.matrix_rank(generators) == 3)
         nondegenerate = bool(sigma >= self.runtime.config.minimum_generator_sigma - 1e-12)
-        neutral = bool(np.linalg.norm(center) <= 1e-10)
+        neutral = bool(
+            np.linalg.norm(center) <= 1e-10
+            or (
+                getattr(self.provider, "task_independent", False)
+                and getattr(self.provider, "center_mode", None) == "safety_neutral"
+            )
+        )
 
         def direction_available(target: np.ndarray) -> bool:
             direction = np.asarray(target, dtype=np.float64) - np.asarray(state.position, dtype=np.float64)

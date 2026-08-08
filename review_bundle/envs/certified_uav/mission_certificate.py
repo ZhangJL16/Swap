@@ -258,6 +258,10 @@ class MultiStepSyntheticMissionCertificateProvider:
         if not self._coverage_only:
             self.task_waypoints = self.coverage_waypoints
         self.return_waypoints = tuple(np.asarray(point, dtype=np.float64) for point in self.profile["return_waypoints"])
+        if self._coverage_only:
+            station = np.asarray(runtime.scenario.station_position, dtype=np.float64)
+            if not np.allclose(self.coverage_waypoints[0], station):
+                raise ValueError("task-independent coverage must begin at the charging station")
         self.base_scales = np.asarray(self.profile.get("generator_scale", (0.01, 0.01, 0.005)), dtype=np.float64)
         self.position_gain = float(self.profile.get("certificate_position_gain", 1.0))
         self.velocity_gain = float(self.profile.get("certificate_velocity_gain", 1.4))
@@ -702,9 +706,19 @@ class MultiStepSyntheticMissionCertificateProvider:
         )
 
     def _build_manifest(self) -> tuple[MissionCertificateManifest, tuple[_ReferenceState, ...]]:
+        coverage_start = (
+            np.asarray(self.coverage_waypoints[0])
+            if self._coverage_only
+            else np.asarray(self.runtime.scenario.initial_state.position)
+        )
+        coverage_velocity = (
+            np.zeros(3, dtype=np.float64)
+            if self._coverage_only
+            else np.asarray(self.runtime.scenario.initial_state.velocity)
+        )
         coverage_reference = self._trace(
-            np.asarray(self.runtime.scenario.initial_state.position),
-            np.asarray(self.runtime.scenario.initial_state.velocity),
+            coverage_start,
+            coverage_velocity,
             self.coverage_waypoints,
             terminal=False,
         )
@@ -768,11 +782,17 @@ class MultiStepSyntheticMissionCertificateProvider:
         reference_position = np.asarray(cell.reference_position)
         reference_velocity = np.asarray(cell.reference_velocity)
         for axis in range(3):
-            error = np.array((state.position[axis] - reference_position[axis], state.velocity[axis] - reference_velocity[axis]))
-            measured_norm = float(np.sqrt(error @ self._matrix @ error))
-            uncertainty = self._box_norm(state.position_error_radius[axis], state.velocity_error_radius[axis])
-            if measured_norm + uncertainty > cell.ellipsoid_radii[axis] + 1e-12:
-                return False
+            for position in (
+                state.position[axis] - state.position_error_radius[axis],
+                state.position[axis] + state.position_error_radius[axis],
+            ):
+                for velocity in (
+                    state.velocity[axis] - state.velocity_error_radius[axis],
+                    state.velocity[axis] + state.velocity_error_radius[axis],
+                ):
+                    error = np.array((position - reference_position[axis], velocity - reference_velocity[axis]))
+                    if float(error @ self._matrix @ error) > cell.ellipsoid_radii[axis] ** 2 + 1e-12:
+                        return False
         return True
 
     def _locate_root(self, state: CertificateState) -> MissionRecoveryCellCertificate | None:

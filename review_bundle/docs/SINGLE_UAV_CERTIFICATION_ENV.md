@@ -441,3 +441,11 @@ route. Fixed-graph persistent fixtures remain unchanged as historical regression
 `TASK_INDEPENDENCE_GATE` compares multiple goals at an identical certificate state and requires
 equal `E^kappa`, recoverable membership, kappa proof, Generator center, Generator matrix, action
 bounds, and atlas hash. It does not claim random-goal reachability or learned task completion.
+
+The persistent lifecycle additionally distinguishes the full recoverable atlas `R` from the
+normal-authority fixed point `R_RL`.  Accepted normal Generators preserve both collision/energy
+recoverability and continuation into `R_RL` or the certified charging set.  Charging states use a
+hash-bound level-zero terminal recovery certificate with `E^kappa=0`; this is not a bypass of
+terminal geometry, reserve, calibration-version, or evidence checks.  Deterministic validation is
+available through `scripts/validate_random_persistent_authority_lifecycle.py` and remains synthetic
+software evidence only.

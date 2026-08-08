@@ -807,6 +807,25 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "charging_support_required": bool(getattr(self.mission_provider, "charging_support_required", False)),
             "charging_support_verified": bool(getattr(self.mission_provider, "last_charging_support_verified", False)),
             "charging_support_hash": getattr(self.mission_provider, "last_charging_support_hash", None),
+            "rl_authority_set_member": bool(
+                self.mission_provider is not None
+                and mission_context is not None
+                and (
+                    mission_context.recovery_cell_id
+                    in getattr(self.mission_provider, "_rl_authority_cell_ids", ())
+                    or mission_context.recovery_cell_id
+                    == getattr(getattr(self.mission_provider, "terminal_recovery_certificate", None), "cell_id", None)
+                )
+            ),
+            "continuation_action_verified": bool(
+                getattr(self.mission_provider, "last_continuation_verified", False)
+            ),
+            "continuation_target_cell_id": getattr(
+                self.mission_provider, "last_continuation_target_cell_id", None
+            ),
+            "terminal_recovery_certificate_hash": getattr(
+                getattr(self.mission_provider, "terminal_recovery_certificate", None), "certificate_hash", None
+            ),
         }
 
     def preview_next_action_context(self) -> dict[str, Any]:

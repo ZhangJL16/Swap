@@ -1,0 +1,92 @@
+{
+  "baseline_commit": "08ba51a87cd4e3d0ec83ded1af6754bea4187a98",
+  "scenario": "random_persistent_open",
+  "source_artifacts": [
+    "artifacts/smoke_random_open_seed0/summary.json",
+    "artifacts/smoke_random_open_seed0/episodes.jsonl",
+    "artifacts/smoke_random_open_seed0/trajectory_events.jsonl"
+  ],
+  "audit_scope": "Baseline artifacts plus a deterministic seed-0 replay performed before lifecycle code changes. Null fields were not present in the original JSONL schema.",
+  "representative_episodes": [
+    {
+      "episode_id": 1,
+      "classification": "short episode after twelve accepted RL steps",
+      "steps": 13,
+      "authority_sequence": [
+        {"episode_step": 1, "persistent_mode": "TASK_RL", "execution_authority": "RL_GENERATOR", "position": [0.9545835154487718, 2.244527812465, 1.0020658921694474], "energy": 25.261476452323045, "energy_margin": 20.40853073272417},
+        {"episode_step": 13, "persistent_mode": "BACKUP_RECOVERY", "execution_authority": "KAPPA_BACKUP", "authority_reason": "NO_GENERATOR_SET", "position": [1.2137044153068408, 2.226940016140986, 1.0040015614226574], "energy": 25.1160750021159, "energy_margin": 20.180641080499743, "terminated": true}
+      ]
+    },
+    {
+      "episode_id": 0,
+      "classification": "long backup rollout reaching the charger",
+      "steps": 320,
+      "authority_sequence": [
+        {"episode_step": 1, "persistent_mode": "TASK_RL", "execution_authority": "RL_GENERATOR", "position": [2.439023103661254, 3.146006526359711, 0.9980992230080663]},
+        {"episode_step": 33, "persistent_mode": "TASK_RL", "execution_authority": "KAPPA_BACKUP", "authority_reason": "NO_GENERATOR_SET", "position": [1.082505189401917, 3.158834243728182, 1.011275952483501]},
+        {"episode_step": 34, "persistent_mode": "BACKUP_RECOVERY", "execution_authority": "KAPPA_BACKUP", "authority_reason": "BACKUP_RECOVERY_CONTINUATION"},
+        {"episode_step": 318, "persistent_mode": "CHARGING_RL", "execution_authority": "KAPPA_BACKUP", "authority_reason": "NO_GENERATOR_SET", "terminal_admissible": true},
+        {"episode_step": 319, "persistent_mode": "CHARGING_RL", "execution_authority": "KAPPA_BACKUP", "kappa_cell_id": "random_persistent_open-root-339-level-0", "kappa_level": 0, "terminal_admissible": true},
+        {"episode_step": 320, "persistent_mode": "CHARGING_RL", "execution_authority": "FAIL_CLOSED", "authority_reason": "KAPPA_CERTIFICATE_INVALID", "failure_reason": "recovery_certificate_invalid", "terminal_admissible": true, "terminated": true}
+      ]
+    },
+    {
+      "episode_id": 2,
+      "classification": "NO_GENERATOR_SET before prolonged backup",
+      "steps": 319,
+      "authority_sequence": [
+        {"episode_step": 1, "persistent_mode": "TASK_RL", "execution_authority": "RL_GENERATOR", "position": [2.6149974621702836, 3.15217514306151, 0.9981842522941]},
+        {"episode_step": 32, "persistent_mode": "BACKUP_RECOVERY", "execution_authority": "KAPPA_BACKUP", "authority_reason": "NO_GENERATOR_SET", "position": [1.1828469108177708, 3.177862498184108, 1.009676016384373]},
+        {"episode_step": 33, "persistent_mode": "BACKUP_RECOVERY", "execution_authority": "KAPPA_BACKUP", "authority_reason": "BACKUP_RECOVERY_CONTINUATION"},
+        {"episode_step": 319, "persistent_mode": "CHARGING_RL", "execution_authority": "FAIL_CLOSED", "authority_reason": "KAPPA_CERTIFICATE_INVALID", "terminated": true}
+      ]
+    }
+  ],
+  "first_no_generator_witness": {
+    "episode_id": 0,
+    "step": 33,
+    "state": {
+      "position": [1.082505189401917, 3.158834243728182, 1.011275952483501],
+      "velocity": [-0.22196330234812414, 0.004251470148602418, 0.006209177421237326],
+      "energy": 27.44483278585168,
+      "energy_margin": 22.24542705766681
+    },
+    "persistent_mode": "TASK_RL",
+    "execution_authority": "KAPPA_BACKUP",
+    "authority_reason": "NO_GENERATOR_SET",
+    "recoverable_set_member": true,
+    "kappa_valid": true,
+    "kappa_cell_id": "random_persistent_open-root-339-level-286",
+    "kappa_level": 286,
+    "kappa_certificate_hash": "c66de0234cbed45df5546f8a33117cbd7773c8784992a8b08ad67edaba63d4cd",
+    "generator_available": false,
+    "generator_failure_category": "NO_GENERATOR_SET_RECOVERABILITY",
+    "limiting_constraint": "SUCCESSOR_NOT_IN_RECOVERY_CELL",
+    "largest_attempted_scale": 0.008853353094198005,
+    "minimum_sigma": 0.004,
+    "attempted_target_cell": "random_persistent_open-root-340-level-286",
+    "classification": "recoverability preservation passed; normal RL-authority viability failed"
+  },
+  "first_invalid_kappa_witness": {
+    "episode_id": 0,
+    "step": 320,
+    "position": [0.3397990501848222, 0.49999978588848787, 1.0000000000000007],
+    "velocity": [-0.025924336934905298, 1.2505285226219698e-07, -4.7580986769555345e-16],
+    "energy": 25.156640574654087,
+    "energy_margin": "-Infinity",
+    "persistent_mode": "CHARGING_RL",
+    "charging_state": true,
+    "terminal_admissible": true,
+    "departure_allowed": true,
+    "execution_authority": "FAIL_CLOSED",
+    "authority_reason": "KAPPA_CERTIFICATE_INVALID",
+    "kappa_valid": false,
+    "kappa_cell_id": null,
+    "kappa_level": null,
+    "E_kappa": "Infinity",
+    "certificate_hash": null,
+    "version_hash_failure": false,
+    "exact_lookup_failure": "After level-0 execution commit set active_cell_id=None, _locate_recovery_cell searched only recovery roots. The terminal state was inside G_charge and had just been covered by a valid level-0 cell, but it was not inside a root cell.",
+    "root_cause": "missing formal zero-step terminal recovery lifecycle and incorrect post-level-0 root-only lookup"
+  }
+}

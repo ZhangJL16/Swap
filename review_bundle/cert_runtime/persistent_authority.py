@@ -28,6 +28,8 @@ class PersistentAuthorityInput:
     departure_allowed: bool
     charging_support_verified: bool
     station_hold_valid: bool
+    rl_authority_member: bool = True
+    continuation_action_verified: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,7 +73,6 @@ class PersistentExecutionAuthority:
             (inputs.certificate_valid, "RECOVERY_CERTIFICATE_INVALID"),
             (inputs.recoverable_set_member, "RECOVERABLE_SET_CERTIFICATE_INVALID"),
             (isfinite(inputs.energy_margin), "ENERGY_MARGIN_NONFINITE"),
-            (inputs.energy_margin > inputs.backup_switch_margin, "ENERGY_MARGIN_BACKUP_SWITCH"),
         )
         for valid, reason in state_checks:
             if not valid:
@@ -119,9 +120,21 @@ class PersistentExecutionAuthority:
                 True,
                 False,
             )
+        if inputs.energy_margin <= inputs.backup_switch_margin:
+            return PersistentAuthorityDecision(
+                ExecutionAuthority.KAPPA_BACKUP,
+                "ENERGY_MARGIN_BACKUP_SWITCH",
+                False,
+                True,
+                False,
+                False,
+                False,
+            )
         generator_checks = (
             (inputs.generator_available, "NO_GENERATOR_SET"),
+            (inputs.rl_authority_member, "RL_AUTHORITY_SET_MEMBERSHIP_FAILED"),
             (inputs.recoverability_action_verified, "GENERATOR_NOT_CONTAINED_IN_A_REC"),
+            (inputs.continuation_action_verified, "GENERATOR_NOT_CONTAINED_IN_A_CONT"),
             (inputs.policy_authority_pass, "POLICY_AUTHORITY_GATE_FAILED"),
         )
         for valid, reason in generator_checks:

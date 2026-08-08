@@ -198,3 +198,21 @@ completion.
 **T_RAND3 (goal-independent support).** At identical physical/certificate state and versions,
 changing only `g` leaves `E^kappa`, recoverable membership, kappa proof, `c`, `G`, action bounds,
 and atlas identity unchanged. Actor output may change.
+
+## Recovery versus RL-authority viability
+
+`R` contains every state with a certified finite kappa return and sufficient recovery energy.
+`R_RL` is the task-independent atlas fixed point of recoverable cells that also have full-rank
+Generator support with a complete successor in `R_RL` or `G_charge`.  Therefore
+`R_RL subset R`; cells in `R` but outside `R_RL` remain legitimate kappa-only recovery cells.
+
+Normal support additionally satisfies `C_run subset A_cont`, where `A_cont` preserves `R_RL` or
+enters the certified charging set.  The safety-neutral center may apply atlas-state feedback needed
+for this invariant support, but it receives no goal, task route, waypoint, or reward.  Goal changes
+must leave `R`, `R_RL`, `E^kappa`, `c`, `G`, continuation target, and certificate identity unchanged.
+
+The charging terminal has a formal level-zero recovery certificate.  It binds terminal geometry,
+dynamics, tracking, energy, terminal and kappa versions, and the atlas core hash; its recovery
+energy upper bound is zero.  This prevents completed recovery from being reinterpreted as a missing
+nonterminal successor.  A closed departure gate uses charger-constrained support or certified hold;
+an open departure is accepted only when its complete successor returns to `R_RL`.

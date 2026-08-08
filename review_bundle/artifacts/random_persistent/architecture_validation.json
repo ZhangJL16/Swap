@@ -6,8 +6,18 @@
       "TASK_INDEPENDENCE_GATE": "PASS",
       "actor_action_changed_with_goal": true,
       "atlas_gate": "PASS",
-      "atlas_hash": "c199102bd7d15a02e26f11f38d5e0195584e4a663e3d662848ad65d37cec5dd8",
-      "certified_coverage_fraction": 0.05164930555555555,
+      "atlas_hash": "76ecf5fe7ee8f90bfc68a62641bbc52efc8242ba25c7110e0df8f9a6f0b17f63",
+      "authority_domain": {
+        "number_of_kappa_only_cells": 93001,
+        "number_of_recoverable_cells": 93450,
+        "number_of_rl_authority_cells": 449,
+        "recoverable_coverage_fraction": 0.06597222222222222,
+        "rl_authority_coverage_fraction": 0.06597222222222222,
+        "rl_authority_fraction_within_recoverable_domain": 1.0,
+        "terminal_recovery_certificate_hash": "9ff617aef8903777c3da8d5f93bba49791d3aab73407ca63d75c280b6d311597",
+        "terminal_recovery_energy_upper": 0.0
+      },
+      "certified_coverage_fraction": 0.06597222222222222,
       "complete_generator_inside_A_safe": true,
       "failures": [],
       "generator_checks": 10,
@@ -15,95 +25,97 @@
         "action_bounds": true,
         "atlas_hash": true,
         "center": true,
+        "continuation_support": true,
         "generators": true,
         "kappa_certificate": true,
         "recoverable_membership": true,
-        "required_return_energy": true
+        "required_return_energy": true,
+        "rl_authority_membership": true
       },
       "kappa_recovery_checks": 5,
       "main_path_consumes_TASK_EDGE": false,
       "main_path_consumes_task_waypoints": false,
-      "maximum_condition_G": 2.040348629448479,
+      "maximum_condition_G": 2.0404278761906505,
       "minimum_sigma_min_G": 0.003999999999999999,
-      "minimum_zonotope_volume": 7.922457456835689e-07,
-      "number_of_recovery_cells": 87960,
+      "minimum_zonotope_volume": 7.925613207302789e-07,
+      "number_of_recovery_cells": 93450,
       "pending_goal_preserved_across_charge_and_backup": true,
       "sampled_goals": [
         [
-          2.1342003106612517,
-          1.3497205607053202,
+          3.1545517701185566,
+          0.5252081491982329,
           1.0
         ],
         [
-          1.6069093909092498,
-          1.3436529290362418,
+          3.150817693702319,
+          0.9828220881596715,
           1.0
         ],
         [
-          1.598208044133283,
-          3.145811805971923,
+          1.9942080441318255,
+          3.1459111202399566,
           1.0
         ],
         [
-          3.1460047155045623,
-          0.5780642261372787,
+          0.5256047155045623,
+          0.49966422613727834,
           1.0
         ],
         [
-          2.920590139910118,
-          2.2533335961570007,
+          1.4253353530056503,
+          2.252526603387941,
           1.0
         ],
         [
-          1.8713350045269415,
-          3.1453984526423624,
+          2.267335004525484,
+          3.1453536698824696,
           1.0
         ],
         [
-          0.8053583699917467,
-          1.3499274219552149,
+          3.132315755696688,
+          1.3579123600538465,
           1.0
         ],
         [
-          0.8276511019578711,
-          1.345170879484213,
+          3.150104684249823,
+          1.3565739428279018,
           1.0
         ],
         [
-          3.1516272901565974,
-          0.5045457068643471,
+          3.147006642333134,
+          3.1971856700243557,
           1.0
         ],
         [
-          3.210360728906231,
-          2.2439686219486146,
+          2.13192315963969,
+          2.2440581958113217,
           1.0
         ]
       ],
       "sampled_starts": [
         [
-          2.4826692165679662,
-          3.145430790426643,
+          3.0182927191790676,
+          3.14340565079015,
           0.9980018231649512
         ],
         [
-          0.9324768926297505,
-          2.245516213909276,
+          0.8531215066892178,
+          1.4044010763138113,
           1.0018542547582985
         ],
         [
-          2.6589272700086752,
-          3.151541089466884,
+          3.122576886633731,
+          3.1558940635225983,
           0.998313400783373
         ],
         [
-          3.04520148516971,
-          3.1506976269969735,
+          3.147722176034855,
+          3.209879508359279,
           1.0003395732398557
         ],
         [
-          3.149513703415296,
-          2.918897292442181,
+          3.175012936487765,
+          2.254281681674934,
           0.9982676078123838
         ]
       ],
@@ -113,8 +125,18 @@
       "TASK_INDEPENDENCE_GATE": "PASS",
       "actor_action_changed_with_goal": true,
       "atlas_gate": "PASS",
-      "atlas_hash": "ceaaab432783bc8c9a2721bd6ab392dd82876a8b2a19de4b03806f7dab90455f",
-      "certified_coverage_fraction": 0.005642361111111111,
+      "atlas_hash": "dc0c821ed626ba15633804b49013347c01ded3a0087569755cfaf3a4b8f0e65e",
+      "authority_domain": {
+        "number_of_kappa_only_cells": 50430,
+        "number_of_recoverable_cells": 50728,
+        "number_of_rl_authority_cells": 298,
+        "recoverable_coverage_fraction": 0.021267361111111112,
+        "rl_authority_coverage_fraction": 0.021267361111111112,
+        "rl_authority_fraction_within_recoverable_domain": 1.0,
+        "terminal_recovery_certificate_hash": "641eeae97722369946b1800ce8b4d514609f58fdfdbb023d661232af7a5ad18b",
+        "terminal_recovery_energy_upper": 0.0
+      },
+      "certified_coverage_fraction": 0.021267361111111112,
       "complete_generator_inside_A_safe": true,
       "failures": [],
       "generator_checks": 10,
@@ -122,95 +144,97 @@
         "action_bounds": true,
         "atlas_hash": true,
         "center": true,
+        "continuation_support": true,
         "generators": true,
         "kappa_certificate": true,
         "recoverable_membership": true,
-        "required_return_energy": true
+        "required_return_energy": true,
+        "rl_authority_membership": true
       },
       "kappa_recovery_checks": 5,
       "main_path_consumes_TASK_EDGE": false,
       "main_path_consumes_task_waypoints": false,
-      "maximum_condition_G": 1.8187318040264129,
+      "maximum_condition_G": 1.8171223010977653,
       "minimum_sigma_min_G": 0.003999999999999999,
-      "minimum_zonotope_volume": 6.258673178048245e-07,
-      "number_of_recovery_cells": 37991,
+      "minimum_zonotope_volume": 6.256697267953805e-07,
+      "number_of_recovery_cells": 50728,
       "pending_goal_preserved_across_charge_and_backup": true,
       "sampled_goals": [
         [
-          3.637082526404267,
-          0.9098932646344707,
+          1.6327192753795825,
+          0.4996376714152646,
           1.0
         ],
         [
-          3.6279351719515374,
-          0.9368235069372984,
+          1.6659136366759904,
+          0.49410260292884073,
           1.0
         ],
         [
-          3.4843612382915357,
-          3.143837213543769,
+          3.613961251018411,
+          3.185890820824789,
           1.0
         ],
         [
-          3.1607057220495185,
-          0.5140895234923027,
+          1.1382614362993675,
+          0.5012338087410486,
           1.0
         ],
         [
-          3.6182180940996496,
-          2.470360309422462,
+          3.633147188056875,
+          1.0028711076707362,
           1.0
         ],
         [
-          3.6249472340285593,
-          2.5034072355918293,
+          3.1807774556507056,
+          0.5237911465693971,
           1.0
         ],
         [
-          3.6160007098294993,
-          1.2463386506989953,
+          2.316192681548296,
+          0.4999336561909598,
           1.0
         ],
         [
-          3.625046036470946,
-          1.241940793119123,
+          2.293615003479055,
+          0.4955357986110876,
           1.0
         ],
         [
-          3.1515046893785454,
-          0.5042032312486096,
+          3.5543921619000907,
+          0.875247242126257,
           1.0
         ],
         [
-          3.6206119037060573,
-          2.5508352433602357,
+          3.6213474738323526,
+          1.3672608782611635,
           1.0
         ]
       ],
       "sampled_starts": [
         [
-          3.6164863004769483,
-          3.1598566002786193,
+          3.618086324998295,
+          3.008565128839725,
           0.9980018231649512
         ],
         [
-          3.6237684878252097,
-          2.4140073291072994,
+          3.210943777043815,
+          0.49704200232558937,
           1.0018542547582985
         ],
         [
-          3.6183249112136777,
-          3.175463639968367,
+          3.618324676584973,
+          2.850993302429522,
           0.998313400783373
         ],
         [
-          3.617812177806678,
-          3.197990332268618,
+          3.6178106512381194,
+          2.5589726861969098,
           1.0003395732398557
         ],
         [
-          3.620094221755695,
-          3.081055615435412,
+          3.6201350785300552,
+          2.4407488903130394,
           0.9982676078123838
         ]
       ],
@@ -220,8 +244,18 @@
       "TASK_INDEPENDENCE_GATE": "PASS",
       "actor_action_changed_with_goal": true,
       "atlas_gate": "PASS",
-      "atlas_hash": "4af6618870f97b3b3199084a85e2e7010b9f3b15ff424f336279fe75cf0306dd",
-      "certified_coverage_fraction": 0.05164930555555555,
+      "atlas_hash": "63d20fd2c48f29c264231b337e9ae992b8a5535c8bc1ed983d9985fc879ffaa1",
+      "authority_domain": {
+        "number_of_kappa_only_cells": 93001,
+        "number_of_recoverable_cells": 93450,
+        "number_of_rl_authority_cells": 449,
+        "recoverable_coverage_fraction": 0.06597222222222222,
+        "rl_authority_coverage_fraction": 0.06597222222222222,
+        "rl_authority_fraction_within_recoverable_domain": 1.0,
+        "terminal_recovery_certificate_hash": "f2fa6e59cb40cbc195a4b98cc2f40986ac02dfa74e916b1a5fde2f4894bfa52f",
+        "terminal_recovery_energy_upper": 0.0
+      },
+      "certified_coverage_fraction": 0.06597222222222222,
       "complete_generator_inside_A_safe": true,
       "failures": [],
       "generator_checks": 10,
@@ -229,95 +263,97 @@
         "action_bounds": true,
         "atlas_hash": true,
         "center": true,
+        "continuation_support": true,
         "generators": true,
         "kappa_certificate": true,
         "recoverable_membership": true,
-        "required_return_energy": true
+        "required_return_energy": true,
+        "rl_authority_membership": true
       },
       "kappa_recovery_checks": 5,
       "main_path_consumes_TASK_EDGE": false,
       "main_path_consumes_task_waypoints": false,
-      "maximum_condition_G": 2.040348629448479,
+      "maximum_condition_G": 2.0404278761906505,
       "minimum_sigma_min_G": 0.003999999999999999,
-      "minimum_zonotope_volume": 7.922457456835689e-07,
-      "number_of_recovery_cells": 87960,
+      "minimum_zonotope_volume": 7.925613207302789e-07,
+      "number_of_recovery_cells": 93450,
       "pending_goal_preserved_across_charge_and_backup": true,
       "sampled_goals": [
         [
-          2.1342003106612517,
-          1.3497205607053202,
+          3.1545517701185566,
+          0.5252081491982329,
           1.0
         ],
         [
-          1.6069093909092498,
-          1.3436529290362418,
+          3.150817693702319,
+          0.9828220881596715,
           1.0
         ],
         [
-          1.598208044133283,
-          3.145811805971923,
+          1.9942080441318255,
+          3.1459111202399566,
           1.0
         ],
         [
-          3.1460047155045623,
-          0.5780642261372787,
+          0.5256047155045623,
+          0.49966422613727834,
           1.0
         ],
         [
-          2.920590139910118,
-          2.2533335961570007,
+          1.4253353530056503,
+          2.252526603387941,
           1.0
         ],
         [
-          1.8713350045269415,
-          3.1453984526423624,
+          2.267335004525484,
+          3.1453536698824696,
           1.0
         ],
         [
-          0.8053583699917467,
-          1.3499274219552149,
+          3.132315755696688,
+          1.3579123600538465,
           1.0
         ],
         [
-          0.8276511019578711,
-          1.345170879484213,
+          3.150104684249823,
+          1.3565739428279018,
           1.0
         ],
         [
-          3.1516272901565974,
-          0.5045457068643471,
+          3.147006642333134,
+          3.1971856700243557,
           1.0
         ],
         [
-          3.210360728906231,
-          2.2439686219486146,
+          2.13192315963969,
+          2.2440581958113217,
           1.0
         ]
       ],
       "sampled_starts": [
         [
-          2.4826692165679662,
-          3.145430790426643,
+          3.0182927191790676,
+          3.14340565079015,
           0.9980018231649512
         ],
         [
-          0.9324768926297505,
-          2.245516213909276,
+          0.8531215066892178,
+          1.4044010763138113,
           1.0018542547582985
         ],
         [
-          2.6589272700086752,
-          3.151541089466884,
+          3.122576886633731,
+          3.1558940635225983,
           0.998313400783373
         ],
         [
-          3.04520148516971,
-          3.1506976269969735,
+          3.147722176034855,
+          3.209879508359279,
           1.0003395732398557
         ],
         [
-          3.149513703415296,
-          2.918897292442181,
+          3.175012936487765,
+          2.254281681674934,
           0.9982676078123838
         ]
       ],

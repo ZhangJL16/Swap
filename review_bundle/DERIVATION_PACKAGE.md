@@ -3512,3 +3512,31 @@ actor latents may differ.
 
 Reported atlas coverage is a synthetic discretized capability metric, not global free-space
 certification.
+
+## Persistent authority lifecycle closure
+
+Recoverability and normal-policy viability are distinct.  The certified recovery domain remains
+`R`; the task-independent normal-authority domain is the greatest finite atlas fixed point
+`R_RL subset R` whose cells have a nondegenerate complete Generator and a verified continuation
+successor.  Recovery cells outside that fixed point remain valid kappa-only states.  The
+`safety_neutral` center is computed only from the active atlas reference and physical state; it is
+independent of the sampled goal, reward, task edge, and task waypoint.
+
+Define `A_cont(x) = {a: Post(x,a) subset R_RL union G_charge}`.  Normal support must satisfy both
+`C_run(x) subset A_safe(x)` and `C_run(x) subset A_cont(x)`.  The implementation binds the selected
+continuation cell and complete successor certificate into the action context.  `NO_GENERATOR_SET`
+in a kappa-only state is still a valid backup condition rather than a recovery-certificate failure.
+
+**T_AUTH1 (normal-authority viability).** If `x_t in R_RL` and the runtime publishes from a freshly
+verified `C_run subset A_safe intersect A_cont`, then every robust successor is in `R_RL` or the
+certified charging set.  This is an authority-viability statement, not task convergence.
+
+**T_AUTH2 (zero-step terminal recovery).** If the complete certificate-state uncertainty set is
+contained in `G_charge`, the terminal recovery certificate has level zero, no successor, and
+`E^kappa=0`.  Terminal reserve and version/hash requirements remain active; charging is not a bare
+boolean bypass.
+
+**T_AUTH3 (safe lifecycle closure).** With valid evidence, normal RL authority may switch to kappa,
+kappa reaches the terminal, the zero-step certificate closes recovery, charger-constrained support
+or certified hold maintains the station set, and a verified departure returns to `R_RL`.  No
+task-specific route enters this lifecycle contract.

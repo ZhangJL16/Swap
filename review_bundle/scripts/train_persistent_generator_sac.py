@@ -85,6 +85,10 @@ def main() -> None:
             "charging_fraction": interval["charging_fraction"],
             "generator_acceptance_rate": interval["generator_acceptance_rate"],
             "no_generator_rate": interval["no_generator_rate"],
+            "rl_generator_fraction": interval["rl_generator_fraction"],
+            "kappa_backup_fraction": interval["kappa_backup_fraction"],
+            "charger_constrained_fraction": interval["charger_constrained_fraction"],
+            "fail_closed_fraction": interval["fail_closed_fraction"],
             "minimum_energy_margin": interval["minimum_energy_margin"],
             "actor_loss": update.get("actor_loss"),
             "critic_loss_1": update.get("critic_loss_1"),
@@ -121,6 +125,7 @@ def main() -> None:
             "tasks_completed": int(info.get("tasks_completed", 0)),
             "persistent_mode": info.get("persistent_mode"),
             "execution_authority": info.get("execution_authority"),
+            "execution_authority_reason": info.get("execution_authority_reason"),
             "accepted": bool(info.get("accepted", False)),
             "backup_triggered": bool(info.get("backup_triggered", False)),
             "backup_reason": info.get("backup_reason"),
@@ -131,11 +136,37 @@ def main() -> None:
             "departure_attempt": bool(info.get("departure_attempt", False)),
             "departure_rejected": bool(info.get("departure_rejected", False)),
             "position": np.asarray(telemetry.state_after.position, dtype=float).tolist(),
+            "velocity": np.asarray(telemetry.state_after.velocity, dtype=float).tolist(),
             "energy": float(telemetry.state_after.energy),
             "energy_margin": float(info.get("energy_margin", np.nan)),
             "goal_progress": float(info.get("goal_progress", 0.0)),
+            "generator_available": bool(context.get("generator_available", False)),
+            "generator_executable": bool(context.get("generator_executable", False)),
+            "recoverable_set_member": context.get("recoverable_set_member"),
+            "rl_authority_set_member": context.get("rl_authority_set_member"),
+            "recoverability_action_verified": context.get("recoverability_action_verified"),
+            "continuation_action_verified": context.get("continuation_action_verified"),
+            "kappa_valid": bool(context.get("certificate_valid", False) and context.get("kappa") is not None),
+            "kappa_cell_id": context.get("recovery_cell_id"),
+            "kappa_level": context.get("recovery_level"),
+            "kappa_certificate_hash": context.get("recovery_hash"),
+            "terminal_admissible": bool(telemetry.terminal_admissible),
+            "departure_allowed": context.get("departure_allowed"),
+            "station_hold_valid": context.get("station_hold_valid"),
+            "charging_support_verified": context.get("charging_support_verified"),
+            "command_source": info.get("command_source"),
+            "terminated": bool(terminated),
+            "truncated": bool(truncated),
+            "failure_reason": info.get("failure_reason"),
         })
         next_context = None if terminated or truncated else environment._refresh_context()
+        if (
+            info.get("accepted")
+            and next_context is not None
+            and not next_context.get("rl_authority_set_member")
+            and next_context.get("persistent_mode") != "CHARGING_RL"
+        ):
+            environment.metrics.accepted_into_kappa_only_count += 1
         agent.observe(transition_from_cycle(
             observation, next_observation, actor_u, reward, terminated, truncated,
             episode_id, context, next_context, info,

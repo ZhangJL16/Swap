@@ -34,10 +34,12 @@ def validate_scenario(name: str, seeds: tuple[int, ...]) -> dict[str, object]:
     equality_checks = {
         "required_return_energy": True,
         "recoverable_membership": True,
+        "rl_authority_membership": True,
         "kappa_certificate": True,
         "center": True,
         "generators": True,
         "action_bounds": True,
+        "continuation_support": True,
         "atlas_hash": True,
     }
     actor_action_changed = False
@@ -98,10 +100,15 @@ def validate_scenario(name: str, seeds: tuple[int, ...]) -> dict[str, object]:
             atlas.contains_certificate_state(state)
             and atlas.last_recoverable_set_certificate.recoverable
         )
+        equality_checks["rl_authority_membership"] &= atlas.contains_rl_authority_state(state)
         equality_checks["kappa_certificate"] &= first[0].recovery.certificate_hash == second[0].recovery.certificate_hash
         equality_checks["center"] &= bool(np.allclose(first[1], second[1]))
         equality_checks["generators"] &= bool(np.allclose(first[2], second[2]))
         equality_checks["action_bounds"] &= bool(np.allclose(first[3], second[3]) and np.allclose(first[4], second[4]))
+        equality_checks["continuation_support"] &= bool(
+            atlas.last_continuation_verified
+            and first[0].task_successor_cell_id == second[0].task_successor_cell_id
+        )
         equality_checks["atlas_hash"] &= atlas.atlas_hash == env.manifest_hash
         actor_action_changed |= not np.allclose(
             np.clip(first_goal - sampled.position, -1.0, 1.0),
@@ -147,6 +154,7 @@ def validate_scenario(name: str, seeds: tuple[int, ...]) -> dict[str, object]:
         "atlas_hash": atlas.atlas_hash,
         "number_of_recovery_cells": len(atlas.manifest.cells),
         "certified_coverage_fraction": atlas.persistent_manifest.certified_coverage_fraction,
+        "authority_domain": atlas.authority_domain_report(),
         "sampled_starts": starts,
         "sampled_goals": goals,
         "goal_independence": equality_checks,

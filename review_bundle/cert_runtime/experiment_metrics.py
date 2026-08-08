@@ -23,6 +23,11 @@ COUNTER_FIELDS = (
     "energy_depletion_count",
     "uncertified_publication_count",
     "invalid_kappa_fallback_count",
+    "rl_generator_steps",
+    "kappa_backup_steps",
+    "charger_constrained_steps",
+    "fail_closed_steps",
+    "accepted_into_kappa_only_count",
 )
 
 LIST_FIELDS = (
@@ -115,6 +120,15 @@ class PersistentMetricAccumulator:
             "energy_depletion_count": int(round(self.counters["energy_depletion_count"])),
             "uncertified_publication_count": int(round(self.counters["uncertified_publication_count"])),
             "invalid_kappa_fallback_count": int(round(self.counters["invalid_kappa_fallback_count"])),
+            "rl_generator_steps": int(round(self.counters["rl_generator_steps"])),
+            "rl_generator_fraction": self.counters["rl_generator_steps"] / steps,
+            "kappa_backup_steps": int(round(self.counters["kappa_backup_steps"])),
+            "kappa_backup_fraction": self.counters["kappa_backup_steps"] / steps,
+            "charger_constrained_steps": int(round(self.counters["charger_constrained_steps"])),
+            "charger_constrained_fraction": self.counters["charger_constrained_steps"] / steps,
+            "fail_closed_steps": int(round(self.counters["fail_closed_steps"])),
+            "fail_closed_fraction": self.counters["fail_closed_steps"] / steps,
+            "accepted_into_kappa_only_count": int(round(self.counters["accepted_into_kappa_only_count"])),
             "total_goal_progress": self.total_goal_progress,
             "fraction_steps_progressing_to_goal": self.progressing_steps / steps,
             "mean_goal_progress_per_step": self.total_goal_progress / steps,

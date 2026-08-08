@@ -57,6 +57,11 @@ class PersistentMetrics:
     minimum_energy_margin: float = float("inf")
     energy_margin_at_station_approach: list[float] = field(default_factory=list)
     energy_margin_at_backup: list[float] = field(default_factory=list)
+    rl_generator_steps: int = 0
+    kappa_backup_steps: int = 0
+    charger_constrained_steps: int = 0
+    fail_closed_steps: int = 0
+    accepted_into_kappa_only_count: int = 0
 
 
 @dataclass(slots=True)
@@ -585,6 +590,8 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             departure_allowed=bool(departure.allowed),
             charging_support_verified=context.get("charging_support_verified") is True,
             station_hold_valid=station_hold_valid,
+            rl_authority_member=context.get("rl_authority_set_member") is True,
+            continuation_action_verified=context.get("continuation_action_verified") is True,
         )
         self._last_authority_decision = PersistentExecutionAuthority.evaluate(authority_input)
         return context | {
@@ -644,6 +651,8 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
                 departure_allowed=True,
                 charging_support_verified=False,
                 station_hold_valid=False,
+                rl_authority_member=context.get("rl_authority_set_member") is True,
+                continuation_action_verified=context.get("continuation_action_verified") is True,
             ))
         if self._last_authority_decision.authority in {ExecutionAuthority.KAPPA_BACKUP, ExecutionAuthority.FAIL_CLOSED}:
             if self._last_authority_decision.reason == "RECOVERY_CERTIFICATE_INVALID" and context.get("failure_reason"):
@@ -678,6 +687,7 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self.metrics.charging_steps += 1
         self.metrics.energy_charged += result.charged_energy
         self.metrics.departure_rejection_count += 1
+        self.metrics.charger_constrained_steps += 1
         self._time_since_last_charge = 0
         self.task_env.set_time_since_last_charge(0)
         reward = -self.task_env.reward_config.charging_dwell_cost
@@ -788,6 +798,14 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             self.metrics.uncertified_publication_count += 1
         if info.get("fallback_reason") == "RECOVERY_CERTIFICATE_INVALID":
             self.metrics.invalid_kappa_fallback_count += 1
+        if actual_authority == ExecutionAuthority.RL_GENERATOR:
+            self.metrics.rl_generator_steps += 1
+        elif actual_authority == ExecutionAuthority.KAPPA_BACKUP:
+            self.metrics.kappa_backup_steps += 1
+        elif actual_authority == ExecutionAuthority.CHARGER_CONSTRAINED:
+            self.metrics.charger_constrained_steps += 1
+        elif actual_authority == ExecutionAuthority.FAIL_CLOSED:
+            self.metrics.fail_closed_steps += 1
 
         terminal_now = self.plant.terminal.is_charge_admissible(self.plant.state)
         was_charging = mode_before == PersistentMissionMode.CHARGING_RL
@@ -866,6 +884,10 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "generator_acceptance_rate": self.metrics.generator_accepted_steps / total,
             "no_generator_rate": self.metrics.no_generator_steps / total,
             "charging_fraction": self.metrics.charging_steps / total,
+            "rl_generator_fraction": self.metrics.rl_generator_steps / total,
+            "kappa_backup_fraction": self.metrics.kappa_backup_steps / total,
+            "charger_constrained_fraction": self.metrics.charger_constrained_steps / total,
+            "fail_closed_fraction": self.metrics.fail_closed_steps / total,
             "minimum_energy_margin": finite_margin,
         })
         return result
