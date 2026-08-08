@@ -31,9 +31,14 @@ from .persistent_task import (
 )
 from .persistent_wrapper import LegacyEnergyManagementRuntimeWrapper, PersistentRuntimeWrapper
 from .persistent_certificate import (
+    EdgeDependencyBinding,
     PersistentGoalCertificateManifest,
     PersistentGoalCertificateProvider,
     PersistentGoalEdgeCertificate,
+    SharedBoundVersions,
+    edge_dependency_bindings_valid,
+    shared_bound_versions_consistent,
+    typed_edge_gate_pass,
 )
 from .recoverability import (
     PolicyAuthorityCertificate,
@@ -84,6 +89,11 @@ __all__ = [
     "PersistentGoalCertificateManifest",
     "PersistentGoalCertificateProvider",
     "PersistentGoalEdgeCertificate",
+    "SharedBoundVersions",
+    "EdgeDependencyBinding",
+    "shared_bound_versions_consistent",
+    "edge_dependency_bindings_valid",
+    "typed_edge_gate_pass",
     "PolicyAuthorityCertificate",
     "RecoverabilityActionCertificate",
     "RecoverabilityVerifier",

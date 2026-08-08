@@ -3451,15 +3451,28 @@ no Generator density, and `FAIL_CLOSED` has no bootstrap continuation. This alig
 Bellman branch with actual publish authority; it does not add a convergence theorem and does not
 enter T_REC1/T_REC2's safety proof.
 
-`PERSISTENT_CERTIFICATE_GATE` binds task, recovery, and departure routes to the recoverable-set,
-recoverability-action-rule, energy-field, \(\kappa\), geometry, tracking, and dynamics versions.
-`POLICY_AUTHORITY_GATE` additionally checks persistent edges and representative root states for a
-three-dimensional output, neutral center, full-rank nondegenerate \(G\), task- and station-directed
-residual authority where permitted, and complete-set recoverability. These are synthetic software
-contracts. Physical premises remain
-blocked-by-calibration and deployment timing remains blocked-by-deployment-evidence; the persistent
-gate and formal experiments were not executed in this implementation round.
+`PERSISTENT_SAFETY_GATE` binds task, recovery, and departure routes using typed prerequisites.
+Shared dynamics, tracking, energy, terminal, recoverable-set/action-rule, and runtime versions must
+match globally. Edge geometry, corridor, mission-manifest, and \(\kappa\) identities may differ, but
+their hashes are bound per edge and included in the aggregate manifest. A `RECOVERY_EDGE` proves the
+complete \(\kappa\) chain, strict descent, geometry, E3, and terminal linkage; it does not assume a
+positive-volume Generator. `TASK_EDGE` and `DEPARTURE_EDGE` additionally bind their normal-authority
+successor support.
 
-The implementation regression for this closure phase is 176 passed, zero skipped, zero failed in
-205.350 seconds. This is software evidence only; the persistent certificate and policy-authority
-gate scripts remain intentionally unexecuted pending the user's manual validation.
+`POLICY_AUTHORITY_GATE` checks only task/departure/charging states where normal RL authority is
+claimed for a three-dimensional neutral-center, full-rank nondegenerate \(G\), task- and
+station-directed residual authority where meaningful, and complete-set recoverability.
+`POLICY_AUTHORITY_COVERAGE` separately reports the fraction of eligible roots with such support.
+Thus \(z\in\mathcal R\) does not imply that a Generator exists: `NO_GENERATOR_SET` with a valid
+\(\kappa\) invokes backup and does not violate T_REC1/T_REC2. These are synthetic software contracts.
+Physical premises remain blocked-by-calibration and deployment timing remains
+blocked-by-deployment-evidence.
+
+The corrected synthetic validator was executed. `persistent_open` and `persistent_energy_tight`
+pass `PERSISTENT_SAFETY_GATE` and `POLICY_AUTHORITY_GATE`; each has 1353/1353 RL-authority roots and
+36984/36984 kappa-only cells valid. `persistent_obstacle` remains blocked: the first witnesses on
+`recover_C_S`, `task_C_B`, `task_C_D`, and `task_D_C` have `minimum_geometry_slack=-1.0`, while hash,
+E3, velocity, and descent checks pass. Across those edges, respectively 906, 591, 1017, and 809
+cells fail complete swept-geometry containment. This is synthetic certificate infeasibility and was
+not altered to force PASS. The implementation regression is 187 passed, zero skipped, zero failed
+in 210.896 seconds. Acceptance and training were not executed.

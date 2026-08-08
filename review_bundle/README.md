@@ -111,7 +111,12 @@ preserve certified kappa recoverability; kappa is backup authority only. The tas
 `safety_neutral`, pending goals survive charging, and the synthetic charger uses `30.0` capacity,
 `2.0` units/s, and `0.4` per 0.2 s. Closed departure uses a complete charger-stay Generator support,
 and replay/Bellman targets consume the same immutable execution-authority classification as runtime.
-Only static checks and unit tests were run in this phase.
+Persistent validation uses typed task/departure/recovery gates: recovery-only cells require the
+certified kappa chain but not a Generator, while task-RL roots retain goal/station directional checks.
+Shared bound versions are graph-wide; edge-local geometry/kappa/manifest identities remain distinct
+and are hash-bound into the aggregate manifest. The corrected synthetic gate run passes
+`persistent_open` and `persistent_energy_tight`; `persistent_obstacle` remains blocked by complete
+swept-geometry failures in four recovery chains. Acceptance and training were not run.
 
 ```bash
 .venv/bin/python scripts/validate_persistent_certificate.py

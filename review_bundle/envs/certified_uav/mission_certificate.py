@@ -26,6 +26,18 @@ class MissionFailureWitness:
 
 
 @dataclass(frozen=True, slots=True)
+class GeneratorConstructionDiagnostic:
+    reason: str
+    limiting_constraint: str
+    largest_attempted_scale: float
+    last_valid_scale: float | None
+    last_invalid_scale: float | None
+    sigma_min_at_failure: float | None
+    volume_at_failure: float | None
+    target_cell_id: str | None
+
+
+@dataclass(frozen=True, slots=True)
 class MissionRecoveryCellCertificate:
     cell_id: str
     chain_id: str
@@ -283,11 +295,13 @@ class MultiStepSyntheticMissionCertificateProvider:
         self._chain_by_root = {chain.root.cell_id: chain for chain in self.manifest.chains}
         self._chains_by_id = {chain.chain_id: chain for chain in self.manifest.chains}
         self.last_context: MissionActionContext | None = None
+        self.last_generator_diagnostic: GeneratorConstructionDiagnostic | None = None
         self.recovery_active = False
         self.active_cell_id: str | None = None
 
     def reset(self) -> None:
         self.last_context = None
+        self.last_generator_diagnostic = None
         self.recovery_active = False
         self.active_cell_id = None
 
@@ -854,6 +868,7 @@ class MultiStepSyntheticMissionCertificateProvider:
         state: CertificateState,
         cell: MissionRecoveryCellCertificate,
     ) -> tuple[Zonotope3 | None, MissionRecoveryCellCertificate | None]:
+        self.last_generator_diagnostic = None
         state_low = np.asarray(state.position[:2]) - np.asarray(state.position_error_radius[:2])
         state_high = np.asarray(state.position[:2]) + np.asarray(state.position_error_radius[:2])
         for region in self.profile.get("narrow_regions", ()):
@@ -861,6 +876,16 @@ class MultiStepSyntheticMissionCertificateProvider:
             region_low = np.array((low_x, low_y), dtype=np.float64)
             region_high = np.array((high_x, high_y), dtype=np.float64)
             if np.all(state_high >= region_low) and np.all(state_low <= region_high):
+                self.last_generator_diagnostic = GeneratorConstructionDiagnostic(
+                    "NO_GENERATOR_SET_COLLISION",
+                    "DECLARED_NARROW_REGION",
+                    0.0,
+                    None,
+                    0.0,
+                    None,
+                    0.0,
+                    None,
+                )
                 return None, None
         chain = self._chains_by_id[cell.chain_id]
         center = self._center(state, chain.root)
@@ -871,39 +896,130 @@ class MultiStepSyntheticMissionCertificateProvider:
             np.maximum(self.base_scales * variation, minimum),
             self.runtime.config.a_max - np.abs(center),
         )
+        if not np.all(np.isfinite(center)) or not np.all(np.isfinite(requested)):
+            self.last_generator_diagnostic = GeneratorConstructionDiagnostic(
+                "NO_GENERATOR_SET_NUMERICAL", "NONFINITE_CENTER_OR_SCALE", 0.0, None, None, None, None, None
+            )
+            return None, None
         if np.any(requested < minimum):
+            self.last_generator_diagnostic = GeneratorConstructionDiagnostic(
+                "NO_GENERATOR_SET_ACTUATOR",
+                "ACTUATOR_ROOM_BELOW_MINIMUM_SIGMA",
+                float(np.max(np.maximum(requested, 0.0))),
+                None,
+                0.0,
+                float(np.min(requested)),
+                0.0,
+                None,
+            )
             return None, None
         lower_scales = np.full(3, minimum, dtype=np.float64)
         best: tuple[float, str, Zonotope3, MissionRecoveryCellCertificate] | None = None
+        limiting_reason = "NO_GENERATOR_SET_RECOVERABILITY"
+        limiting_constraint = "NO_RECOVERABLE_SUCCESSOR_CELL"
+        last_invalid_scale: float | None = None
+        last_invalid_sigma: float | None = None
+        last_invalid_volume: float | None = None
+        last_invalid_target: str | None = None
+        best_valid_factor: float | None = None
         for target in self._recoverable_successor_candidates(cell):
             minimum_candidate = Zonotope3.diagonal(center, lower_scales)
-            if not (
-                minimum_candidate.condition_number_upper_bound <= self.runtime.config.maximum_generator_condition
-                and self._candidate_successor_in_root(state, minimum_candidate, target)
-            ):
+            failure = self._generator_candidate_failure(state, minimum_candidate, target)
+            if failure is not None:
+                limiting_reason, limiting_constraint = failure
+                last_invalid_scale = 0.0
+                last_invalid_sigma = float(minimum_candidate.sigma_min_lower_bound)
+                last_invalid_volume = float(8.0 * abs(minimum_candidate.determinant))
+                last_invalid_target = target.cell_id
                 continue
             low, high = 0.0, 1.0
             accepted = minimum_candidate
+            valid_factor = 0.0
             for _ in range(self.runtime.config.generator_bisection_iterations + 1):
                 factor = (low + high) / 2.0
                 scales = lower_scales + factor * (requested - lower_scales)
                 candidate = Zonotope3.diagonal(center, scales)
-                valid = (
-                    candidate.sigma_min_lower_bound >= minimum - 1e-12
-                    and candidate.condition_number_upper_bound <= self.runtime.config.maximum_generator_condition
-                    and self._candidate_successor_in_root(state, candidate, target)
-                )
-                if valid:
+                failure = self._generator_candidate_failure(state, candidate, target)
+                if failure is None:
                     accepted = candidate
+                    valid_factor = factor
                     low = factor
                 else:
+                    limiting_reason, limiting_constraint = failure
+                    last_invalid_scale = factor
+                    last_invalid_sigma = float(candidate.sigma_min_lower_bound)
+                    last_invalid_volume = float(8.0 * abs(candidate.determinant))
+                    last_invalid_target = target.cell_id
                     high = factor
             choice = (8.0 * abs(accepted.determinant), target.cell_id, accepted, target)
             if best is None or choice[0] > best[0] + 1e-18 or (
                 abs(choice[0] - best[0]) <= 1e-18 and choice[1] < best[1]
             ):
                 best = choice
-        return (None, None) if best is None else (best[2], best[3])
+                best_valid_factor = valid_factor
+        if best is None:
+            self.last_generator_diagnostic = GeneratorConstructionDiagnostic(
+                limiting_reason,
+                limiting_constraint,
+                float(np.max(requested)),
+                None,
+                last_invalid_scale,
+                last_invalid_sigma,
+                last_invalid_volume,
+                last_invalid_target,
+            )
+            return None, None
+        self.last_generator_diagnostic = GeneratorConstructionDiagnostic(
+            "VERIFIED",
+            "NONE",
+            float(np.max(requested)),
+            best_valid_factor,
+            last_invalid_scale,
+            float(best[2].sigma_min_lower_bound),
+            float(8.0 * abs(best[2].determinant)),
+            best[3].cell_id,
+        )
+        return best[2], best[3]
+
+    def _generator_candidate_failure(
+        self,
+        state: CertificateState,
+        candidate: Zonotope3,
+        target: MissionRecoveryCellCertificate,
+    ) -> tuple[str, str] | None:
+        if not np.all(np.isfinite(np.asarray(candidate.center))) or not np.all(np.isfinite(np.asarray(candidate.generators))):
+            return "NO_GENERATOR_SET_NUMERICAL", "NONFINITE_ZONOTOPE"
+        if candidate.sigma_min_lower_bound < self.runtime.config.minimum_generator_sigma - 1e-12:
+            return "NO_GENERATOR_SET_MIN_SIGMA", "MINIMUM_SIGMA"
+        if candidate.condition_number_upper_bound > self.runtime.config.maximum_generator_condition:
+            return "NO_GENERATOR_SET_MIN_SIGMA", "CONDITION_NUMBER"
+        if (
+            np.any(np.asarray(candidate.action_bounds.low) < -self.runtime.config.a_max - 1e-12)
+            or np.any(np.asarray(candidate.action_bounds.high) > self.runtime.config.a_max + 1e-12)
+        ):
+            return "NO_GENERATOR_SET_ACTUATOR", "ACTUATOR_BOX"
+        if not target.hash_valid or not target.complete_successor_containment or target.minimum_geometry_slack < -1e-12:
+            return "NO_GENERATOR_SET_COLLISION", "TARGET_RECOVERY_GEOMETRY"
+        try:
+            envelope = self.runtime.envelope_builder.propagate_zonotope(state, candidate)
+        except (ArithmeticError, ValueError, OverflowError):
+            return "NO_GENERATOR_SET_NUMERICAL", "SUCCESSOR_ENVELOPE"
+        endpoints = (
+            *np.asarray(envelope.position.low),
+            *np.asarray(envelope.position.high),
+            *np.asarray(envelope.velocity.low),
+            *np.asarray(envelope.velocity.high),
+            envelope.energy_low,
+        )
+        if not np.all(np.isfinite(endpoints)):
+            return "NO_GENERATOR_SET_NUMERICAL", "NONFINITE_SUCCESSOR_ENVELOPE"
+        if not target.state_bounds.velocity.contains_box(envelope.velocity, 1e-12):
+            return "NO_GENERATOR_SET_VELOCITY", "SUCCESSOR_VELOCITY"
+        if envelope.energy_low < target.state_bounds.energy.low - 1e-12:
+            return "NO_GENERATOR_SET_ENERGY", "SUCCESSOR_ENERGY_RESERVE"
+        if not self._candidate_successor_in_root(state, candidate, target):
+            return "NO_GENERATOR_SET_RECOVERABILITY", "SUCCESSOR_NOT_IN_RECOVERY_CELL"
+        return None
 
     def verify_task_action(self, state: CertificateState, action: np.ndarray) -> bool:
         selected = np.asarray(action, dtype=np.float64)

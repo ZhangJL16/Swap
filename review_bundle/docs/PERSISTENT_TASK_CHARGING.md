@@ -106,15 +106,33 @@ and future charging never reduces the energy required to reach the station from 
 
 ## Manifest and policy-authority gates
 
-The persistent manifest binds the recoverable-set, recoverability-action-rule, energy-field, kappa,
-geometry, tracking, and dynamics versions. `PERSISTENT_CERTIFICATE_GATE` requires route closure,
-strict recovery descent, E3, terminal linkage, recoverable state cells, complete Generator
-recoverability, departure recoverability, and hash/version consistency.
+The aggregate manifest stores one `SharedBoundVersions` object for dynamics, tracking, energy,
+terminal, recoverable-set/action rules, and the runtime configuration. Those assumptions must match
+across every edge. Geometry, corridor, mission-manifest, and kappa identities are edge-local; each is
+hash-bound by an `EdgeDependencyBinding`, and every binding hash enters the aggregate manifest.
+Different edge-local IDs are therefore expected, while a changed shared bound or a tampered edge
+dependency remains a hard `VERSION_MISMATCH`.
 
-`POLICY_AUTHORITY_GATE` checks every persistent edge and representative certified root rather than
-only the reset point. It reports output dimension, neutral center, full rank, minimum sigma, maximum
-condition number, minimum volume, task/station directional authority, complete-set recoverability,
-and exact failed locations. This is a software gate, not a physical calibration result.
+`PERSISTENT_SAFETY_GATE` applies typed prerequisites. `TASK_EDGE` and `DEPARTURE_EDGE` require their
+recovery chain plus verified task/departure successor support. `RECOVERY_EDGE` requires only the
+complete kappa chain, strict descent, geometry, actuator/velocity bounds, E3, terminal linkage, and
+hashes; it does not require a full-rank Generator. A recoverable state with `NO_GENERATOR_SET` is a
+valid kappa-backup state, not automatically a safety-certificate failure.
+
+`POLICY_AUTHORITY_GATE` checks only states where normal RL authority is represented: task,
+departure, and constrained charging support. Task states still require both goal- and
+station-directed residual authority. Recovery-only cells are audited separately for kappa validity.
+`POLICY_AUTHORITY_COVERAGE` reports how many eligible RL roots have a verified full-rank Generator;
+coverage is a learnability/performance metric, not a safety theorem. Sigma, condition, and volume
+aggregates exclude kappa-only cells. These remain synthetic software gates, not physical calibration.
+
+The latest corrected synthetic validation passes both gates for `persistent_open` and
+`persistent_energy_tight` with 1353/1353 RL-authority roots and all 36984 kappa-only cells valid in
+each scenario. `persistent_obstacle` fails the safety and policy gates: 906 `recover_C_S`, 591
+`task_C_B`, 1017 `task_C_D`, and 809 `task_D_C` cells have complete swept-geometry containment
+failures (`minimum_geometry_slack=-1.0` in the first witnesses). Their hashes, E3 residuals,
+velocity bounds, and strict descent links remain valid. This is a real synthetic certificate
+infeasibility, not a version bug, typed-gate bug, or `NO_GENERATOR_SET` constructor failure.
 
 ## Replay and optimization
 

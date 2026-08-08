@@ -422,5 +422,12 @@ actions remain equal; station hold is exceptional fallback only. Pending goals s
 Runtime and persistent Bellman targets share the same execution-authority classification. See
 `docs/PERSISTENT_TASK_CHARGING.md`.
 
-This round added code and deterministic unit tests only; no persistent certificate gate, acceptance
-rollout, training, or baseline evaluation result is claimed.
+Persistent validation distinguishes `TASK_EDGE`, `DEPARTURE_EDGE`, and kappa-only `RECOVERY_EDGE`
+premises. Shared physical/software bound versions must match across the graph, while every
+edge-local geometry, corridor, kappa, and mission identity is independently hash-bound. The policy
+authority statistics exclude recovery-only cells; `NO_GENERATOR_SET` in such a cell is compatible
+with certified backup. Task-RL states still check station-directed authority for voluntary charging.
+
+The corrected persistent synthetic gate was run: open and energy-tight pass, while obstacle remains
+blocked by four complete swept-geometry recovery-chain failures. The full regression is 187/187.
+No persistent acceptance rollout, training, or baseline evaluation result is claimed.
