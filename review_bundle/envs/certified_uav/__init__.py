@@ -29,7 +29,9 @@ from .persistent_task import (
     PersistentTaskManager,
     PersistentTaskWrapper,
 )
-from .persistent_wrapper import LegacyEnergyManagementRuntimeWrapper, PersistentRuntimeWrapper
+from .persistent_wrapper import LegacyEnergyManagementRuntimeWrapper, PersistentRuntimeWrapper, RandomPersistentRuntimeWrapper
+from .random_persistent import RandomGoalTask, RandomPersistentGoalManager, RandomPersistentTaskWrapper
+from .recovery_atlas import CertifiedRecoverabilityAtlas, RecoverabilityAtlasManifest
 from .persistent_certificate import (
     EdgeDependencyBinding,
     PersistentGoalCertificateManifest,
@@ -71,6 +73,7 @@ __all__ = [
     "load_scenario",
     "make_certified_uav_env",
     "make_persistent_uav_env",
+    "make_random_persistent_uav_env",
     "make_persistent_energy_management_ablation_env",
     "ChargingConfig",
     "ChargingDynamics",
@@ -82,6 +85,12 @@ __all__ = [
     "GoalNode",
     "PersistentMissionMode",
     "PersistentRuntimeWrapper",
+    "RandomPersistentRuntimeWrapper",
+    "RandomGoalTask",
+    "RandomPersistentGoalManager",
+    "RandomPersistentTaskWrapper",
+    "CertifiedRecoverabilityAtlas",
+    "RecoverabilityAtlasManifest",
     "LegacyEnergyManagementRuntimeWrapper",
     "PersistentGoalTask",
     "PersistentGoalTaskManager",
@@ -195,6 +204,65 @@ def make_persistent_uav_env(
     )
     del seed
     return PersistentRuntimeWrapper(runtime, network, charging)
+
+
+def make_random_persistent_uav_env(
+    scenario_name: str = "random_persistent_open.json",
+    *,
+    seed: int = 0,
+    timing_mode: str = "functional",
+    certificate_bundle: str | None = None,
+) -> RandomPersistentRuntimeWrapper:
+    """Build the task-independent random-start/random-goal main environment.
+
+    ``certificate_bundle`` reserves the stable loading interface.  Version one
+    constructs the immutable synthetic atlas once per environment instance.
+    """
+
+    if certificate_bundle is not None:
+        raise NotImplementedError("external recovery-atlas bundle loading is not implemented in version one")
+    scenario = FixedCertificationScenario(scenario_name).definition
+    random_config = dict(scenario.mission_config.get("random_persistent", {}))
+    if not random_config:
+        raise ValueError(f"scenario {scenario.name} does not define random_persistent")
+    configured = apply_configuration_overrides(
+        CertifiedUAVConfig(world_size=scenario.world_size),
+        scenario.configuration_overrides,
+    )
+    plant = CertifiedSingleUAVPlantEnv(
+        configured,
+        scenario,
+        actuator_model=ActuatorTrackingModel(configured.tracking_error_bound),
+        energy_model=EnergyModel(SimulationEnergyConfig()),
+        lidar_model=HorizontalLidarModel(
+            configured.num_lasers,
+            configured.lidar_range,
+            "synthetic-sensor-v1",
+            configured.lidar_range_noise,
+            configured.lidar_pose_noise,
+            configured.lidar_heading_noise,
+            configured.lidar_invalid_probability,
+        ),
+    )
+    task = RandomPersistentTaskWrapper(
+        plant,
+        goal_radius=float(random_config.get("goal_radius", 0.20)),
+        minimum_goal_separation=float(random_config.get("minimum_goal_separation", 0.60)),
+        task_reward=float(random_config.get("task_reward", 10.0)),
+        battery_capacity=float(random_config.get("battery_capacity", 30.0)),
+    )
+    runtime = CertifiedRuntimeWrapper(task, generator_center_mode="safety_neutral", timing_mode=timing_mode)
+    atlas = CertifiedRecoverabilityAtlas(runtime)
+    task.attach_atlas(atlas)
+    charging = ChargingConfig(
+        battery_capacity=float(random_config.get("battery_capacity", 30.0)),
+        charging_rate=float(random_config.get("charging_rate", 2.0)),
+        checkpoint_steps=int(random_config.get("charging_checkpoint_steps", 5)),
+        departure_energy_margin=float(random_config.get("departure_energy_margin", 0.5)),
+        forced_return_margin=float(random_config.get("forced_return_margin", 1.0)),
+    )
+    del seed
+    return RandomPersistentRuntimeWrapper(runtime, atlas, charging)
 
 
 def make_persistent_energy_management_ablation_env(

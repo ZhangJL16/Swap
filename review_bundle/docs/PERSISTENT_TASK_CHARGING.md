@@ -156,11 +156,45 @@ The following formal commands were created or updated but were not run in this r
 ```bash
 .venv/bin/python scripts/validate_persistent_certificate.py
 .venv/bin/python scripts/run_persistent_env_acceptance.py --scenario persistent_open --probe all --strict
-.venv/bin/python scripts/train_persistent_generator_sac.py --scenario persistent_open --steps 50000
-.venv/bin/python scripts/evaluate_persistent_generator_sac.py --scenario persistent_open --checkpoint <path>
-.venv/bin/python scripts/run_persistent_single_policy_baselines.py --scenario persistent_open
+.venv/bin/python scripts/train_persistent_generator_sac.py --scenario persistent_open --legacy-fixed-graph --steps 50000
+.venv/bin/python scripts/evaluate_persistent_generator_sac.py --scenario persistent_open --legacy-fixed-graph --checkpoint <path>
+.venv/bin/python scripts/run_persistent_single_policy_baselines.py --scenario persistent_open --legacy-fixed-graph
 ```
 
 The old `train_energy_management_sac.py` and related scripts are explicitly hierarchical ablations,
 not the main method. Any future outputs remain synthetic empirical evidence and cannot establish
 real-flight safety, calibrated physical bounds, or hard WCET.
+
+## Task-independent random-goal main problem
+
+The main path separates physical/certificate state `x` from externally assigned task goal `g`.
+The actor is goal-conditioned, `pi_theta(a | x, g)`, but the certified support is not:
+
+```text
+A_safe(x) = A_act(x) intersect A_col(x) intersect A_rec(x)
+C_run(x) = c(x) + G(x)[-1,1]^3 subset A_safe(x)
+```
+
+`CertifiedRecoverabilityAtlas` covers a certified subset of the free workspace with recovery
+cells. Each cell binds geometry, dynamics, tracking, energy, terminal, and frozen-kappa proof
+dependencies. Atlas construction consumes no current goal, goal seed, task edge, task waypoint,
+route index, or reward. `RandomPersistentTaskWrapper` samples reproducible starts and continuous
+horizontal goals only from certified atlas interiors. Reaching a goal samples the next goal
+without resetting the plant; charging and backup preserve the same pending goal.
+
+The fixed `CertifiedGoalNetwork` and `TASK_EDGE` fixtures remain legacy regressions and ablations.
+They are not prerequisites for normal authority in the random-goal main method.
+
+## T_RAND contracts
+
+**T_RAND1 (random certified initialization).** If the initial distribution has support inside the
+certified atlas, the existing T_REC initialization premise holds.
+
+**T_RAND2 (goal-independent recursive recoverability).** For any admissible goal sequence and any
+goal-conditioned learned policy, T_REC2 remains valid when every normal action is published from
+the task-independent `C_run(x) subset A_rec(x)`. This guarantees recoverability, not sampled-goal
+completion.
+
+**T_RAND3 (goal-independent support).** At identical physical/certificate state and versions,
+changing only `g` leaves `E^kappa`, recoverable membership, kappa proof, `c`, `G`, action bounds,
+and atlas identity unchanged. Actor output may change.

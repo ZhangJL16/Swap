@@ -16,13 +16,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cert_runtime.generator_sac import GeneratorSACConfig, PersistentGeneratorSAC
-from envs.certified_uav import make_persistent_uav_env
+from envs.certified_uav import make_persistent_uav_env, make_random_persistent_uav_env
 from persistent_generator_common import transition_from_cycle
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train one continuous persistent Generator-SAC policy.")
-    parser.add_argument("--scenario", default="persistent_open")
+    parser.add_argument("--scenario", default="random_persistent_open")
+    parser.add_argument("--legacy-fixed-graph", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--steps", type=int, default=50_000)
     parser.add_argument("--warmup-steps", type=int, default=5_000)
@@ -31,7 +32,8 @@ def main() -> None:
     parser.add_argument("--output-dir", default="artifacts/persistent_generator_sac")
     args = parser.parse_args()
 
-    environment = make_persistent_uav_env(f"{args.scenario}.json", seed=args.seed)
+    factory = make_persistent_uav_env if args.legacy_fixed_graph else make_random_persistent_uav_env
+    environment = factory(f"{args.scenario}.json", seed=args.seed)
     observation, reset_info = environment.reset(seed=args.seed)
     context = reset_info["action_context"]
     config = GeneratorSACConfig(batch_size=args.batch_size, warmup_steps=args.warmup_steps)
@@ -62,6 +64,7 @@ def main() -> None:
     torch.save(agent.state_dict(), output / "checkpoint_latest.pt")
     summary = {
         "scenario": args.scenario,
+        "legacy_fixed_graph": args.legacy_fixed_graph,
         "seed": args.seed,
         "steps": args.steps,
         "gradient_steps": agent.gradient_steps,

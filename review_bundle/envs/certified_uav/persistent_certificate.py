@@ -214,10 +214,11 @@ class PersistentGoalCertificateProvider:
             energy_upper = self._edge_energy_bound(provider)
             self.edge_energy_upper[edge_id] = energy_upper
             recovery_chain_valid = self._recovery_chain_valid(provider)
+            reference = getattr(provider, "coverage_reference", getattr(provider, "task_reference", ()))
             task_transition_valid = bool(
                 provider.manifest.task_transition_verified
                 and all(provider.manifest.task_transition_verified)
-                and len(provider.manifest.task_transition_verified) == len(provider.task_reference)
+                and len(provider.manifest.task_transition_verified) == len(reference)
             )
             rl_authority_required = edge.edge_type in {GoalEdgeType.TASK_EDGE, GoalEdgeType.DEPARTURE_EDGE}
             typed_gate_pass = typed_edge_gate_pass(
@@ -426,9 +427,10 @@ class PersistentGoalCertificateProvider:
     @staticmethod
     def _recovery_chain_valid(provider: MultiStepSyntheticMissionCertificateProvider) -> bool:
         manifest = provider.manifest
+        reference = getattr(provider, "coverage_reference", getattr(provider, "task_reference", ()))
         if not manifest.hash_chain_valid or not manifest.chains:
             return False
-        if len(manifest.chains) != len(provider.task_reference):
+        if len(manifest.chains) != len(reference):
             return False
         for chain in manifest.chains:
             if not chain.cells or chain.root.level <= 0:
@@ -491,7 +493,8 @@ class PersistentGoalCertificateProvider:
         action = Interval3(-self.runtime.config.a_max, self.runtime.config.a_max)
         velocity = Interval3(-self.runtime.config.v_max, self.runtime.config.v_max)
         task_step_upper = self.runtime.envelope_builder.energy.cost_upper(action, velocity)
-        transition_count = max(0, len(provider.task_reference) - 1)
+        reference = getattr(provider, "coverage_reference", getattr(provider, "task_reference", ()))
+        transition_count = max(0, len(reference) - 1)
         task_upper = 0.0
         for _ in range(transition_count):
             task_upper = round_up(task_upper + task_step_upper)

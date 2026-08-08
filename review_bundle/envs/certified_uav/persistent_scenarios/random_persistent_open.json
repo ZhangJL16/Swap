@@ -1,0 +1,33 @@
+{
+  "base": "mission_open.json",
+  "name": "random_persistent_open",
+  "configuration_overrides": {
+    "initial_energy": 30.0,
+    "episode_limit": 5000,
+    "terminate_on_terminal": false
+  },
+  "mission": {
+    "coverage_waypoints": [
+      [0.40,0.50,1.0], [3.15,0.50,1.0], [3.15,1.35,1.0],
+      [0.85,1.35,1.0], [0.85,2.25,1.0], [3.15,2.25,1.0],
+      [3.15,3.15,1.0], [0.85,3.15,1.0]
+    ],
+    "return_waypoints": [
+      [0.85,3.15,1.0], [3.15,3.15,1.0], [3.15,2.25,1.0],
+      [0.85,2.25,1.0], [0.85,1.35,1.0], [3.15,1.35,1.0],
+      [3.15,0.50,1.0], [0.40,0.50,1.0]
+    ],
+    "random_persistent": {
+      "battery_capacity": 30.0,
+      "charging_rate": 2.0,
+      "charging_checkpoint_steps": 5,
+      "departure_energy_margin": 0.5,
+      "forced_return_margin": 1.0,
+      "task_reward": 10.0,
+      "goal_radius": 0.20,
+      "minimum_goal_separation": 0.60,
+      "initial_energy_range": [22.0, 30.0]
+    }
+  },
+  "expected_certificate_outcome": "task-independent-recoverability-atlas-required"
+}

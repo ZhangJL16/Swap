@@ -431,3 +431,13 @@ with certified backup. Task-RL states still check station-directed authority for
 The corrected persistent synthetic gate was run: open and energy-tight pass, while obstacle remains
 blocked by four complete swept-geometry recovery-chain failures. The full regression is 187/187.
 No persistent acceptance rollout, training, or baseline evaluation result is claimed.
+
+The new main persistent path is task-independent at the certificate layer. Random reset states
+and random continuous goals are sampled from a frozen `CertifiedRecoverabilityAtlas`; the safety
+provider receives no goal, task edge, task waypoint, route index, or task reward. Observation
+metadata names the retained certificate feature `recovery_corridor`, distinguishing it from a task
+route. Fixed-graph persistent fixtures remain unchanged as historical regression evidence.
+
+`TASK_INDEPENDENCE_GATE` compares multiple goals at an identical certificate state and requires
+equal `E^kappa`, recoverable membership, kappa proof, Generator center, Generator matrix, action
+bounds, and atlas hash. It does not claim random-goal reachability or learned task completion.

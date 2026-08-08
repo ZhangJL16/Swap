@@ -280,6 +280,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         if timing_mode not in {"wall_clock", "functional"}:
             raise ValueError("timing_mode must be 'wall_clock' or 'functional'")
         self.timing_mode = timing_mode
+        self.rebuild_certificate_objects_on_reset = True
         self.action_space = gym.spaces.Box(np.full(3, -10.0, dtype=np.float32), np.full(3, 10.0, dtype=np.float32), dtype=np.float32)
         self.observation_space = task_env.observation_space
         self.calibration, self.calibration_reports = _build_synthetic_calibration(self.config, self.scenario)
@@ -302,6 +303,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             if (
                 self.scenario.mission_config.get("certificate_mode") == "synthetic_preverified"
                 and not self.scenario.mission_config.get("persistent")
+                and not self.scenario.mission_config.get("random_persistent")
             )
             else None
         )
@@ -552,16 +554,19 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
 
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
         _, info = self.task_env.reset(seed=seed, options=options)
-        if not (self.freeze_certificate_epoch and self._frozen_preparation is not None):
+        rebuilt = self.rebuild_certificate_objects_on_reset and not (
+            self.freeze_certificate_epoch and self._frozen_preparation is not None
+        )
+        if rebuilt:
             self._build_certificate_objects()
-            if not self.plant.scenario_consistency_failures and self.config.certified_sensing_valid:
-                for packet in self.plant.synthetic_bootstrap_lidar_packets():
-                    self.geometry.update_lidar(
-                        (float(packet.pose_position[0]), float(packet.pose_position[1])),
-                        packet.to_certificate_rays("bootstrap"),
-                        self.sensor_bounds,
-                        packet.timestamp,
-                    )
+        if (rebuilt or not self.rebuild_certificate_objects_on_reset) and not self.plant.scenario_consistency_failures and self.config.certified_sensing_valid:
+            for packet in self.plant.synthetic_bootstrap_lidar_packets():
+                self.geometry.update_lidar(
+                    (float(packet.pose_position[0]), float(packet.pose_position[1])),
+                    packet.to_certificate_rays("bootstrap"),
+                    self.sensor_bounds,
+                    packet.timestamp,
+                )
         if self.mission_provider is not None:
             self.mission_provider.reset()
         preparation = self.prepare_certificate_cycle()

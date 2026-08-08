@@ -121,10 +121,33 @@ swept-geometry failures in four recovery chains. Acceptance and training were no
 ```bash
 .venv/bin/python scripts/validate_persistent_certificate.py
 .venv/bin/python scripts/run_persistent_env_acceptance.py --scenario persistent_open --probe all --strict
-.venv/bin/python scripts/train_persistent_generator_sac.py --scenario persistent_open --steps 50000
-.venv/bin/python scripts/evaluate_persistent_generator_sac.py --scenario persistent_open --checkpoint <path>
-.venv/bin/python scripts/run_persistent_single_policy_baselines.py --scenario persistent_open
+.venv/bin/python scripts/train_persistent_generator_sac.py --scenario persistent_open --legacy-fixed-graph --steps 50000
+.venv/bin/python scripts/evaluate_persistent_generator_sac.py --scenario persistent_open --legacy-fixed-graph --checkpoint <path>
+.venv/bin/python scripts/run_persistent_single_policy_baselines.py --scenario persistent_open --legacy-fixed-graph
 ```
 
 See `docs/PERSISTENT_TASK_CHARGING.md`. These commands remain synthetic and do not provide real
 calibration, HIL, hard WCET, or real-flight safety evidence.
+
+### Task-independent random persistent main path
+
+The current main persistent environment is built with
+`make_random_persistent_uav_env()`. It samples the initial physical state from a frozen
+`CertifiedRecoverabilityAtlas` and samples continuous horizontal goals from certified atlas
+interiors. The atlas uses geometry, terminal, dynamics, tracking, energy, and frozen-kappa
+evidence only; it does not consume a task edge, task waypoint, goal ID, route index, or task
+reward. Thus `c(x), G(x)` are invariant to a goal change at the same certificate state, while the
+goal-conditioned actor may change its latent.
+
+The old `persistent_open`, `persistent_obstacle`, and `persistent_energy_tight` graphs remain
+legacy certificate-regression fixtures. New main fixtures are `random_persistent_open`,
+`random_persistent_obstacle`, and `random_persistent_energy_tight`.
+
+```bash
+cd review_bundle
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/validate_random_persistent_architecture.py
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/train_persistent_generator_sac.py --scenario random_persistent_open --steps 5000
+```
+
+This validator is deterministic synthetic software evidence, not training evidence or a
+real-flight safety claim.

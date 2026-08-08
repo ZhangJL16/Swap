@@ -1,0 +1,327 @@
+{
+  "TASK_INDEPENDENCE_GATE": "PASS",
+  "evidence_scope": "deterministic synthetic architecture validation; not training or task-success evidence",
+  "results": [
+    {
+      "TASK_INDEPENDENCE_GATE": "PASS",
+      "actor_action_changed_with_goal": true,
+      "atlas_gate": "PASS",
+      "atlas_hash": "c199102bd7d15a02e26f11f38d5e0195584e4a663e3d662848ad65d37cec5dd8",
+      "certified_coverage_fraction": 0.05164930555555555,
+      "complete_generator_inside_A_safe": true,
+      "failures": [],
+      "generator_checks": 10,
+      "goal_independence": {
+        "action_bounds": true,
+        "atlas_hash": true,
+        "center": true,
+        "generators": true,
+        "kappa_certificate": true,
+        "recoverable_membership": true,
+        "required_return_energy": true
+      },
+      "kappa_recovery_checks": 5,
+      "main_path_consumes_TASK_EDGE": false,
+      "main_path_consumes_task_waypoints": false,
+      "maximum_condition_G": 2.040348629448479,
+      "minimum_sigma_min_G": 0.003999999999999999,
+      "minimum_zonotope_volume": 7.922457456835689e-07,
+      "number_of_recovery_cells": 87960,
+      "pending_goal_preserved_across_charge_and_backup": true,
+      "sampled_goals": [
+        [
+          2.1342003106612517,
+          1.3497205607053202,
+          1.0
+        ],
+        [
+          1.6069093909092498,
+          1.3436529290362418,
+          1.0
+        ],
+        [
+          1.598208044133283,
+          3.145811805971923,
+          1.0
+        ],
+        [
+          3.1460047155045623,
+          0.5780642261372787,
+          1.0
+        ],
+        [
+          2.920590139910118,
+          2.2533335961570007,
+          1.0
+        ],
+        [
+          1.8713350045269415,
+          3.1453984526423624,
+          1.0
+        ],
+        [
+          0.8053583699917467,
+          1.3499274219552149,
+          1.0
+        ],
+        [
+          0.8276511019578711,
+          1.345170879484213,
+          1.0
+        ],
+        [
+          3.1516272901565974,
+          0.5045457068643471,
+          1.0
+        ],
+        [
+          3.210360728906231,
+          2.2439686219486146,
+          1.0
+        ]
+      ],
+      "sampled_starts": [
+        [
+          2.4826692165679662,
+          3.145430790426643,
+          0.9980018231649512
+        ],
+        [
+          0.9324768926297505,
+          2.245516213909276,
+          1.0018542547582985
+        ],
+        [
+          2.6589272700086752,
+          3.151541089466884,
+          0.998313400783373
+        ],
+        [
+          3.04520148516971,
+          3.1506976269969735,
+          1.0003395732398557
+        ],
+        [
+          3.149513703415296,
+          2.918897292442181,
+          0.9982676078123838
+        ]
+      ],
+      "scenario": "random_persistent_open"
+    },
+    {
+      "TASK_INDEPENDENCE_GATE": "PASS",
+      "actor_action_changed_with_goal": true,
+      "atlas_gate": "PASS",
+      "atlas_hash": "ceaaab432783bc8c9a2721bd6ab392dd82876a8b2a19de4b03806f7dab90455f",
+      "certified_coverage_fraction": 0.005642361111111111,
+      "complete_generator_inside_A_safe": true,
+      "failures": [],
+      "generator_checks": 10,
+      "goal_independence": {
+        "action_bounds": true,
+        "atlas_hash": true,
+        "center": true,
+        "generators": true,
+        "kappa_certificate": true,
+        "recoverable_membership": true,
+        "required_return_energy": true
+      },
+      "kappa_recovery_checks": 5,
+      "main_path_consumes_TASK_EDGE": false,
+      "main_path_consumes_task_waypoints": false,
+      "maximum_condition_G": 1.8187318040264129,
+      "minimum_sigma_min_G": 0.003999999999999999,
+      "minimum_zonotope_volume": 6.258673178048245e-07,
+      "number_of_recovery_cells": 37991,
+      "pending_goal_preserved_across_charge_and_backup": true,
+      "sampled_goals": [
+        [
+          3.637082526404267,
+          0.9098932646344707,
+          1.0
+        ],
+        [
+          3.6279351719515374,
+          0.9368235069372984,
+          1.0
+        ],
+        [
+          3.4843612382915357,
+          3.143837213543769,
+          1.0
+        ],
+        [
+          3.1607057220495185,
+          0.5140895234923027,
+          1.0
+        ],
+        [
+          3.6182180940996496,
+          2.470360309422462,
+          1.0
+        ],
+        [
+          3.6249472340285593,
+          2.5034072355918293,
+          1.0
+        ],
+        [
+          3.6160007098294993,
+          1.2463386506989953,
+          1.0
+        ],
+        [
+          3.625046036470946,
+          1.241940793119123,
+          1.0
+        ],
+        [
+          3.1515046893785454,
+          0.5042032312486096,
+          1.0
+        ],
+        [
+          3.6206119037060573,
+          2.5508352433602357,
+          1.0
+        ]
+      ],
+      "sampled_starts": [
+        [
+          3.6164863004769483,
+          3.1598566002786193,
+          0.9980018231649512
+        ],
+        [
+          3.6237684878252097,
+          2.4140073291072994,
+          1.0018542547582985
+        ],
+        [
+          3.6183249112136777,
+          3.175463639968367,
+          0.998313400783373
+        ],
+        [
+          3.617812177806678,
+          3.197990332268618,
+          1.0003395732398557
+        ],
+        [
+          3.620094221755695,
+          3.081055615435412,
+          0.9982676078123838
+        ]
+      ],
+      "scenario": "random_persistent_obstacle"
+    },
+    {
+      "TASK_INDEPENDENCE_GATE": "PASS",
+      "actor_action_changed_with_goal": true,
+      "atlas_gate": "PASS",
+      "atlas_hash": "4af6618870f97b3b3199084a85e2e7010b9f3b15ff424f336279fe75cf0306dd",
+      "certified_coverage_fraction": 0.05164930555555555,
+      "complete_generator_inside_A_safe": true,
+      "failures": [],
+      "generator_checks": 10,
+      "goal_independence": {
+        "action_bounds": true,
+        "atlas_hash": true,
+        "center": true,
+        "generators": true,
+        "kappa_certificate": true,
+        "recoverable_membership": true,
+        "required_return_energy": true
+      },
+      "kappa_recovery_checks": 5,
+      "main_path_consumes_TASK_EDGE": false,
+      "main_path_consumes_task_waypoints": false,
+      "maximum_condition_G": 2.040348629448479,
+      "minimum_sigma_min_G": 0.003999999999999999,
+      "minimum_zonotope_volume": 7.922457456835689e-07,
+      "number_of_recovery_cells": 87960,
+      "pending_goal_preserved_across_charge_and_backup": true,
+      "sampled_goals": [
+        [
+          2.1342003106612517,
+          1.3497205607053202,
+          1.0
+        ],
+        [
+          1.6069093909092498,
+          1.3436529290362418,
+          1.0
+        ],
+        [
+          1.598208044133283,
+          3.145811805971923,
+          1.0
+        ],
+        [
+          3.1460047155045623,
+          0.5780642261372787,
+          1.0
+        ],
+        [
+          2.920590139910118,
+          2.2533335961570007,
+          1.0
+        ],
+        [
+          1.8713350045269415,
+          3.1453984526423624,
+          1.0
+        ],
+        [
+          0.8053583699917467,
+          1.3499274219552149,
+          1.0
+        ],
+        [
+          0.8276511019578711,
+          1.345170879484213,
+          1.0
+        ],
+        [
+          3.1516272901565974,
+          0.5045457068643471,
+          1.0
+        ],
+        [
+          3.210360728906231,
+          2.2439686219486146,
+          1.0
+        ]
+      ],
+      "sampled_starts": [
+        [
+          2.4826692165679662,
+          3.145430790426643,
+          0.9980018231649512
+        ],
+        [
+          0.9324768926297505,
+          2.245516213909276,
+          1.0018542547582985
+        ],
+        [
+          2.6589272700086752,
+          3.151541089466884,
+          0.998313400783373
+        ],
+        [
+          3.04520148516971,
+          3.1506976269969735,
+          1.0003395732398557
+        ],
+        [
+          3.149513703415296,
+          2.918897292442181,
+          0.9982676078123838
+        ]
+      ],
+      "scenario": "random_persistent_energy_tight"
+    }
+  ]
+}

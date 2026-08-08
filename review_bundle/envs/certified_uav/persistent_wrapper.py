@@ -21,6 +21,7 @@ from cert_runtime.energy_management import (
 from .charging import ChargingConfig, ChargingDynamics, DepartureGateResult, verify_departure_energy
 from .persistent_certificate import PersistentGoalCertificateProvider
 from .persistent_task import CertifiedGoalNetwork, PersistentGoalWrapper, PersistentMissionMode
+from .recovery_atlas import CertifiedRecoverabilityAtlas
 from .runtime_wrapper import CertifiedRuntimeWrapper
 
 
@@ -487,12 +488,12 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
     def __init__(
         self,
         runtime: CertifiedRuntimeWrapper,
-        network: CertifiedGoalNetwork,
+        network: CertifiedGoalNetwork | None,
         charging_config: ChargingConfig | None = None,
     ) -> None:
         super().__init__()
-        if not isinstance(runtime.task_env, PersistentGoalWrapper):
-            raise TypeError("persistent runtime requires PersistentGoalWrapper")
+        if not getattr(runtime.task_env, "persistent_goal_stream", False):
+            raise TypeError("persistent runtime requires a persistent goal-stream wrapper")
         if runtime.config.terminate_on_terminal:
             raise ValueError("persistent plant must set terminate_on_terminal=False")
         if runtime.generator_center_mode not in {"zero", "safety_neutral"}:
@@ -523,7 +524,7 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         return 1
 
     def _activate_current_edge(self) -> None:
-        edge = self.task_env.manager.active_edge
+        edge = getattr(self.task_env.manager, "active_edge", None)
         if edge is not None and self.certificate_provider is not None:
             self.certificate_provider.activate_edge(edge.edge_id)
 
@@ -868,3 +869,49 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "minimum_energy_margin": finite_margin,
         })
         return result
+
+
+class RandomPersistentRuntimeWrapper(PersistentRuntimeWrapper):
+    """Main task-independent random-start/random-goal persistent runtime."""
+
+    def __init__(
+        self,
+        runtime: CertifiedRuntimeWrapper,
+        atlas: CertifiedRecoverabilityAtlas,
+        charging_config: ChargingConfig | None = None,
+    ) -> None:
+        super().__init__(runtime, None, charging_config)
+        self.atlas = atlas
+        self.certificate_provider = atlas
+        self.runtime.mission_provider = atlas
+        self.runtime.rebuild_certificate_objects_on_reset = False
+
+    def _activate_current_edge(self) -> None:
+        return None
+
+    def _departure_required(self) -> float:
+        return self.atlas.required_departure_energy()
+
+    def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
+        self.runtime.mission_provider = self.atlas
+        _, reset_info = self.runtime.reset(seed=seed, options=options)
+        self.certificate_provider = self.atlas
+        self.metrics = PersistentMetrics()
+        self._active_task_start_step = 0
+        self._time_since_last_charge = 0
+        self._station_approach_active = False
+        self._last_authority_decision = None
+        context = self._refresh_context()
+        observation = self.task_env.build_observation(
+            self.runtime._map_encoding(),
+            self.runtime._corridor_encoding(),
+        )
+        return observation, reset_info | {
+            "persistent_certificate_gate": "PASS" if self.atlas.gate_pass else "blocked-by-recovery-atlas",
+            "task_independence_gate": "PASS" if self.atlas.task_independent else "FAIL",
+            "policy_authority_gate": "PASS" if self.policy_authority_certificate.passed else "FAIL",
+            "persistent_manifest_hash": self.manifest_hash,
+            "recovery_atlas_hash": self.atlas.atlas_hash,
+            "action_context": context,
+            "trainable_policy_count": self.trainable_policy_count,
+        }

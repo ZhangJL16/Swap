@@ -3476,3 +3476,39 @@ E3, velocity, and descent checks pass. Across those edges, respectively 906, 591
 cells fail complete swept-geometry containment. This is synthetic certificate infeasibility and was
 not altered to force PASS. The implementation regression is 187 passed, zero skipped, zero failed
 in 210.896 seconds. Acceptance and training were not executed.
+
+## Task-independent random persistent extension
+
+Let `x` denote physical/certificate state and `g` the externally assigned task goal. The learned
+policy may depend on both, while the certified correspondence does not:
+
+\[
+\pi_\theta(a\mid x,g),\qquad
+\mathcal A_{\rm safe}(x)=\mathcal A_{\rm act}(x)\cap
+\mathcal A_{\rm col}(x)\cap\mathcal A_{\rm rec}(x),\qquad
+C_{\rm run}(x)\subseteq\mathcal A_{\rm safe}(x).
+\]
+
+The task-independent recovery atlas is constructed only from certified FREE geometry, terminal
+geometry, dynamics/tracking/energy envelopes, runtime bounds, and frozen `kappa`. Task goals,
+task rewards, task edges, task waypoints, and task-route successors are excluded from its manifest
+and support constructor. The legacy fixed graph remains a regression fixture, not a premise of the
+random-goal method.
+
+**T_RAND1 (random certified initialization).** If `supp(mu_0) subset R`, then a sample from `mu_0`
+satisfies the initialization premise of T_REC1 and T_REC2. This does not certify points outside the
+atlas.
+
+**T_RAND2 (goal-independent recursive recoverability).** For any admissible goal process and any
+goal-conditioned policy, if each normal action belongs to a freshly verified
+`C_run(x_t) subset A_rec(x_t)`, then `x_t in R` for all normal RL steps. The proof is T_REC2
+induction because the goal is absent from the certified successor premise. This guarantees
+recoverability, not task completion or learnability.
+
+**T_RAND3 (goal-independent support contract).** For fixed `x` and evidence versions,
+`C_run(x,g_1)=C_run(x,g_2)=C_run(x)`. The software gate checks equality of `E^kappa`, recoverable
+membership, kappa proof identity, `c`, `G`, action bounds, and atlas identity. Goal-conditioned
+actor latents may differ.
+
+Reported atlas coverage is a synthetic discretized capability metric, not global free-space
+certification.

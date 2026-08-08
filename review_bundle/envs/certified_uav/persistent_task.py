@@ -218,7 +218,7 @@ class PersistentGoalTask:
 
 
 class PersistentGoalTaskManager:
-    """Seeded continuous goal stream; it never chooses charging decisions."""
+    """Legacy fixed-graph goal stream retained as a regression fixture."""
 
     def __init__(self, network: CertifiedGoalNetwork, goal_radius: float, task_reward: float) -> None:
         if goal_radius <= 0.0 or task_reward <= 0.0:
@@ -360,9 +360,10 @@ class PersistentRewardConfig:
 
 
 class PersistentGoalWrapper(gym.Wrapper):
-    """Continuous goal-stream semantics; certificate quantities remain explicit inputs."""
+    """Legacy fixed-graph persistent wrapper retained for reproducibility."""
 
     multi_step_mission = False
+    persistent_goal_stream = True
 
     def __init__(
         self,

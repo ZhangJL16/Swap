@@ -1,0 +1,12 @@
+{
+  "base": "random_persistent_open.json",
+  "name": "random_persistent_energy_tight",
+  "mission": {
+    "random_persistent": {
+      "departure_energy_margin": 1.0,
+      "forced_return_margin": 1.5,
+      "initial_energy_range": [10.0, 14.0]
+    }
+  },
+  "expected_certificate_outcome": "task-independent-recoverability-atlas-required"
+}

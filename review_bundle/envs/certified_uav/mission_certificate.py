@@ -247,10 +247,16 @@ class MultiStepSyntheticMissionCertificateProvider:
         self.center_mode = center_mode
         self.free_boxes = tuple(np.asarray(box, dtype=np.float64) for box in self.profile["free_boxes"])
         self.occupied_boxes = tuple(np.asarray(box, dtype=np.float64) for box in self.profile.get("occupied_boxes", ()))
-        self.task_waypoints = tuple(
+        self._coverage_only = "coverage_waypoints" in self.profile
+        self.coverage_waypoints = tuple(
             np.asarray(point, dtype=np.float64)
-            for point in self.profile.get("task_waypoints", (runtime.scenario.initial_state.position, runtime.scenario.task_goal))
+            for point in self.profile.get(
+                "coverage_waypoints",
+                self.profile.get("task_waypoints", (runtime.scenario.initial_state.position, runtime.scenario.task_goal)),
+            )
         )
+        if not self._coverage_only:
+            self.task_waypoints = self.coverage_waypoints
         self.return_waypoints = tuple(np.asarray(point, dtype=np.float64) for point in self.profile["return_waypoints"])
         self.base_scales = np.asarray(self.profile.get("generator_scale", (0.01, 0.01, 0.005)), dtype=np.float64)
         self.position_gain = float(self.profile.get("certificate_position_gain", 1.0))
@@ -288,7 +294,9 @@ class MultiStepSyntheticMissionCertificateProvider:
             # avoids unbounded synthetic-proof memory without changing reuse.
             _MANIFEST_CACHE.clear()
             _MANIFEST_CACHE[key] = self._build_manifest()
-        self.manifest, self.task_reference = _MANIFEST_CACHE[key]
+        self.manifest, self.coverage_reference = _MANIFEST_CACHE[key]
+        if not self._coverage_only:
+            self.task_reference = self.coverage_reference
         self._manifest_hash_valid = self.manifest.hash_chain_valid
         self.root_cells = tuple(chain.root for chain in self.manifest.chains)
         self._cells_by_id = {cell.cell_id: cell for cell in self.manifest.cells}
@@ -563,17 +571,17 @@ class MultiStepSyntheticMissionCertificateProvider:
 
     def _recovery_waypoints(self, root_position: np.ndarray) -> tuple[np.ndarray, ...]:
         """Select the ordered reverse-path suffix associated with an outbound segment."""
-        if len(self.task_waypoints) < 2:
+        if len(self.coverage_waypoints) < 2:
             return self.return_waypoints
         segment = min(
-            range(len(self.task_waypoints) - 1),
+            range(len(self.coverage_waypoints) - 1),
             key=lambda index: self._point_segment_distance(
                 root_position,
-                self.task_waypoints[index],
-                self.task_waypoints[index + 1],
+                self.coverage_waypoints[index],
+                self.coverage_waypoints[index + 1],
             ),
         )
-        reverse_index = len(self.task_waypoints) - 1 - segment
+        reverse_index = len(self.coverage_waypoints) - 1 - segment
         if reverse_index >= len(self.return_waypoints):
             raise ValueError("return-waypoint chain does not contain the reversed task path")
         return self.return_waypoints[reverse_index:]
@@ -694,10 +702,10 @@ class MultiStepSyntheticMissionCertificateProvider:
         )
 
     def _build_manifest(self) -> tuple[MissionCertificateManifest, tuple[_ReferenceState, ...]]:
-        task_reference = self._trace(
+        coverage_reference = self._trace(
             np.asarray(self.runtime.scenario.initial_state.position),
             np.asarray(self.runtime.scenario.initial_state.velocity),
-            self.task_waypoints,
+            self.coverage_waypoints,
             terminal=False,
         )
         task_radii = self._task_tube_radii()
@@ -709,7 +717,7 @@ class MultiStepSyntheticMissionCertificateProvider:
                 f"fraction={self.synthetic_disturbance_fraction}",
             ))
         task_verified: list[bool] = []
-        for root_index, reference in enumerate(task_reference):
+        for root_index, reference in enumerate(coverage_reference):
             try:
                 chain = self._build_chain(root_index, reference, task_radii)
             except ValueError as error:
@@ -717,14 +725,14 @@ class MultiStepSyntheticMissionCertificateProvider:
                 continue
             chains.append(chain)
             task_verified.append(
-                root_index == len(task_reference) - 1
-                or self._task_transition_valid(chain.root, task_reference[root_index + 1], task_radii, self.base_scales)
+                root_index == len(coverage_reference) - 1
+                or self._task_transition_valid(chain.root, coverage_reference[root_index + 1], task_radii, self.base_scales)
             )
         complete_cells = all(
             cell.complete_successor_containment and cell.e3_residual >= 0.0 and cell.hash_valid
             for chain in chains for cell in chain.cells
         )
-        gate = bool(len(chains) == len(task_reference) and all(task_verified) and complete_cells and not failures)
+        gate = bool(len(chains) == len(coverage_reference) and all(task_verified) and complete_cells and not failures)
         payload = {
             "scenario": self.runtime.scenario.name,
             "provider": self.version,
@@ -744,7 +752,7 @@ class MultiStepSyntheticMissionCertificateProvider:
         )
         if manifest.gate_pass and not manifest.hash_chain_valid:
             raise RuntimeError("mission certificate manifest hash chain is invalid")
-        return manifest, task_reference
+        return manifest, coverage_reference
 
     def _task_transition_valid(self, root: MissionRecoveryCellCertificate, target: _ReferenceState, target_radii: np.ndarray, scales: np.ndarray) -> bool:
         if not root.complete_successor_containment:
@@ -858,10 +866,10 @@ class MultiStepSyntheticMissionCertificateProvider:
         if self.center_mode == "braking":
             return -0.25 * np.asarray(state.velocity)
         root_index = self._chain_by_root[root.cell_id].root_index
-        task_reference = self.task_reference[root_index]
-        position_error = np.asarray(state.position) - task_reference.position
-        velocity_error = np.asarray(state.velocity) - task_reference.velocity
-        return task_reference.action - self.position_gain * position_error - self.velocity_gain * velocity_error
+        coverage_reference = self.coverage_reference[root_index]
+        position_error = np.asarray(state.position) - coverage_reference.position
+        velocity_error = np.asarray(state.velocity) - coverage_reference.velocity
+        return coverage_reference.action - self.position_gain * position_error - self.velocity_gain * velocity_error
 
     def _construct_zonotope(
         self,
