@@ -433,6 +433,16 @@ class PersistentGeneratorSAC(GeneratorSAC):
         return target, {
             "generator_target_count": len(generator_indices),
             "fallback_target_count": len(batch) - len(generator_indices),
+            "target_batch_count": len(batch),
+            "rl_generator_target_count": sum(
+                transition.next_execution_authority == ExecutionAuthority.RL_GENERATOR.value
+                and transition.next_generator_executable is True
+                for transition in batch
+            ),
+            "charger_target_count": sum(
+                transition.next_execution_authority == ExecutionAuthority.CHARGER_CONSTRAINED.value
+                for transition in batch
+            ),
             "kappa_target_count": sum(
                 transition.next_execution_authority == ExecutionAuthority.KAPPA_BACKUP.value
                 for transition in batch
