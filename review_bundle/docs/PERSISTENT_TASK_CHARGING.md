@@ -216,3 +216,16 @@ dynamics, tracking, energy, terminal and kappa versions, and the atlas core hash
 energy upper bound is zero.  This prevents completed recovery from being reinterpreted as a missing
 nonterminal successor.  A closed departure gate uses charger-constrained support or certified hold;
 an open departure is accepted only when its complete successor returns to `R_RL`.
+
+## Task-neutral support expressiveness
+
+Random-persistent normal support no longer follows the directed velocity/action of the offline
+coverage trace. Coverage positions seed zero-velocity safety cells; each cell retains its own
+independently certified kappa return chain. The normal center is a local position/velocity
+stabilizer, while multiple goal-independent viable successor cells are considered and Generator
+scales are enlarged only through the complete verifier. Task goals affect the policy latent, not
+`c`, `G`, recovery evidence, or successor eligibility.
+
+The best-in-Generator oracle is a diagnostic, not a controller in the main method and not a safety
+proof. It establishes whether a goal-aware selector can make progress inside the certified support
+before additional SAC training is justified.

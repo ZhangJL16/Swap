@@ -517,6 +517,8 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self._active_task_start_step = 0
         self._time_since_last_charge = 0
         self._station_approach_active = False
+        self._context_cache_key = None
+        self._context_cache = None
 
     @property
     def manifest_hash(self) -> str:
@@ -534,6 +536,19 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             self.certificate_provider.activate_edge(edge.edge_id)
 
     def _refresh_context(self) -> dict[str, Any]:
+        task = self.task_env.manager.current_task
+        goal = self.plant.state.position if task is None else task.goal_position
+        cache_key = (
+            tuple(np.asarray(self.plant.state.position, dtype=np.float64)),
+            tuple(np.asarray(self.plant.state.velocity, dtype=np.float64)),
+            float(self.plant.state.energy),
+            self.task_env.mode.name,
+            None if task is None else task.task_id,
+            tuple(np.asarray(goal, dtype=np.float64)),
+            self._time_since_last_charge,
+        )
+        if cache_key == self._context_cache_key and self._context_cache is not None:
+            return self._context_cache
         self._activate_current_edge()
         charging_state = self.task_env.mode == PersistentMissionMode.CHARGING_RL
         departure = self._departure_gate() if charging_state else DepartureGateResult(True, 0.0, None)
@@ -546,8 +561,6 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self.task_env.set_time_since_last_charge(self._time_since_last_charge)
         self.metrics.minimum_energy_margin = min(self.metrics.minimum_energy_margin, margin)
         if self.certificate_provider is not None and self.certificate_provider.last_context is not None:
-            task = self.task_env.manager.current_task
-            goal = self.plant.state.position if task is None else task.goal_position
             verifier = self.certificate_provider.recoverability_verifiers[
                 self.certificate_provider.active_edge_id
             ]
@@ -594,7 +607,7 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             continuation_action_verified=context.get("continuation_action_verified") is True,
         )
         self._last_authority_decision = PersistentExecutionAuthority.evaluate(authority_input)
-        return context | {
+        result = context | {
             "persistent_mode": self.task_env.mode.name,
             "persistent_certificate_valid": authority_input.persistent_certificate_valid,
             "policy_authority_pass": authority_input.policy_authority_pass,
@@ -609,6 +622,9 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "charging_restriction": self._last_authority_decision.charging_restriction,
             "station_hold_required": self._last_authority_decision.station_hold_required,
         }
+        self._context_cache_key = cache_key
+        self._context_cache = result
+        return result
 
     def _departure_required(self) -> float:
         if self.certificate_provider is None:
@@ -736,6 +752,8 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self._time_since_last_charge = 0
         self._station_approach_active = False
         self._last_authority_decision = None
+        self._context_cache_key = None
+        self._context_cache = None
         context = self._refresh_context()
         observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
         return observation, reset_info | {
@@ -923,6 +941,8 @@ class RandomPersistentRuntimeWrapper(PersistentRuntimeWrapper):
         self._time_since_last_charge = 0
         self._station_approach_active = False
         self._last_authority_decision = None
+        self._context_cache_key = None
+        self._context_cache = None
         context = self._refresh_context()
         observation = self.task_env.build_observation(
             self.runtime._map_encoding(),

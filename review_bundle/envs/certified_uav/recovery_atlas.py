@@ -14,6 +14,7 @@ from .mission_certificate import (
     MissionClosureResult,
     MissionFailureWitness,
     MultiStepSyntheticMissionCertificateProvider,
+    _ReferenceState,
 )
 from .recoverability import (
     RECOVERABILITY_ACTION_RULE_VERSION,
@@ -108,8 +109,17 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
 
     atlas_version = "task-independent-recoverability-atlas-v1"
     task_independent = True
+    center_semantics = "local_cell_stabilizer"
     consumes_task_edges = False
     consumes_task_waypoints = False
+
+    def _build_coverage_reference(self) -> tuple[_ReferenceState, ...]:
+        directed_reference = super()._build_coverage_reference()
+        zero = np.zeros(3, dtype=np.float64)
+        return tuple(
+            _ReferenceState(reference.position.copy(), zero.copy(), zero.copy())
+            for reference in directed_reference
+        )
 
     def __init__(self, runtime: Any) -> None:
         if "coverage_waypoints" not in runtime.scenario.mission_config:
@@ -129,7 +139,12 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
         self.last_continuation_verified = False
         self.last_continuation_target_cell_id: str | None = None
         versions = self._versions()
-        self._rl_authority_cell_ids, self._rl_successor_ids = self._build_rl_authority_domain()
+        self._rl_authority_cell_ids, self._rl_successor_options = self._build_rl_authority_domain()
+        self._rl_successor_ids = {
+            cell_id: successor_ids[0]
+            for cell_id, successor_ids in self._rl_successor_options.items()
+            if successor_ids
+        }
         failures = tuple(witness.reason for witness in self.manifest.failure_witnesses)
         atlas_core_payload = {
             "scenario": runtime.scenario.name,
@@ -147,7 +162,8 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
         self.terminal_recovery_certificate = self._build_terminal_recovery_certificate(atlas_core_hash)
         payload = atlas_core_payload | {
             "rl_authority_cells": tuple(sorted(self._rl_authority_cell_ids)),
-            "rl_successors": tuple(sorted(self._rl_successor_ids.items())),
+            "rl_successor_options": tuple(sorted(self._rl_successor_options.items())),
+            "center_semantics": self.center_semantics,
             "terminal_recovery": self.terminal_recovery_certificate.certificate_hash,
         }
         atlas_hash = certificate_hash(payload)
@@ -275,7 +291,7 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
             and state.bound_versions.get("terminal") == self.runtime.calibration.terminal.version
         )
 
-    def _build_rl_authority_domain(self) -> tuple[frozenset[str], dict[str, str]]:
+    def _build_rl_authority_domain(self) -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
         roots = self.root_cells
         if not roots:
             return frozenset(), {}
@@ -307,7 +323,7 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
                 break
             viable = reduced
         successors = {
-            cell_id: next(target_id for target_id in transitions[cell_id] if target_id in viable)
+            cell_id: tuple(target_id for target_id in transitions[cell_id] if target_id in viable)
             for cell_id in viable
         }
         return frozenset(viable), successors
@@ -315,23 +331,22 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
     def _center(self, state: CertificateState, root) -> np.ndarray:
         if self.center_mode != "safety_neutral":
             return super()._center(state, root)
-        root_index = self._chain_by_root[root.cell_id].root_index
-        reference = self.coverage_reference[root_index]
-        position_error = np.asarray(state.position) - reference.position
-        if self._rl_successor_ids.get(root.cell_id) == root.cell_id:
-            raw = -self.position_gain * position_error - self.velocity_gain * np.asarray(state.velocity)
-        else:
-            velocity_error = np.asarray(state.velocity) - reference.velocity
-            raw = reference.action - self.position_gain * position_error - self.velocity_gain * velocity_error
+        position_error = np.asarray(state.position, dtype=np.float64) - np.asarray(root.reference_position, dtype=np.float64)
+        raw = -self.position_gain * position_error - self.velocity_gain * np.asarray(state.velocity, dtype=np.float64)
         room = np.maximum(self.runtime.config.a_max - self.runtime.config.minimum_generator_sigma, 0.0)
         return np.clip(raw, -room, room)
 
+    def _requested_generator_scales(self, center: np.ndarray, progress: float) -> np.ndarray:
+        del progress
+        minimum = self.runtime.config.minimum_generator_sigma
+        return np.maximum(self.runtime.config.a_max - np.abs(center), minimum)
+
     def _recoverable_successor_candidates(self, cell):
-        successor_id = self._rl_successor_ids.get(cell.cell_id)
-        if successor_id is None:
-            return ()
-        successor = self._cells_by_id.get(successor_id)
-        return () if successor is None else (successor,)
+        return tuple(
+            self._cells_by_id[successor_id]
+            for successor_id in self._rl_successor_options.get(cell.cell_id, ())
+            if successor_id in self._cells_by_id
+        )
 
     def _locate_recovery_cell(self, state: CertificateState):
         if self.active_cell_id is None:

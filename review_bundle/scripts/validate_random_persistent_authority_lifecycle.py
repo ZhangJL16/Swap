@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cert_runtime.persistent_authority import ExecutionAuthority
+from cert_runtime.task_authority import BestInGeneratorGoalOracle, latent_from_eta
 from envs.certified_uav import make_random_persistent_uav_env
 from envs.certified_uav.persistent_task import PersistentMissionMode
 from envs.certified_uav.state import UAVPhysicalState
@@ -153,9 +154,19 @@ def validate_scenario(name: str, seeds: tuple[int, ...], endurance_steps_per_see
         charging_increased = environment.plant.state.energy > energy_before_charge
         departure_succeeded = False
         post_departure_rl = False
+        departure_oracle = BestInGeneratorGoalOracle()
         for _ in range(80):
             context = environment._refresh_context()
-            _, _, terminated, truncated, info = environment.step(np.zeros(3, dtype=np.float64))
+            task = environment.task_env.manager.current_task
+            goal = environment.plant.state.position if task is None else task.goal_position
+            eta = departure_oracle.select_eta(
+                environment.plant.state,
+                goal,
+                np.asarray(context["c"], dtype=np.float64),
+                np.asarray(context["G"], dtype=np.float64),
+                environment.plant.config.dt,
+            )
+            _, _, terminated, truncated, info = environment.step(latent_from_eta(eta))
             trace.append(str(info.get("execution_authority")))
             invalid_kappa |= info.get("backup_reason") == "KAPPA_CERTIFICATE_INVALID"
             fail_closed |= info.get("execution_authority") == ExecutionAuthority.FAIL_CLOSED.value

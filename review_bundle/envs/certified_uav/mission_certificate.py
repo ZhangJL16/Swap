@@ -290,6 +290,7 @@ class MultiStepSyntheticMissionCertificateProvider:
                 ),
                 "versions": tuple(runtime.calibration.versions),
                 "provider": self.version,
+                "provider_type": type(self).__qualname__,
             }
         )
         if key not in _MANIFEST_CACHE:
@@ -705,7 +706,7 @@ class MultiStepSyntheticMissionCertificateProvider:
             f"mission-kappa-{self.runtime.scenario.name}-v2",
         )
 
-    def _build_manifest(self) -> tuple[MissionCertificateManifest, tuple[_ReferenceState, ...]]:
+    def _build_coverage_reference(self) -> tuple[_ReferenceState, ...]:
         coverage_start = (
             np.asarray(self.coverage_waypoints[0])
             if self._coverage_only
@@ -716,12 +717,15 @@ class MultiStepSyntheticMissionCertificateProvider:
             if self._coverage_only
             else np.asarray(self.runtime.scenario.initial_state.velocity)
         )
-        coverage_reference = self._trace(
+        return self._trace(
             coverage_start,
             coverage_velocity,
             self.coverage_waypoints,
             terminal=False,
         )
+
+    def _build_manifest(self) -> tuple[MissionCertificateManifest, tuple[_ReferenceState, ...]]:
+        coverage_reference = self._build_coverage_reference()
         task_radii = self._task_tube_radii()
         chains: list[MissionRecoveryChain] = []
         failures: list[MissionFailureWitness] = []
@@ -891,6 +895,14 @@ class MultiStepSyntheticMissionCertificateProvider:
         velocity_error = np.asarray(state.velocity) - coverage_reference.velocity
         return coverage_reference.action - self.position_gain * position_error - self.velocity_gain * velocity_error
 
+    def _requested_generator_scales(self, center: np.ndarray, progress: float) -> np.ndarray:
+        variation = 0.55 + 0.45 * (0.5 + 0.5 * np.cos(2.0 * np.pi * progress))
+        minimum = self.runtime.config.minimum_generator_sigma
+        return np.minimum(
+            np.maximum(self.base_scales * variation, minimum),
+            self.runtime.config.a_max - np.abs(center),
+        )
+
     def _construct_zonotope(
         self,
         state: CertificateState,
@@ -918,12 +930,8 @@ class MultiStepSyntheticMissionCertificateProvider:
         chain = self._chains_by_id[cell.chain_id]
         center = self._center(state, chain.root)
         progress = chain.root_index / max(1, len(self.root_cells) - 1)
-        variation = 0.55 + 0.45 * (0.5 + 0.5 * np.cos(2.0 * np.pi * progress))
         minimum = self.runtime.config.minimum_generator_sigma
-        requested = np.minimum(
-            np.maximum(self.base_scales * variation, minimum),
-            self.runtime.config.a_max - np.abs(center),
-        )
+        requested = self._requested_generator_scales(center, progress)
         if not np.all(np.isfinite(center)) or not np.all(np.isfinite(requested)):
             self.last_generator_diagnostic = GeneratorConstructionDiagnostic(
                 "NO_GENERATOR_SET_NUMERICAL", "NONFINITE_CENTER_OR_SCALE", 0.0, None, None, None, None, None

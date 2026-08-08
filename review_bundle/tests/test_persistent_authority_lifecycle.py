@@ -5,6 +5,7 @@ import unittest
 import numpy as np
 
 from cert_runtime.state import CertificateState
+from cert_runtime.task_authority import BestInGeneratorGoalOracle, latent_from_eta
 from envs.certified_uav import make_random_persistent_uav_env
 from envs.certified_uav.persistent_task import PersistentMissionMode
 from envs.certified_uav.state import UAVPhysicalState
@@ -125,8 +126,19 @@ class PersistentAuthorityDomainTests(unittest.TestCase):
         self.environment.task_env.mode = PersistentMissionMode.CHARGING_RL
         self.environment.task_env.phase = self.environment.task_env.mode
         self.atlas.reset()
+        oracle = BestInGeneratorGoalOracle()
         for _ in range(80):
-            _, _, terminated, truncated, _ = self.environment.step(np.zeros(3))
+            context = self.environment._refresh_context()
+            task = self.environment.task_env.manager.current_task
+            goal = self.environment.plant.state.position if task is None else task.goal_position
+            eta = oracle.select_eta(
+                self.environment.plant.state,
+                goal,
+                np.asarray(context["c"]),
+                np.asarray(context["G"]),
+                self.environment.plant.config.dt,
+            )
+            _, _, terminated, truncated, _ = self.environment.step(latent_from_eta(eta))
             self.assertFalse(terminated or truncated)
             if self.environment.task_env.mode == PersistentMissionMode.TASK_RL:
                 break

@@ -3540,3 +3540,17 @@ boolean bypass.
 kappa reaches the terminal, the zero-step certificate closes recovery, charger-constrained support
 or certified hold maintains the station set, and a verified departure returns to `R_RL`.  No
 task-specific route enters this lifecycle contract.
+
+### Task-control authority is separate from safety
+
+The random-persistent atlas uses zero-velocity proof roots, a local cell stabilizer
+`c(x) = -K_p(p-p_j)-K_v v`, and goal-independent viable successor options. The reference action
+used to construct each frozen kappa return chain is not used as the normal Generator center. The
+runtime searches diagonal Generator scales up to the actuator room and accepts only a candidate
+that passes the unchanged complete `A_safe` and `A_cont` verifiers. Thus the center stabilizes a
+local proof cell but does not encode a task or atlas traversal direction.
+
+This does not prove task completion. `TASK_CONTROL_AUTHORITY_GATE` is an empirical software
+diagnostic comparing center-only, random-in-Generator, and a goal-aware best-in-Generator oracle on
+the same certified support. Its result is learnability evidence only; T_REC and T_AUTH continue to
+depend on complete-set inclusion, not oracle performance.
