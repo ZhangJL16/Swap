@@ -213,9 +213,16 @@ must leave `R`, `R_RL`, `E^kappa`, `c`, `G`, continuation target, and certificat
 
 The charging terminal has a formal level-zero recovery certificate.  It binds terminal geometry,
 dynamics, tracking, energy, terminal and kappa versions, and the atlas core hash; its recovery
-energy upper bound is zero.  This prevents completed recovery from being reinterpreted as a missing
-nonterminal successor.  A closed departure gate uses charger-constrained support or certified hold;
+energy upper bound is zero. It additionally binds a local terminal hold controller whose complete
+successor envelope must stay in the charging set; zero-step recovery therefore does not imply a
+zero acceleration command in the presence of residual velocity. This prevents completed recovery
+from being reinterpreted as a missing nonterminal successor. A closed departure gate uses charger-constrained support or certified hold;
 an open departure is accepted only when its complete successor returns to `R_RL`.
+
+Generator-SAC diagnostics decompose normalized and physical log density. The physical density keeps
+the affine determinant term exactly. A future normalized-temperature variant, if evaluated, changes
+only the automatic temperature residual; it does not alter the actor/Bellman physical density or
+certificate semantics.
 
 ## Task-neutral support expressiveness
 

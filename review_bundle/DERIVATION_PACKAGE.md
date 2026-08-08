@@ -3534,7 +3534,9 @@ certified charging set.  This is an authority-viability statement, not task conv
 **T_AUTH2 (zero-step terminal recovery).** If the complete certificate-state uncertainty set is
 contained in `G_charge`, the terminal recovery certificate has level zero, no successor, and
 `E^kappa=0`.  Terminal reserve and version/hash requirements remain active; charging is not a bare
-boolean bypass.
+boolean bypass. Zero recovery energy does not mean zero physical hold action: the certificate also
+binds a local position/velocity hold law and requires its complete successor envelope to remain in
+`G_charge`. If that invariance check fails, the terminal certificate is not valid for that state.
 
 **T_AUTH3 (safe lifecycle closure).** With valid evidence, normal RL authority may switch to kappa,
 kappa reaches the terminal, the zero-step certificate closes recovery, charger-constrained support
@@ -3554,3 +3556,19 @@ This does not prove task completion. `TASK_CONTROL_AUTHORITY_GATE` is an empiric
 diagnostic comparing center-only, random-in-Generator, and a goal-aware best-in-Generator oracle on
 the same certified support. Its result is learnability evidence only; T_REC and T_AUTH continue to
 depend on complete-set inclusion, not oracle performance.
+
+### Physical density and temperature-target audit
+
+The affine-tanh physical density remains
+`log pi_a = log pi_u - log J_tanh - log|det G|`; no term is removed from the actor or Bellman
+objective. Automatic-temperature design is a separate question because a fixed target entropy of
+`-3` applied to `log pi_a` changes when certified physical support is rescaled even if the
+normalized latent policy is unchanged.
+
+Two candidate semantics remain for a controlled future comparison. **Option A** keeps a
+physical-action entropy target but makes the target explicitly state/support dependent so its units
+match `G(x)`. **Option B** keeps the complete physical density in actor and Bellman terms but adapts
+temperature using normalized-support density `log pi_eta = log pi_u - log J_tanh`. Option B is
+invariant to affine support scaling; it changes only temperature adaptation, not T12 density,
+T_REC, T_AUTH, runtime authority, or executed-action critic semantics. No superiority claim is made
+before a controlled experiment.

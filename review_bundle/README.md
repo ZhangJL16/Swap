@@ -147,6 +147,8 @@ legacy certificate-regression fixtures. New main fixtures are `random_persistent
 cd review_bundle
 PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/validate_random_persistent_architecture.py
 PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/validate_random_persistent_authority_lifecycle.py
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/validate_stochastic_kappa_closure.py
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_persistent_generator_sac_optimization.py --checkpoint artifacts/task_authority_smoke_open_seed0/checkpoint_latest.pt
 PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/train_persistent_generator_sac.py --scenario random_persistent_open --steps 5000
 ```
 

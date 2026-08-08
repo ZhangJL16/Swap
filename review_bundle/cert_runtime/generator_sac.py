@@ -9,6 +9,7 @@ from torch import Tensor, nn
 
 from .actor import FeedForwardAffineTanhActor
 from .persistent_authority import ExecutionAuthority
+from .optimization_diagnostics import entropy_decomposition
 
 
 EpochReplayPolicy = Literal["reject", "group", "clear_on_change"]
@@ -291,12 +292,34 @@ class GeneratorSAC:
         accepted_indices = [index for index, transition in enumerate(selected) if transition.accepted and transition.c is not None and transition.G is not None]
         actor_status = "zero-accepted-sample"
         actor_loss_value = alpha_loss_value = mean_log_prob = mean_log_det = mean_jacobian = None
+        entropy_metrics: dict[str, float | None] = {
+            "mean_log_prob_u": None,
+            "mean_negative_tanh_log_jacobian": None,
+            "mean_negative_log_det_G": None,
+            "mean_normalized_log_prob": None,
+            "entropy_target_residual": None,
+            "alpha_gradient": None,
+            "mean_u": None,
+            "std_u": None,
+            "mean_abs_u": None,
+            "max_abs_u": None,
+            "mean_eta": None,
+            "std_eta": None,
+            "eta_abs_gt_090": None,
+            "eta_abs_gt_095": None,
+            "eta_abs_gt_099": None,
+            "u_abs_gt_2": None,
+            "u_abs_gt_3": None,
+            "u_abs_gt_5": None,
+        }
         actor_gradient_norm = 0.0
         if accepted_indices:
             index_tensor = torch.as_tensor(accepted_indices, dtype=torch.long, device=self.device)
             centers = self._tensor(np.stack([selected[index].c for index in accepted_indices])).detach()
             generators = self._tensor(np.stack([selected[index].G for index in accepted_indices])).detach()
             actions, log_prob, u = self._sample_generator_actions(observations[index_tensor], centers, generators)
+            distribution = self.actor.distribution(observations[index_tensor])
+            terms = entropy_decomposition(distribution, u, generators)
             q_value = torch.minimum(self.critic_1(observations[index_tensor], actions), self.critic_2(observations[index_tensor], actions))
             actor_loss = (self.alpha.detach() * log_prob - q_value).mean()
             self.actor_optimizer.zero_grad(set_to_none=True)
@@ -317,6 +340,27 @@ class GeneratorSAC:
             mean_log_prob = float(log_prob.mean().detach())
             mean_log_det = float(torch.linalg.slogdet(generators).logabsdet.mean().detach())
             mean_jacobian = float(self.actor.stable_tanh_log_jacobian(u).mean().detach())
+            eta = torch.tanh(u)
+            entropy_metrics = {
+                "mean_log_prob_u": float(terms.normal_term.mean().detach()),
+                "mean_negative_tanh_log_jacobian": float(terms.negative_tanh_log_jacobian_term.mean().detach()),
+                "mean_negative_log_det_G": float(terms.negative_log_det_G_term.mean().detach()),
+                "mean_normalized_log_prob": float(terms.normalized_log_prob.mean().detach()),
+                "entropy_target_residual": float((terms.physical_log_prob + self.config.target_entropy).mean().detach()),
+                "alpha_gradient": float(self.log_alpha.grad.detach()),
+                "mean_u": float(u.mean().detach()),
+                "std_u": float(u.std(unbiased=False).detach()),
+                "mean_abs_u": float(u.abs().mean().detach()),
+                "max_abs_u": float(u.abs().max().detach()),
+                "mean_eta": float(eta.mean().detach()),
+                "std_eta": float(eta.std(unbiased=False).detach()),
+                "eta_abs_gt_090": float((eta.abs() > 0.90).float().mean().detach()),
+                "eta_abs_gt_095": float((eta.abs() > 0.95).float().mean().detach()),
+                "eta_abs_gt_099": float((eta.abs() > 0.99).float().mean().detach()),
+                "u_abs_gt_2": float((u.abs() > 2.0).float().mean().detach()),
+                "u_abs_gt_3": float((u.abs() > 3.0).float().mean().detach()),
+                "u_abs_gt_5": float((u.abs() > 5.0).float().mean().detach()),
+            }
         self.polyak_update()
         self.gradient_steps += 1
         return {
@@ -328,6 +372,10 @@ class GeneratorSAC:
             "accepted_batch_count": len(accepted_indices), "fallback_batch_count": len(selected) - len(accepted_indices),
             "accepted_batch_fraction": len(accepted_indices) / len(selected), "actor_status": actor_status,
             "critic_gradient_norm": critic_gradient_norm, "actor_gradient_norm": actor_gradient_norm,
+            "mean_reward": float(np.mean([transition.reward for transition in selected])),
+            "mean_bellman_target": float(target.mean().detach()),
+            "mean_td_error": float((target - torch.minimum(prediction_1, prediction_2)).mean().detach()),
+            **entropy_metrics,
             **branch_counts,
         }
 

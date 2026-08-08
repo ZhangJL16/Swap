@@ -857,11 +857,17 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
 
         if self.task_env.mode == PersistentMissionMode.CHARGING_RL and terminal_now:
             info, reward = self._apply_charging(info, reward)
+            components = dict(info.get("reward_components", {}))
+            components["charging_cost"] = components.get("charging_cost", 0.0) - self.task_env.reward_config.charging_dwell_cost
+            info = info | {"reward_components": components}
             observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
         elif left_station:
             observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
         if backup_reason is not None:
             reward -= self.task_env.reward_config.backup_intervention_cost
+            components = dict(info.get("reward_components", {}))
+            components["backup_cost"] = components.get("backup_cost", 0.0) - self.task_env.reward_config.backup_intervention_cost
+            info = info | {"reward_components": components}
         if info.get("task_completed_now"):
             self.metrics.task_completion_steps.append(self.metrics.total_steps - self._active_task_start_step)
             self._active_task_start_step = self.metrics.total_steps

@@ -826,6 +826,16 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "terminal_recovery_certificate_hash": getattr(
                 getattr(self.mission_provider, "terminal_recovery_certificate", None), "certificate_hash", None
             ),
+            "kappa_validation_failure_category": getattr(
+                self.mission_provider, "last_kappa_validation_failure_category", None
+            ),
+            "kappa_validation_failure_detail": getattr(
+                self.mission_provider, "last_kappa_validation_failure_detail", None
+            ),
+            "atlas_hash": getattr(self.mission_provider, "atlas_hash", None),
+            "dynamics_version": self.calibration.dynamics.version,
+            "tracking_version": self.calibration.tracking.version,
+            "terminal_version": self.calibration.terminal.version,
         }
 
     def preview_next_action_context(self) -> dict[str, Any]:

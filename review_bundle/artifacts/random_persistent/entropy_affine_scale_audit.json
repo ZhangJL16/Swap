@@ -1,0 +1,35 @@
+{
+  "0.5G": {
+    "normalized_log_prob": -2.02555775642395,
+    "physical_log_prob": 8.537202835083008,
+    "negative_log_det_G_term": 10.562761306762695,
+    "physical_entropy_residual": 5.537203311920166,
+    "normalized_entropy_residual": -5.025557994842529,
+    "physical_alpha_loss": -2.813850164413452,
+    "normalized_alpha_loss": 2.553846597671509,
+    "physical_alpha_gradient": -5.537203311920166,
+    "normalized_alpha_gradient": 5.025557994842529
+  },
+  "1G": {
+    "normalized_log_prob": -2.02555775642395,
+    "physical_log_prob": 6.457761287689209,
+    "negative_log_det_G_term": 8.483319282531738,
+    "physical_entropy_residual": 3.457761526107788,
+    "normalized_entropy_residual": -5.025557994842529,
+    "physical_alpha_loss": -1.7571368217468262,
+    "normalized_alpha_loss": 2.553846597671509,
+    "physical_alpha_gradient": -3.457761526107788,
+    "normalized_alpha_gradient": 5.025557994842529
+  },
+  "2G": {
+    "normalized_log_prob": -2.02555775642395,
+    "physical_log_prob": 4.37831974029541,
+    "negative_log_det_G_term": 6.4038777351379395,
+    "physical_entropy_residual": 1.3783199787139893,
+    "normalized_entropy_residual": -5.025557994842529,
+    "physical_alpha_loss": -0.7004233598709106,
+    "normalized_alpha_loss": 2.553846597671509,
+    "physical_alpha_gradient": -1.3783199787139893,
+    "normalized_alpha_gradient": 5.025557994842529
+  }
+}

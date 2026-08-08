@@ -6,7 +6,7 @@
       "TASK_INDEPENDENCE_GATE": "PASS",
       "actor_action_changed_with_goal": true,
       "atlas_gate": "PASS",
-      "atlas_hash": "4ff48f15bea04da9591101d916071714c4d7af08fb33f8392dc52b445c97aead",
+      "atlas_hash": "2ad157f239606bce8134269e01600b9f91b236ab93ffabf77f84232f8f353110",
       "authority_domain": {
         "number_of_kappa_only_cells": 88144,
         "number_of_recoverable_cells": 88593,
@@ -14,7 +14,7 @@
         "recoverable_coverage_fraction": 0.06597222222222222,
         "rl_authority_coverage_fraction": 0.06597222222222222,
         "rl_authority_fraction_within_recoverable_domain": 1.0,
-        "terminal_recovery_certificate_hash": "371c0707a51e4eef34d5c2479f843974e5b3d8ac2922c55fe2f88cb617e3453d",
+        "terminal_recovery_certificate_hash": "846cb31fc51c5ada8427452e8da9f4e199f7060d017f862a133b7d360a632503",
         "terminal_recovery_energy_upper": 0.0
       },
       "certified_coverage_fraction": 0.06597222222222222,
@@ -125,7 +125,7 @@
       "TASK_INDEPENDENCE_GATE": "PASS",
       "actor_action_changed_with_goal": true,
       "atlas_gate": "PASS",
-      "atlas_hash": "24a67cc1ed6be305ea942ed92f394582b4fb478b27ffc8419960af37e7fa290b",
+      "atlas_hash": "55a3ea60731ca509c8a8339f931c6464d86a580f852662cb1c067579d172389e",
       "authority_domain": {
         "number_of_kappa_only_cells": 47228,
         "number_of_recoverable_cells": 47526,
@@ -133,7 +133,7 @@
         "recoverable_coverage_fraction": 0.021267361111111112,
         "rl_authority_coverage_fraction": 0.021267361111111112,
         "rl_authority_fraction_within_recoverable_domain": 1.0,
-        "terminal_recovery_certificate_hash": "4bca83bf9c40b1e6ec1a172dc4c72aa2d8b051ec55bfe7cae3c68d66d79ea56c",
+        "terminal_recovery_certificate_hash": "6ec415840a1a12e85bb157e64460b1db2c47f1b1b654c7a254bb5ba9a5b262ce",
         "terminal_recovery_energy_upper": 0.0
       },
       "certified_coverage_fraction": 0.021267361111111112,
@@ -244,7 +244,7 @@
       "TASK_INDEPENDENCE_GATE": "PASS",
       "actor_action_changed_with_goal": true,
       "atlas_gate": "PASS",
-      "atlas_hash": "58e95fb17bd990d5d503f0070bc2a5410db087d91ddfdf48012f376c9c1d8e98",
+      "atlas_hash": "8bd382acaae7b9cdf5e715937a4534d72670659680bc1cc7c665fe0e4d43557f",
       "authority_domain": {
         "number_of_kappa_only_cells": 88144,
         "number_of_recoverable_cells": 88593,
@@ -252,7 +252,7 @@
         "recoverable_coverage_fraction": 0.06597222222222222,
         "rl_authority_coverage_fraction": 0.06597222222222222,
         "rl_authority_fraction_within_recoverable_domain": 1.0,
-        "terminal_recovery_certificate_hash": "d44282595f2c5947313db84aa88e100798df06fd81f85fb686572df43d6190e6",
+        "terminal_recovery_certificate_hash": "9e848df0992f1cb0df9cccd92a0342b9e094c47460cd75a85e1a6910f15fa5c0",
         "terminal_recovery_energy_upper": 0.0
       },
       "certified_coverage_fraction": 0.06597222222222222,

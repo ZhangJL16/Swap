@@ -67,6 +67,10 @@ class TerminalRecoveryCertificate:
     energy_version: str
     terminal_version: str
     kappa_version: str
+    hold_rule_version: str
+    hold_position_gain: float
+    hold_velocity_gain: float
+    hold_acceleration_limit: tuple[float, float, float]
     atlas_hash: str
     certificate_hash: str
 
@@ -91,6 +95,12 @@ class TerminalRecoveryCertificate:
                 self.terminal_version,
                 self.kappa_version,
             ),
+            "hold": (
+                self.hold_rule_version,
+                self.hold_position_gain,
+                self.hold_velocity_gain,
+                self.hold_acceleration_limit,
+            ),
             "atlas_hash": self.atlas_hash,
         })
 
@@ -112,6 +122,7 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
     center_semantics = "local_cell_stabilizer"
     consumes_task_edges = False
     consumes_task_waypoints = False
+    terminal_hold_rule_version = "certified-terminal-hold-v1"
 
     def _build_coverage_reference(self) -> tuple[_ReferenceState, ...]:
         directed_reference = super()._build_coverage_reference()
@@ -138,6 +149,8 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
         self.last_charging_support_hash: str | None = None
         self.last_continuation_verified = False
         self.last_continuation_target_cell_id: str | None = None
+        self.last_kappa_validation_failure_category: str | None = None
+        self.last_kappa_validation_failure_detail: dict[str, Any] | None = None
         versions = self._versions()
         self._rl_authority_cell_ids, self._rl_successor_options = self._build_rl_authority_domain()
         self._rl_successor_ids = {
@@ -252,10 +265,38 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
             "energy_version": versions[3],
             "terminal_version": versions[4],
             "kappa_version": versions[5],
+            "hold_rule_version": self.terminal_hold_rule_version,
+            "hold_position_gain": self.position_gain,
+            "hold_velocity_gain": self.velocity_gain,
+            "hold_acceleration_limit": tuple(float(value) for value in self.runtime.config.a_max),
             "atlas_hash": atlas_core_hash,
         }
         provisional = TerminalRecoveryCertificate(**values, certificate_hash="")
         return replace(provisional, certificate_hash=provisional.expected_hash)
+
+    def _terminal_hold_action(self, state: CertificateState) -> np.ndarray:
+        certificate = self.terminal_recovery_certificate
+        target = 0.5 * (
+            np.asarray(certificate.position_low, dtype=np.float64)
+            + np.asarray(certificate.position_high, dtype=np.float64)
+        )
+        raw = (
+            certificate.hold_position_gain * (target - np.asarray(state.position, dtype=np.float64))
+            - certificate.hold_velocity_gain * np.asarray(state.velocity, dtype=np.float64)
+        )
+        limit = np.asarray(certificate.hold_acceleration_limit, dtype=np.float64)
+        return np.clip(raw, -limit, limit)
+
+    def _terminal_hold_verified(self, state: CertificateState) -> bool:
+        action = self._terminal_hold_action(state)
+        envelope = self.runtime.envelope_builder.propagate_point_action(state, tuple(action))
+        terminal = self.runtime.scenario.terminal
+        return bool(
+            np.all(np.asarray(envelope.position.low) >= terminal.position_low - 1e-12)
+            and np.all(np.asarray(envelope.position.high) <= terminal.position_high + 1e-12)
+            and np.all(np.asarray(envelope.velocity.low) >= -terminal.velocity_abs_max - 1e-12)
+            and np.all(np.asarray(envelope.velocity.high) <= terminal.velocity_abs_max + 1e-12)
+        )
 
     def _terminal_certificate_valid_for_state(self, state: CertificateState) -> bool:
         certificate = self.terminal_recovery_certificate
@@ -289,6 +330,7 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
             and state.bound_versions.get("tracking") == self.runtime.calibration.tracking.version
             and state.bound_versions.get("energy") == self.runtime.calibration.energy.version
             and state.bound_versions.get("terminal") == self.runtime.calibration.terminal.version
+            and self._terminal_hold_verified(state)
         )
 
     def _build_rl_authority_domain(self) -> tuple[frozenset[str], dict[str, tuple[str, ...]]]:
@@ -383,6 +425,66 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
         self.last_charging_support_hash = None
         self.last_continuation_verified = False
         self.last_continuation_target_cell_id = None
+        self.last_kappa_validation_failure_category = None
+        self.last_kappa_validation_failure_detail = None
+
+    def _diagnose_kappa_failure(self, state: CertificateState, context: MissionActionContext) -> tuple[str, dict[str, Any]]:
+        values = np.concatenate((
+            np.asarray(state.position, dtype=np.float64),
+            np.asarray(state.velocity, dtype=np.float64),
+            np.asarray((state.energy, state.energy_error_radius), dtype=np.float64),
+        ))
+        if not np.all(np.isfinite(values)):
+            return "NUMERICAL_BOUNDARY", {"reason": "NONFINITE_CERTIFICATE_STATE"}
+        terminal = self.terminal_recovery_certificate
+        if terminal.certificate_hash != terminal.expected_hash:
+            return "HASH_MISMATCH", {"reason": "TERMINAL_CERTIFICATE_HASH"}
+        versions = self._versions()
+        terminal_versions = (
+            terminal.geometry_version,
+            terminal.dynamics_version,
+            terminal.tracking_version,
+            terminal.energy_version,
+            terminal.terminal_version,
+            terminal.kappa_version,
+        )
+        if terminal_versions != versions:
+            return "VERSION_MISMATCH", {"reason": "TERMINAL_CERTIFICATE_VERSION"}
+        if self.runtime.scenario.terminal.is_charge_admissible(self.runtime.plant.state):
+            if not self._terminal_hold_verified(state):
+                return "TERMINAL_CERT_INVALID", {"reason": "TERMINAL_HOLD_SUCCESSOR_OUTSIDE_CHARGING_SET"}
+            return "TERMINAL_CERT_INVALID", {"reason": "TERMINAL_STATE_CERTIFICATE_MEMBERSHIP"}
+        containing = [cell for cell in self.manifest.cells if self._cell_contains_state(cell, state)]
+        if not containing:
+            position_matches = [
+                cell.cell_id
+                for cell in self.manifest.cells
+                if cell.state_bounds.position.contains_point(state.position, 1e-12)
+            ]
+            return (
+                "CELL_CONTAINMENT" if position_matches else "NO_CELL",
+                {
+                    "reason": "STATE_OUTSIDE_CERTIFIED_RECOVERY_CELLS",
+                    "position_matching_cells": position_matches[:8],
+                    "position": tuple(float(value) for value in state.position),
+                    "velocity": tuple(float(value) for value in state.velocity),
+                },
+            )
+        cell = containing[0]
+        if not cell.hash_valid:
+            return "HASH_MISMATCH", {"reason": "RECOVERY_CELL_HASH", "cell_id": cell.cell_id}
+        if self.runtime.plant.state.timestamp > cell.expiry:
+            return "TIMESTAMP_OR_EXPIRY", {"reason": "RECOVERY_CELL_EXPIRED", "cell_id": cell.cell_id}
+        if cell.level < 0:
+            return "LEVEL_INVALID", {"reason": "NEGATIVE_RECOVERY_LEVEL", "cell_id": cell.cell_id}
+        if not cell.complete_successor_containment:
+            return "SUCCESSOR_INVALID", {"reason": "SUCCESSOR_CONTAINMENT", "cell_id": cell.cell_id}
+        if cell.minimum_geometry_slack < -1e-12:
+            return "GEOMETRY_INVALID", {"reason": "RECOVERY_GEOMETRY", "cell_id": cell.cell_id}
+        required = cell.energy_upper + self.runtime.scenario.terminal.minimum_energy + self.energy_reserve
+        if state.energy - state.energy_error_radius < required:
+            return "ENERGY_INVALID", {"reason": "RECOVERY_RESERVE", "cell_id": cell.cell_id, "required": required}
+        return "OTHER", {"reason": context.recovery.reason, "cell_id": cell.cell_id}
 
     def configure_charging_support(self, required: bool) -> None:
         self.charging_support_required = bool(required)
@@ -398,16 +500,23 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
             context = replace(
                 context,
                 recovery=RecoveryDecision(
-                    (0.0, 0.0, 0.0),
+                    tuple(float(value) for value in self._terminal_hold_action(state)),
                     True,
                     self.terminal_recovery_certificate.certificate_hash,
-                    "terminal-recovery-complete-zero-step",
+                    "terminal-recovery-complete-certified-hold",
                 ),
                 required_energy=required,
                 current_energy_margin=float(state.energy - state.energy_error_radius - required),
                 recovery_cell_id=self.terminal_recovery_certificate.cell_id,
                 recovery_level=0,
             )
+        if context.recovery.certified:
+            self.last_kappa_validation_failure_category = None
+            self.last_kappa_validation_failure_detail = None
+        else:
+            category, detail = self._diagnose_kappa_failure(state, context)
+            self.last_kappa_validation_failure_category = category
+            self.last_kappa_validation_failure_detail = detail
         self.last_charging_support_verified = False
         self.last_charging_support_hash = None
         self.last_continuation_verified = False
@@ -499,6 +608,11 @@ class CertifiedRecoverabilityAtlas(MultiStepSyntheticMissionCertificateProvider)
 
     def certified_station_hold(self, state) -> bool:
         return self.verifier.certified_station_hold(state)
+
+    def certified_station_hold_action(self, state) -> np.ndarray | None:
+        if not self._terminal_certificate_valid_for_state(state):
+            return None
+        return self._terminal_hold_action(state)
 
     def required_departure_energy(self, task=None) -> float:
         del task

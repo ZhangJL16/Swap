@@ -323,6 +323,14 @@ class RandomPersistentTaskWrapper(gym.Wrapper):
             - self.reward_config.elapsed_time_cost
             - self.reward_config.flight_energy_cost * telemetry.energy_cost
         )
+        reward_components = {
+            "goal_progress_reward": self.reward_config.goal_progress_weight * goal_progress,
+            "task_completion_reward": self.reward_config.task_completion_reward * float(events["task_completed"]),
+            "elapsed_time_cost": -self.reward_config.elapsed_time_cost,
+            "flight_energy_cost": -self.reward_config.flight_energy_cost * telemetry.energy_cost,
+            "backup_cost": 0.0,
+            "charging_cost": 0.0,
+        }
         task = manager.current_task
         return self.build_observation(), reward, terminated, truncated, info | {
             "persistent_mode": self.mode.name,
@@ -338,4 +346,5 @@ class RandomPersistentTaskWrapper(gym.Wrapper):
             "distance_to_goal_before": distance_before,
             "distance_to_goal_after": distance_after,
             "goal_progress": goal_progress,
+            "reward_components": reward_components,
         }

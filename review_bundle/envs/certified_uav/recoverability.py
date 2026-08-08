@@ -268,11 +268,21 @@ class RecoverabilityVerifier:
         return accepted, accepted_certificate
 
     def certified_station_hold(self, state: CertificateState) -> bool:
-        zero = np.zeros(3, dtype=np.float64)
+        action = self.certified_station_hold_action(state)
         return bool(
+            action is not None
+            and
             self.runtime.scenario.terminal.is_charge_admissible(self.runtime.plant.state)
-            and self.successor_stays_in_charging_set(state, zero)
+            and self.successor_stays_in_charging_set(state, action)
         )
+
+    def certified_station_hold_action(self, state: CertificateState) -> np.ndarray | None:
+        provider_action = getattr(self.provider, "certified_station_hold_action", None)
+        if provider_action is not None:
+            action = provider_action(state)
+            return None if action is None else np.asarray(action, dtype=np.float64)
+        zero = np.zeros(3, dtype=np.float64)
+        return zero if self.successor_stays_in_charging_set(state, zero) else None
 
     def policy_authority(
         self,

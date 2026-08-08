@@ -449,3 +449,9 @@ hash-bound level-zero terminal recovery certificate with `E^kappa=0`; this is no
 terminal geometry, reserve, calibration-version, or evidence checks.  Deterministic validation is
 available through `scripts/validate_random_persistent_authority_lifecycle.py` and remains synthetic
 software evidence only.
+
+The level-zero certificate also binds a state-dependent terminal hold law. Its uncertainty-aware
+successor envelope must remain inside the charging set. This closes residual-velocity drift without
+resetting velocity, widening the station, or treating charging as an unconditional kappa-valid flag.
+`scripts/validate_stochastic_kappa_closure.py` checks backup-to-terminal continuity over declared
+deterministic seeds.

@@ -32,7 +32,7 @@
           3,
           4
         ],
-        "terminal_recovery_certificate_hash": "371c0707a51e4eef34d5c2479f843974e5b3d8ac2922c55fe2f88cb617e3453d",
+        "terminal_recovery_certificate_hash": "846cb31fc51c5ada8427452e8da9f4e199f7060d017f862a133b7d360a632503",
         "terminal_recovery_energy_upper": 0.0
       },
       "failures": [],
@@ -257,7 +257,7 @@
           3,
           4
         ],
-        "terminal_recovery_certificate_hash": "d44282595f2c5947313db84aa88e100798df06fd81f85fb686572df43d6190e6",
+        "terminal_recovery_certificate_hash": "9e848df0992f1cb0df9cccd92a0342b9e094c47460cd75a85e1a6910f15fa5c0",
         "terminal_recovery_energy_upper": 0.0
       },
       "failures": [],
