@@ -1,3 +1,9 @@
+"""Ablation-only hierarchical energy-management policies.
+
+The main persistent method uses one continuous three-dimensional Generator-SAC
+policy and never instantiates these policies.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

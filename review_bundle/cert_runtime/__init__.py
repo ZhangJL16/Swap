@@ -27,6 +27,7 @@ from .state import CertificateState, CertificateStateSnapshot
 from .types import AABB2, Interval3, Zonotope3
 from .watchdog import AtomicCommandPublisher, CandidateBundle, SimulatedWatchdog
 from .zonotope import CertificateConfig, ZonotopeCertificate, ZonotopeConstructor
+from .generator_sac import GeneratorSACConfig, GeneratorTransition, PersistentGeneratorSAC
 from .energy_management import (
     EnergyDecision,
     EnergyManagementPolicy,
@@ -94,6 +95,9 @@ __all__ = [
     "Zonotope3",
     "ZonotopeCertificate",
     "ZonotopeConstructor",
+    "GeneratorSACConfig",
+    "GeneratorTransition",
+    "PersistentGeneratorSAC",
     "EnergyDecision",
     "EnergyManagementPolicy",
     "EnergyManagementReplayBuffer",

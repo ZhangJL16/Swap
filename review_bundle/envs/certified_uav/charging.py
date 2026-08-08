@@ -113,3 +113,42 @@ class ChargingDynamics:
             telemetry,
             plant.step_count >= plant.config.episode_limit,
         )
+
+    def apply_during_motion_cycle(
+        self,
+        plant: CertifiedSingleUAVPlantEnv,
+        telemetry: StepTelemetry,
+    ) -> ChargingStepResult:
+        """Apply synthetic net charging after a continuous RL-controlled plant step."""
+
+        if not self.can_charge(plant):
+            return ChargingStepResult(0.0, telemetry, plant.step_count >= plant.config.episode_limit)
+        before_charge = plant.state.copy()
+        after_energy = min(
+            self.config.battery_capacity,
+            before_charge.energy + self.config.gain_per_step(plant.config.dt),
+        )
+        plant.state = UAVPhysicalState(
+            before_charge.position.copy(),
+            before_charge.velocity.copy(),
+            after_energy,
+            before_charge.timestamp,
+        )
+        updated = StepTelemetry(
+            telemetry.state_before,
+            plant.state.copy(),
+            telemetry.action_trace,
+            telemetry.energy_cost,
+            telemetry.collision,
+            plant.terminal.is_charge_admissible(plant.state),
+            telemetry.lidar_packet,
+            telemetry.certificate_version,
+            telemetry.geometry_version,
+            telemetry.corridor_version,
+        )
+        plant.last_telemetry = updated
+        return ChargingStepResult(
+            after_energy - before_charge.energy,
+            updated,
+            plant.step_count >= plant.config.episode_limit,
+        )

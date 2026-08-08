@@ -13,11 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from envs.certified_uav import make_persistent_uav_env
+from envs.certified_uav import make_persistent_energy_management_ablation_env
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Evaluate a persistent energy-management policy without learning.")
+    parser = argparse.ArgumentParser(description="ABLATION ONLY: evaluate the deprecated hierarchical energy-management policy.")
     parser.add_argument("--scenario", default="persistent_energy_tight")
     parser.add_argument("--policy", default="energy_management_sac")
     parser.add_argument("--checkpoint")
@@ -27,12 +27,12 @@ def main() -> None:
     args = parser.parse_args()
     rows = []
     for seed in args.seeds:
-        env = make_persistent_uav_env(
+        env = make_persistent_energy_management_ablation_env(
             f"{args.scenario}.json",
             energy_management_name=args.policy,
             seed=seed,
             timing_mode="functional",
-            deterministic_energy_management=True,
+            deterministic=True,
         )
         if args.checkpoint:
             checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=True)

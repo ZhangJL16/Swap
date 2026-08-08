@@ -13,17 +13,17 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from envs.certified_uav import make_persistent_uav_env
+from envs.certified_uav import make_persistent_energy_management_ablation_env
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train event-level energy management; low-level motion remains certified.")
+    parser = argparse.ArgumentParser(description="ABLATION ONLY: train the deprecated hierarchical energy-management policy.")
     parser.add_argument("--scenario", default="persistent_energy_tight")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--steps", type=int, default=50000)
     parser.add_argument("--output-dir", default="artifacts/persistent/energy_management_sac")
     args = parser.parse_args()
-    env = make_persistent_uav_env(
+    env = make_persistent_energy_management_ablation_env(
         f"{args.scenario}.json",
         energy_management_name="energy_management_sac",
         seed=args.seed,

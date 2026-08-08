@@ -69,6 +69,20 @@ class GeneratorTransition:
     scenario_family: str | None = None
     scenario_hash: str | None = None
     certificate_manifest_hash: str | None = None
+    backup_triggered: bool = False
+    backup_reason: str | None = None
+    energy: float | None = None
+    required_return_energy: float | None = None
+    energy_margin: float | None = None
+    charging: bool = False
+    station_arrival: bool = False
+    departure_attempt: bool = False
+    departure_rejected: bool = False
+    task_id: str | None = None
+    goal_id: str | None = None
+    tasks_completed: int = 0
+    recoverable_set_version: str | None = None
+    recoverability_action_rule_version: str | None = None
 
     def __post_init__(self) -> None:
         for name in ("observation", "next_observation", "u", "eta", "c", "G", "candidate_action", "kappa_action", "executed_action", "measured_action", "next_c", "next_G", "next_kappa"):
@@ -86,6 +100,10 @@ class GeneratorTransition:
             and self.certificate_manifest_hash != self.certificate_epoch
         ):
             raise ValueError("scenario certificate manifest does not match certificate epoch")
+        if self.accepted and self.backup_triggered:
+            raise ValueError("a transition cannot be both accepted and backup-controlled")
+        if self.tasks_completed < 0:
+            raise ValueError("tasks_completed must be nonnegative")
 
 
 class GeneratorReplayBuffer:
@@ -178,12 +196,16 @@ class GeneratorSAC:
     def alpha(self) -> Tensor:
         return self.log_alpha.exp()
 
+    @property
+    def action_dimension(self) -> int:
+        return 3
+
     def select_u(self, observation: np.ndarray, deterministic: bool = False) -> np.ndarray:
         with torch.no_grad():
             tensor = torch.as_tensor(observation, dtype=torch.float32, device=self.device)
             distribution = self.actor.distribution(tensor)
             u = distribution.mean if deterministic else distribution.sample()
-            return u.cpu().numpy().astype(np.float64)
+        return u.cpu().numpy().astype(np.float64)
 
     def observe(self, transition: GeneratorTransition) -> bool:
         return self.replay.add(transition)
@@ -314,3 +336,9 @@ class GeneratorSAC:
         with torch.no_grad():
             self.log_alpha.copy_(torch.as_tensor(state["log_alpha"], device=self.device))
         self.gradient_steps = int(state.get("gradient_steps", 0))
+
+
+class PersistentGeneratorSAC(GeneratorSAC):
+    """Main persistent agent: one continuous three-dimensional policy."""
+
+    pass

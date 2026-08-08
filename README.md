@@ -20,7 +20,8 @@ obstacle missions, so demonstrated task competence is primarily attributable to 
 task-oriented center rather than learned residual optimization.
 
 The current development phase adds a separate single-UAV persistent goal/charging path. The
-environment assigns certified goals while an energy-management policy decides voluntary return and
-charger departure. Code and deterministic unit tests are included; persistent certificate
-validation, baseline comparisons, and learning are intentionally left for manual execution. See
+environment assigns certified goals while one continuous three-dimensional Generator-SAC policy
+controls normal task and voluntary charging behavior. Certified recoverability constrains every
+accepted action, and kappa is backup only. Code and deterministic unit tests are included;
+persistent certificate validation, baseline comparisons, and learning are left for manual execution. See
 `review_bundle/docs/PERSISTENT_TASK_CHARGING.md`.

@@ -29,13 +29,18 @@ from .persistent_task import (
     PersistentTaskManager,
     PersistentTaskWrapper,
 )
-from .persistent_wrapper import PersistentRuntimeWrapper
+from .persistent_wrapper import LegacyEnergyManagementRuntimeWrapper, PersistentRuntimeWrapper
 from .persistent_certificate import (
     PersistentGoalCertificateManifest,
     PersistentGoalCertificateProvider,
     PersistentGoalEdgeCertificate,
 )
-from cert_runtime.energy_management import make_energy_management_policy
+from .recoverability import (
+    PolicyAuthorityCertificate,
+    RecoverabilityActionCertificate,
+    RecoverabilityVerifier,
+    RecoverableSetCertificate,
+)
 
 __all__ = [
     "ActionTrace",
@@ -61,6 +66,7 @@ __all__ = [
     "load_scenario",
     "make_certified_uav_env",
     "make_persistent_uav_env",
+    "make_persistent_energy_management_ablation_env",
     "ChargingConfig",
     "ChargingDynamics",
     "DepartureGateResult",
@@ -71,12 +77,17 @@ __all__ = [
     "GoalNode",
     "PersistentMissionMode",
     "PersistentRuntimeWrapper",
+    "LegacyEnergyManagementRuntimeWrapper",
     "PersistentGoalTask",
     "PersistentGoalTaskManager",
     "PersistentGoalWrapper",
     "PersistentGoalCertificateManifest",
     "PersistentGoalCertificateProvider",
     "PersistentGoalEdgeCertificate",
+    "PolicyAuthorityCertificate",
+    "RecoverabilityActionCertificate",
+    "RecoverabilityVerifier",
+    "RecoverableSetCertificate",
     "CertifiedServiceNetwork",
     "PersistentTask",
     "PersistentTaskManager",
@@ -131,12 +142,8 @@ def make_certified_uav_env(
 def make_persistent_uav_env(
     scenario_name: str = "persistent_open.json",
     *,
-    energy_management_name: str = "reserve_only",
-    scheduler_name: str | None = None,
     seed: int = 0,
     timing_mode: str = "functional",
-    deterministic_energy_management: bool = False,
-    deterministic_scheduler: bool | None = None,
 ) -> PersistentRuntimeWrapper:
     scenario = FixedCertificationScenario(scenario_name).definition
     persistent = dict(scenario.mission_config.get("persistent", {}))
@@ -168,7 +175,7 @@ def make_persistent_uav_env(
         goal_radius=float(persistent.get("goal_radius", 0.20)),
         task_reward=float(persistent.get("task_reward", 10.0)),
     )
-    runtime = CertifiedRuntimeWrapper(task, generator_center_mode="task_oriented", timing_mode=timing_mode)
+    runtime = CertifiedRuntimeWrapper(task, generator_center_mode="safety_neutral", timing_mode=timing_mode)
     charging = ChargingConfig(
         battery_capacity=float(persistent.get("battery_capacity", 30.0)),
         charging_rate=float(persistent.get("charging_rate", 2.0)),
@@ -176,11 +183,45 @@ def make_persistent_uav_env(
         departure_energy_margin=float(persistent.get("departure_energy_margin", 0.5)),
         forced_return_margin=float(persistent.get("forced_return_margin", 1.0)),
     )
-    selected_name = energy_management_name if scheduler_name is None else scheduler_name
-    deterministic = deterministic_energy_management if deterministic_scheduler is None else deterministic_scheduler
+    del seed
+    return PersistentRuntimeWrapper(runtime, network, charging)
+
+
+def make_persistent_energy_management_ablation_env(
+    scenario_name: str = "persistent_open.json",
+    *,
+    energy_management_name: str = "reserve_only",
+    seed: int = 0,
+    timing_mode: str = "functional",
+    deterministic: bool = False,
+) -> LegacyEnergyManagementRuntimeWrapper:
+    """Build the deprecated two-policy energy-management ablation."""
+    from cert_runtime.energy_management import make_energy_management_policy
+
+    scenario = FixedCertificationScenario(scenario_name).definition
+    persistent = dict(scenario.mission_config.get("persistent", {}))
+    if not persistent:
+        raise ValueError(f"scenario {scenario.name} does not define a persistent goal network")
+    configured = apply_configuration_overrides(CertifiedUAVConfig(world_size=scenario.world_size), scenario.configuration_overrides)
+    network = CertifiedGoalNetwork.from_config(persistent)
+    plant = CertifiedSingleUAVPlantEnv(configured, scenario)
+    task = PersistentGoalWrapper(
+        plant,
+        network,
+        goal_radius=float(persistent.get("goal_radius", 0.20)),
+        task_reward=float(persistent.get("task_reward", 10.0)),
+    )
+    runtime = CertifiedRuntimeWrapper(task, generator_center_mode="safety_neutral", timing_mode=timing_mode)
+    charging = ChargingConfig(
+        battery_capacity=float(persistent.get("battery_capacity", 30.0)),
+        charging_rate=float(persistent.get("charging_rate", 2.0)),
+        checkpoint_steps=int(persistent.get("charging_checkpoint_steps", 5)),
+        departure_energy_margin=float(persistent.get("departure_energy_margin", 0.5)),
+        forced_return_margin=float(persistent.get("forced_return_margin", 1.0)),
+    )
     policy = make_energy_management_policy(
-        selected_name,
-        observation_dim=PersistentRuntimeWrapper.energy_observation_dim,
+        energy_management_name,
+        observation_dim=LegacyEnergyManagementRuntimeWrapper.energy_observation_dim,
         seed=seed,
     )
-    return PersistentRuntimeWrapper(runtime, network, policy, charging, deterministic)
+    return LegacyEnergyManagementRuntimeWrapper(runtime, network, policy, charging, deterministic)

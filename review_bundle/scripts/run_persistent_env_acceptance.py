@@ -18,14 +18,12 @@ from envs.certified_uav import make_persistent_uav_env
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run a deterministic persistent software acceptance trajectory.")
     parser.add_argument("--scenario", default="persistent_open")
-    parser.add_argument("--energy-management", default="reserve_only")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--steps", type=int, default=500)
     parser.add_argument("--output", default="artifacts/persistent/acceptance.json")
     args = parser.parse_args()
     env = make_persistent_uav_env(
         f"{args.scenario}.json",
-        energy_management_name=args.energy_management,
         seed=args.seed,
         timing_mode="functional",
     )
@@ -37,9 +35,8 @@ def main() -> None:
             "step": step,
             "reward": reward,
             "mode": info.get("persistent_mode"),
-            "requested": info.get("requested_mode"),
-            "executed": info.get("executed_mode"),
-            "override": info.get("override_reason"),
+            "backup_triggered": info.get("backup_triggered"),
+            "backup_reason": info.get("backup_reason"),
             "tasks_completed": info.get("persistent_metrics", {}).get("tasks_completed", 0),
             "energy": env.plant.state.energy,
             "command_source": info.get("command_source", "task_or_kappa"),
@@ -48,10 +45,9 @@ def main() -> None:
             break
     payload = {
         "scenario": args.scenario,
-        "energy_management": args.energy_management,
+        "policy": "single_continuous_generator_sac",
         "reset": {key: str(value) for key, value in reset_info.items() if key != "action_context"},
         "metrics": env.metric_snapshot(),
-        "energy_management_transition_count": len(env.energy_management_transitions),
         "records": records,
         "synthetic_only": True,
     }

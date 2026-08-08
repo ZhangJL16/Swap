@@ -411,14 +411,14 @@ are stored in `artifacts/paper/`.
 
 ## Persistent goal stream and charging extension
 
-The persistent extension is isolated from all single-mission regression fixtures. It adds a finite
-certified goal network, pending-goal preservation across charging, event-level energy management,
-hard forced-return and departure-energy gates, and synthetic net charging. The environment assigns
-the goals; the policy does not schedule or select them. Persistent configs set
-`terminate_on_terminal=false`; single-mission configs retain the default `true`.
+The persistent extension is isolated from all single-mission regression fixtures. The environment
+assigns a continuous stream of certified goals; one three-dimensional `PersistentGeneratorSAC`
+policy controls both task flight and voluntary station approach. There is no discrete charging
+action in the main path. Every accepted Generator is completely contained in the joined
+collision-safe and recoverability-preserving action set. Kappa takes physical authority only at the
+configured recovery boundary or after certificate/runtime failure. Continuous dwell inside the
+charging set charges the battery, while unsafe departure attempts are replaced by a certified
+charger hold. Pending goals survive charging. See `docs/PERSISTENT_TASK_CHARGING.md`.
 
-The low-level certificate chain is unchanged. The energy-management policy requests service versus
-charging, the certificate runtime may override it, and kappa remains independently certified. Its
-categorical entropy is not Generator affine-tanh entropy. See
-`docs/PERSISTENT_TASK_CHARGING.md`. This round added code and deterministic unit tests only; no
-persistent gate, acceptance rollout, baseline comparison, or energy-management training result is claimed.
+This round added code and deterministic unit tests only; no persistent certificate gate, acceptance
+rollout, training, or baseline evaluation result is claimed.

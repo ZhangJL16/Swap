@@ -193,6 +193,7 @@ class MissionActionContext:
     successor_cell_id: str | None = None
     recovery_level: int | None = None
     root_index: int | None = None
+    task_successor_cell_id: str | None = None
 
     @property
     def generator_available(self) -> bool:
@@ -767,6 +768,25 @@ class MultiStepSyntheticMissionCertificateProvider:
             ),
         )
 
+    def _locate_recoverable_cell(self, state: CertificateState) -> MissionRecoveryCellCertificate | None:
+        candidates = [cell for cell in self.manifest.cells if self._cell_contains_state(cell, state)]
+        if not candidates:
+            return None
+        return min(
+            candidates,
+            key=lambda cell: (
+                sum(
+                    np.array((state.position[axis] - cell.reference_position[axis], state.velocity[axis] - cell.reference_velocity[axis]))
+                    @ self._matrix
+                    @ np.array((state.position[axis] - cell.reference_position[axis], state.velocity[axis] - cell.reference_velocity[axis]))
+                    / (cell.ellipsoid_radii[axis] ** 2)
+                    for axis in range(3)
+                ),
+                -cell.level,
+                cell.cell_id,
+            ),
+        )
+
     def _locate_recovery_cell(self, state: CertificateState) -> MissionRecoveryCellCertificate | None:
         if self.active_cell_id is None:
             return self._locate_root(state)
@@ -800,8 +820,26 @@ class MultiStepSyntheticMissionCertificateProvider:
     def _target_root(self, root_index: int) -> MissionRecoveryCellCertificate | None:
         return self.root_cells[root_index + 1] if root_index + 1 < len(self.root_cells) else None
 
+    def _recoverable_successor_candidates(
+        self,
+        cell: MissionRecoveryCellCertificate,
+    ) -> tuple[MissionRecoveryCellCertificate, ...]:
+        candidates = {cell.cell_id: cell}
+        if cell.successor_target_cell is not None:
+            successor = self._cells_by_id.get(cell.successor_target_cell)
+            if successor is not None:
+                candidates[successor.cell_id] = successor
+        chain = self._chains_by_id[cell.chain_id]
+        if cell.cell_id == chain.root.cell_id:
+            for offset in (-1, 1):
+                index = chain.root_index + offset
+                if 0 <= index < len(self.root_cells):
+                    root = self.root_cells[index]
+                    candidates[root.cell_id] = root
+        return tuple(candidates[key] for key in sorted(candidates))
+
     def _center(self, state: CertificateState, root: MissionRecoveryCellCertificate) -> np.ndarray:
-        if self.center_mode == "zero":
+        if self.center_mode in {"zero", "safety_neutral"}:
             return np.zeros(3)
         if self.center_mode == "braking":
             return -0.25 * np.asarray(state.velocity)
@@ -811,7 +849,11 @@ class MultiStepSyntheticMissionCertificateProvider:
         velocity_error = np.asarray(state.velocity) - task_reference.velocity
         return task_reference.action - self.position_gain * position_error - self.velocity_gain * velocity_error
 
-    def _construct_zonotope(self, state: CertificateState, root: MissionRecoveryCellCertificate) -> Zonotope3 | None:
+    def _construct_zonotope(
+        self,
+        state: CertificateState,
+        cell: MissionRecoveryCellCertificate,
+    ) -> tuple[Zonotope3 | None, MissionRecoveryCellCertificate | None]:
         state_low = np.asarray(state.position[:2]) - np.asarray(state.position_error_radius[:2])
         state_high = np.asarray(state.position[:2]) + np.asarray(state.position_error_radius[:2])
         for region in self.profile.get("narrow_regions", ()):
@@ -819,12 +861,10 @@ class MultiStepSyntheticMissionCertificateProvider:
             region_low = np.array((low_x, low_y), dtype=np.float64)
             region_high = np.array((high_x, high_y), dtype=np.float64)
             if np.all(state_high >= region_low) and np.all(state_low <= region_high):
-                return None
-        target = self._target_root(self._chain_by_root[root.cell_id].root_index)
-        if target is None:
-            return None
-        center = self._center(state, root)
-        progress = self._chain_by_root[root.cell_id].root_index / max(1, len(self.root_cells) - 1)
+                return None, None
+        chain = self._chains_by_id[cell.chain_id]
+        center = self._center(state, chain.root)
+        progress = chain.root_index / max(1, len(self.root_cells) - 1)
         variation = 0.55 + 0.45 * (0.5 + 0.5 * np.cos(2.0 * np.pi * progress))
         minimum = self.runtime.config.minimum_generator_sigma
         requested = np.minimum(
@@ -832,50 +872,54 @@ class MultiStepSyntheticMissionCertificateProvider:
             self.runtime.config.a_max - np.abs(center),
         )
         if np.any(requested < minimum):
-            return None
+            return None, None
         lower_scales = np.full(3, minimum, dtype=np.float64)
-        minimum_candidate = Zonotope3.diagonal(center, lower_scales)
-        if not (
-            minimum_candidate.condition_number_upper_bound <= self.runtime.config.maximum_generator_condition
-            and self._candidate_successor_in_root(state, minimum_candidate, target)
-        ):
-            return None
-        low, high = 0.0, 1.0
-        accepted: Zonotope3 | None = minimum_candidate
-        for _ in range(self.runtime.config.generator_bisection_iterations + 1):
-            factor = (low + high) / 2.0
-            scales = lower_scales + factor * (requested - lower_scales)
-            candidate = Zonotope3.diagonal(center, scales)
-            valid = (
-                candidate.sigma_min_lower_bound >= minimum - 1e-12
-                and candidate.condition_number_upper_bound <= self.runtime.config.maximum_generator_condition
-                and self._candidate_successor_in_root(state, candidate, target)
-            )
-            if valid:
-                accepted = candidate
-                low = factor
-            else:
-                high = factor
-        return accepted
+        best: tuple[float, str, Zonotope3, MissionRecoveryCellCertificate] | None = None
+        for target in self._recoverable_successor_candidates(cell):
+            minimum_candidate = Zonotope3.diagonal(center, lower_scales)
+            if not (
+                minimum_candidate.condition_number_upper_bound <= self.runtime.config.maximum_generator_condition
+                and self._candidate_successor_in_root(state, minimum_candidate, target)
+            ):
+                continue
+            low, high = 0.0, 1.0
+            accepted = minimum_candidate
+            for _ in range(self.runtime.config.generator_bisection_iterations + 1):
+                factor = (low + high) / 2.0
+                scales = lower_scales + factor * (requested - lower_scales)
+                candidate = Zonotope3.diagonal(center, scales)
+                valid = (
+                    candidate.sigma_min_lower_bound >= minimum - 1e-12
+                    and candidate.condition_number_upper_bound <= self.runtime.config.maximum_generator_condition
+                    and self._candidate_successor_in_root(state, candidate, target)
+                )
+                if valid:
+                    accepted = candidate
+                    low = factor
+                else:
+                    high = factor
+            choice = (8.0 * abs(accepted.determinant), target.cell_id, accepted, target)
+            if best is None or choice[0] > best[0] + 1e-18 or (
+                abs(choice[0] - best[0]) <= 1e-18 and choice[1] < best[1]
+            ):
+                best = choice
+        return (None, None) if best is None else (best[2], best[3])
 
     def verify_task_action(self, state: CertificateState, action: np.ndarray) -> bool:
-        root = self._locate_root(state)
-        if root is None or self.recovery_active:
-            return False
-        target = self._target_root(self._chain_by_root[root.cell_id].root_index)
-        if target is None:
-            return False
         selected = np.asarray(action, dtype=np.float64)
         if selected.shape != (3,) or not np.all(np.isfinite(selected)) or np.any(np.abs(selected) > self.runtime.config.a_max):
             return False
-        return self._candidate_successor_in_root(state, Zonotope3.diagonal(selected, (0.0, 0.0, 0.0)), target)
+        context = self.evaluate(state)
+        certificate = context.closure.zonotope_certificate
+        zonotope = None if certificate is None else certificate.zonotope
+        return bool(certificate is not None and certificate.verified and zonotope is not None and zonotope.contains(selected))
 
     def evaluate(self, state: CertificateState, timestamp: float | None = None) -> MissionActionContext:
         now = monotonic() if timestamp is None else timestamp
         phase = str(state.explicit_task_state.get("mission_phase", "OUTBOUND"))
-        task_execution_modes = {"OUTBOUND", "TASK"}
+        task_execution_modes = {"OUTBOUND", "TASK", "TASK_RL", "CHARGING_RL"}
         recovery_requested = self.recovery_active or phase not in task_execution_modes
-        cell = self._locate_recovery_cell(state) if recovery_requested else self._locate_root(state)
+        cell = self._locate_recovery_cell(state) if recovery_requested else self._locate_recoverable_cell(state)
         if cell is None or not self.gate_pass:
             action = -np.clip(np.asarray(state.velocity), -self.runtime.config.a_max, self.runtime.config.a_max)
             recovery = RecoveryDecision(tuple(action), False, None, "mission-recovery-cell-unavailable")
@@ -900,7 +944,7 @@ class MultiStepSyntheticMissionCertificateProvider:
             "certified" if recovery_valid else "mission-recovery-certificate-invalid",
         )
         root_index = self._chains_by_id[cell.chain_id].root_index
-        zonotope = None if recovery_requested or not recovery_valid else self._construct_zonotope(state, self.root_cells[root_index])
+        zonotope, task_target = (None, None) if recovery_requested or not recovery_valid else self._construct_zonotope(state, cell)
         certificate = None
         if zonotope is not None:
             versions = dict(state.bound_versions)
@@ -917,10 +961,22 @@ class MultiStepSyntheticMissionCertificateProvider:
                 self._versions()[-1],
                 now,
                 min(self.expiry, now + 1000.0),
-                (cell.recovery_certificate_hash, self.manifest.manifest_hash),
+                (
+                    cell.recovery_certificate_hash,
+                    task_target.recovery_certificate_hash,
+                    self.manifest.manifest_hash,
+                ),
             )
             inclusion_hash = certificate_hash(
-                {"zonotope": repr(zonotope), "root": root_index, "recovery": cell.recovery_certificate_hash, "manifest": self.manifest.manifest_hash, "mode": self.center_mode}
+                {
+                    "zonotope": repr(zonotope),
+                    "root": root_index,
+                    "recoverability_target": task_target.cell_id,
+                    "recovery": cell.recovery_certificate_hash,
+                    "target_recovery": task_target.recovery_certificate_hash,
+                    "manifest": self.manifest.manifest_hash,
+                    "mode": self.center_mode,
+                }
             )
             certificate = ZonotopeCertificate(
                 True, "VERIFIED", zonotope, None, state.certificate_version,
@@ -939,6 +995,7 @@ class MultiStepSyntheticMissionCertificateProvider:
             cell.successor_target_cell,
             cell.level,
             root_index,
+            None if task_target is None else task_target.cell_id,
         )
         self.last_context = context
         return context

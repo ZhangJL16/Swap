@@ -29,6 +29,13 @@ def main() -> None:
             "manifest_hash": manifest.manifest_hash,
             "network_hash": manifest.goal_network_hash,
             "edge_count": len(manifest.edge_certificates),
+            "recoverable_set_valid": manifest.recoverable_set_valid,
+            "recoverability_action_rule_valid": manifest.recoverability_action_rule_valid,
+            "complete_generator_recoverability_required": manifest.complete_generator_recoverability_required,
+            "recoverable_set_version": manifest.recoverable_set_version,
+            "recoverability_action_rule_version": manifest.recoverability_action_rule_version,
+            "energy_field_version": manifest.energy_field_version,
+            "kappa_version": manifest.kappa_version,
             "failure_reasons": manifest.failure_reasons,
             "synthetic_only": True,
         })

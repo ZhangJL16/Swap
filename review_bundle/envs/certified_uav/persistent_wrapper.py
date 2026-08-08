@@ -12,7 +12,7 @@ from cert_runtime.energy_management import (
     EnergyManagementTransition,
 )
 
-from .charging import ChargingConfig, ChargingDynamics, verify_departure_energy
+from .charging import ChargingConfig, ChargingDynamics, DepartureGateResult, verify_departure_energy
 from .persistent_certificate import PersistentGoalCertificateProvider
 from .persistent_task import CertifiedGoalNetwork, PersistentGoalWrapper, PersistentMissionMode
 from .runtime_wrapper import CertifiedRuntimeWrapper
@@ -42,6 +42,14 @@ class PersistentMetrics:
     energy_on_departure: list[float] = field(default_factory=list)
     charge_durations: list[int] = field(default_factory=list)
     task_completion_steps: list[int] = field(default_factory=list)
+    voluntary_station_arrivals: int = 0
+    backup_recovery_count: int = 0
+    departure_attempts: int = 0
+    generator_accepted_steps: int = 0
+    no_generator_steps: int = 0
+    minimum_energy_margin: float = float("inf")
+    energy_margin_at_station_approach: list[float] = field(default_factory=list)
+    energy_margin_at_backup: list[float] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -53,8 +61,8 @@ class _DecisionAccumulator:
     duration_steps: int = 0
 
 
-class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
-    """Event-driven energy management around the unchanged certificate runtime."""
+class LegacyEnergyManagementRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
+    """Ablation-only two-policy runtime retained for compatibility."""
 
     metadata = {"render_modes": []}
     energy_observation_dim = 13
@@ -461,5 +469,320 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "serving_fraction": self.metrics.serving_steps / total,
             "returning_fraction": self.metrics.returning_steps / total,
             "charging_fraction": self.metrics.charging_steps / total,
+        })
+        return result
+
+
+class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
+    """Main one-policy persistent runtime with certified κ backup only."""
+
+    metadata = {"render_modes": []}
+
+    def __init__(
+        self,
+        runtime: CertifiedRuntimeWrapper,
+        network: CertifiedGoalNetwork,
+        charging_config: ChargingConfig | None = None,
+    ) -> None:
+        super().__init__()
+        if not isinstance(runtime.task_env, PersistentGoalWrapper):
+            raise TypeError("persistent runtime requires PersistentGoalWrapper")
+        if runtime.config.terminate_on_terminal:
+            raise ValueError("persistent plant must set terminate_on_terminal=False")
+        if runtime.generator_center_mode not in {"zero", "safety_neutral"}:
+            raise ValueError("main persistent method requires a safety-neutral Generator center")
+        self.runtime = runtime
+        self.task_env = runtime.task_env
+        self.plant = runtime.plant
+        self.network = network
+        self.charging = ChargingDynamics(charging_config)
+        self.action_space = runtime.action_space
+        self.observation_space = self.task_env.observation_space
+        self.certificate_provider: PersistentGoalCertificateProvider | None = None
+        self.metrics = PersistentMetrics()
+        self.policy_authority_certificate = None
+        self._active_task_start_step = 0
+        self._time_since_last_charge = 0
+        self._station_approach_active = False
+
+    @property
+    def manifest_hash(self) -> str:
+        if self.certificate_provider is None:
+            return "UNINITIALIZED"
+        return self.certificate_provider.persistent_manifest.manifest_hash
+
+    @property
+    def trainable_policy_count(self) -> int:
+        return 1
+
+    def _activate_current_edge(self) -> None:
+        edge = self.task_env.manager.active_edge
+        if edge is not None and self.certificate_provider is not None:
+            self.certificate_provider.activate_edge(edge.edge_id)
+
+    def _refresh_context(self) -> dict[str, Any]:
+        self._activate_current_edge()
+        context = self.runtime.preview_next_action_context()
+        required = float(context.get("recovery_energy_required") or float("inf"))
+        margin = float(context.get("energy_margin") if context.get("energy_margin") is not None else float("-inf"))
+        self.task_env.set_certificate_quantities(required, margin)
+        self.task_env.set_time_since_last_charge(self._time_since_last_charge)
+        self.metrics.minimum_energy_margin = min(self.metrics.minimum_energy_margin, margin)
+        if self.certificate_provider is not None and self.certificate_provider.last_context is not None:
+            task = self.task_env.manager.current_task
+            goal = self.plant.state.position if task is None else task.goal_position
+            verifier = self.certificate_provider.recoverability_verifiers[
+                self.certificate_provider.active_edge_id
+            ]
+            self.policy_authority_certificate = verifier.policy_authority(
+                self.runtime._certificate_state(),
+                self.certificate_provider.last_context,
+                goal,
+                self.plant.scenario.station_position,
+            )
+        return context
+
+    def _departure_required(self) -> float:
+        if self.certificate_provider is None:
+            return float("inf")
+        return self.certificate_provider.required_departure_energy(self.task_env.manager.current_task)
+
+    def _departure_gate(self) -> DepartureGateResult:
+        return verify_departure_energy(
+            self.plant.state.energy,
+            self._departure_required(),
+            self.charging.config.departure_energy_margin,
+            self.certificate_provider is not None and self.certificate_provider.gate_pass,
+        )
+
+    @staticmethod
+    def _candidate_from_context(actor_u: np.ndarray, context: dict[str, Any]) -> np.ndarray | None:
+        selected = np.asarray(actor_u, dtype=np.float64)
+        if selected.shape != (3,) or not np.all(np.isfinite(selected)):
+            return None
+        if not context.get("generator_available") or context.get("c") is None or context.get("G") is None:
+            return None
+        return np.asarray(context["c"], dtype=np.float64) + np.asarray(context["G"], dtype=np.float64) @ np.tanh(selected)
+
+    def _backup_reason(self, context: dict[str, Any]) -> str | None:
+        if self.certificate_provider is None or not self.certificate_provider.gate_pass:
+            return "PERSISTENT_CERTIFICATE_GATE_FAILED"
+        if not context.get("certificate_valid", False) or not context.get("recoverable_set_member", False):
+            return context.get("failure_reason") or "RECOVERABLE_SET_CERTIFICATE_INVALID"
+        if self.task_env.energy_margin <= self.charging.config.forced_return_margin:
+            return "ENERGY_MARGIN_BACKUP_SWITCH"
+        if not context.get("generator_available", False):
+            return context.get("generator_status") or "NO_GENERATOR_SET"
+        if context.get("recoverability_action_verified") is not True:
+            return "GENERATOR_NOT_CONTAINED_IN_A_REC"
+        if self.policy_authority_certificate is None or not self.policy_authority_certificate.passed:
+            return "POLICY_AUTHORITY_GATE_FAILED"
+        return None
+
+    def _begin_backup(self, reason: str) -> None:
+        if self.task_env.mode != PersistentMissionMode.BACKUP_RECOVERY:
+            self.metrics.backup_recovery_count += 1
+            self.metrics.forced_return_count += 1
+            self.metrics.energy_margin_at_backup.append(float(self.task_env.energy_margin))
+        self.task_env.begin_backup_recovery(reason)
+
+    def _station_hold_step(self, reason: str):
+        if self.certificate_provider is None:
+            raise RuntimeError("persistent certificate provider is unavailable")
+        state = self.runtime._certificate_state()
+        if not self.certificate_provider.certified_station_hold(state):
+            observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
+            self.task_env.mode = PersistentMissionMode.FAILURE
+            self.task_env.phase = self.task_env.mode
+            return observation, 0.0, True, False, {
+                "failure_reason": "CERTIFIED_CHARGER_HOLD_UNAVAILABLE",
+                "departure_rejected": True,
+                "departure_rejection_reason": reason,
+                "command_source": "none",
+            }
+        result = self.charging.step(self.plant, self.manifest_hash)
+        self.task_env.episode_step += 1
+        self.metrics.total_steps += 1
+        self.metrics.charging_steps += 1
+        self.metrics.energy_charged += result.charged_energy
+        self.metrics.departure_rejection_count += 1
+        self._time_since_last_charge = 0
+        self.task_env.set_time_since_last_charge(0)
+        reward = -self.task_env.reward_config.charging_dwell_cost
+        observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
+        return observation, reward, False, result.truncated, {
+            "telemetry": result.telemetry,
+            "accepted": False,
+            "fallback_reason": reason,
+            "backup_triggered": False,
+            "backup_reason": None,
+            "critic_action": np.zeros(3, dtype=np.float64),
+            "command_source": "charger_hold",
+            "departure_attempt": True,
+            "departure_rejected": True,
+            "departure_rejection_reason": reason,
+            "persistent_mode": self.task_env.mode.name,
+            "persistent_manifest_hash": self.manifest_hash,
+            "persistent_metrics": self.metric_snapshot(),
+        }
+
+    def _apply_charging(self, info: dict[str, Any], reward: float):
+        telemetry = info["telemetry"]
+        result = self.charging.apply_during_motion_cycle(self.plant, telemetry)
+        if result.charged_energy <= 0.0:
+            return info, reward
+        self.metrics.energy_charged += result.charged_energy
+        self.metrics.charging_steps += 1
+        self._time_since_last_charge = 0
+        self.task_env.set_time_since_last_charge(0)
+        return info | {"telemetry": result.telemetry, "charged_energy": result.charged_energy}, reward - self.task_env.reward_config.charging_dwell_cost
+
+    def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
+        self.runtime.mission_provider = None
+        _, reset_info = self.runtime.reset(seed=seed, options=options)
+        self.certificate_provider = PersistentGoalCertificateProvider(
+            self.runtime,
+            self.network,
+            self.charging.config.battery_capacity,
+        )
+        self.runtime.mission_provider = self.certificate_provider
+        self.certificate_provider.reset()
+        self.metrics = PersistentMetrics()
+        self._active_task_start_step = 0
+        self._time_since_last_charge = 0
+        self._station_approach_active = False
+        context = self._refresh_context()
+        observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
+        return observation, reset_info | {
+            "persistent_certificate_gate": "PASS" if self.certificate_provider.gate_pass else "blocked-by-persistent-certificate",
+            "policy_authority_gate": "PASS" if self.policy_authority_certificate.passed else "FAIL",
+            "persistent_manifest_hash": self.manifest_hash,
+            "action_context": context,
+            "trainable_policy_count": self.trainable_policy_count,
+        }
+
+    def step(self, actor_output: np.ndarray):
+        actor_u = np.asarray(actor_output, dtype=np.float64)
+        if actor_u.shape != (3,):
+            raise ValueError("persistent Generator policy output must have shape (3,)")
+        mode_before = self.task_env.mode
+        context = self._refresh_context()
+        backup_reason = None
+        if self.task_env.mode == PersistentMissionMode.BACKUP_RECOVERY:
+            backup_reason = "BACKUP_RECOVERY_CONTINUATION"
+        else:
+            backup_reason = self._backup_reason(context)
+        if backup_reason is not None:
+            self._begin_backup(backup_reason)
+            observation, reward, terminated, truncated, info = self.runtime.step_recovery(backup_reason)
+        else:
+            candidate = self._candidate_from_context(actor_u, context)
+            if candidate is None:
+                self._begin_backup("ACTOR_OR_GENERATOR_INVALID")
+                observation, reward, terminated, truncated, info = self.runtime.step_recovery("ACTOR_OR_GENERATOR_INVALID")
+                backup_reason = "ACTOR_OR_GENERATOR_INVALID"
+            elif self.task_env.mode == PersistentMissionMode.CHARGING_RL:
+                state = self.runtime._certificate_state()
+                departure_attempt = not self.certificate_provider.successor_stays_in_charging_set(state, candidate)
+                if departure_attempt:
+                    self.metrics.departure_attempts += 1
+                    gate = self._departure_gate()
+                    action_valid = self.certificate_provider.verify_task_action(state, candidate)
+                    if not gate.allowed or not action_valid:
+                        reason = gate.reason or "DEPARTURE_ACTION_NOT_RECOVERABLE"
+                        return self._station_hold_step(reason)
+                observation, reward, terminated, truncated, info = self.runtime.step(actor_u)
+            else:
+                observation, reward, terminated, truncated, info = self.runtime.step(actor_u)
+
+        telemetry = info["telemetry"]
+        self.metrics.total_steps += 1
+        self.metrics.energy_consumed += telemetry.energy_cost
+        self._time_since_last_charge += 1
+        self.task_env.set_time_since_last_charge(self._time_since_last_charge)
+        if info.get("accepted"):
+            self.metrics.generator_accepted_steps += 1
+        else:
+            self.metrics.no_generator_steps += int(info.get("fallback_reason") == "NO_GENERATOR_SET")
+        if telemetry.collision:
+            self.metrics.collision_count += 1
+        if info.get("failure_reason") == "energy_depleted":
+            self.metrics.energy_depletion_count += 1
+        if info.get("accepted") and not info.get("action_context", {}).get("recoverability_action_verified", False):
+            self.metrics.uncertified_publication_count += 1
+        if info.get("fallback_reason") == "RECOVERY_CERTIFICATE_INVALID":
+            self.metrics.invalid_kappa_fallback_count += 1
+
+        terminal_now = self.plant.terminal.is_charge_admissible(self.plant.state)
+        was_charging = mode_before == PersistentMissionMode.CHARGING_RL
+        left_station = False
+        if self.task_env.mode == PersistentMissionMode.TASK_RL and terminal_now and backup_reason is None:
+            self.task_env.enter_charging(voluntary=True)
+            self.metrics.voluntary_station_arrivals += 1
+            self.metrics.voluntary_return_count += 1
+            self.metrics.charging_visits += 1
+            self.metrics.energy_margin_at_station_approach.append(float(self.task_env.energy_margin))
+            self.metrics.energy_on_station_arrival.append(float(self.plant.state.energy))
+            self._station_approach_active = False
+        elif mode_before == PersistentMissionMode.BACKUP_RECOVERY and self.task_env.mode == PersistentMissionMode.CHARGING_RL and terminal_now:
+            self.metrics.charging_visits += 1
+            self.metrics.energy_on_station_arrival.append(float(self.plant.state.energy))
+        elif self.task_env.mode == PersistentMissionMode.CHARGING_RL and was_charging and not terminal_now and info.get("accepted"):
+            self.task_env.leave_station()
+            self.metrics.energy_on_departure.append(float(self.plant.state.energy))
+            self._time_since_last_charge = 0
+            left_station = True
+
+        station_distance = float(np.linalg.norm(self.plant.state.position - self.plant.scenario.station_position))
+        approach_radius = 3.0 * float(np.max(self.plant.scenario.terminal.position_high - self.plant.scenario.terminal.position_low))
+        if (
+            self.task_env.mode == PersistentMissionMode.TASK_RL
+            and backup_reason is None
+            and station_distance <= approach_radius
+        ):
+            self._station_approach_active = True
+            self.task_env.voluntary_station_approach = True
+
+        if self.task_env.mode == PersistentMissionMode.CHARGING_RL and terminal_now:
+            info, reward = self._apply_charging(info, reward)
+            observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
+        elif left_station:
+            observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
+        if backup_reason is not None:
+            reward -= self.task_env.reward_config.backup_intervention_cost
+        if info.get("task_completed_now"):
+            self.metrics.task_completion_steps.append(self.metrics.total_steps - self._active_task_start_step)
+            self._active_task_start_step = self.metrics.total_steps
+        self.metrics.tasks_completed = self.task_env.manager.tasks_completed
+        self.metrics.task_interruption_count = self.task_env.manager.task_interruption_count
+        return observation, reward, terminated, truncated, info | {
+            "persistent_mode": self.task_env.mode.name,
+            "backup_triggered": backup_reason is not None,
+            "backup_reason": backup_reason,
+            "voluntary_station_approach": self._station_approach_active,
+            "voluntary_station_arrival": self.metrics.voluntary_station_arrivals > 0 and terminal_now and backup_reason is None,
+            "charging": self.task_env.mode == PersistentMissionMode.CHARGING_RL,
+            "departure_attempt": was_charging and not terminal_now,
+            "departure_rejected": False,
+            "departure_rejection_reason": None,
+            "required_return_energy": self.task_env.required_return_energy,
+            "energy_margin": self.task_env.energy_margin,
+            "persistent_manifest_hash": self.manifest_hash,
+            "persistent_metrics": self.metric_snapshot(),
+        }
+
+    def metric_snapshot(self) -> dict[str, Any]:
+        result = asdict(self.metrics)
+        total = max(1, self.metrics.total_steps)
+        finite_margin = self.metrics.minimum_energy_margin if np.isfinite(self.metrics.minimum_energy_margin) else None
+        result.update({
+            "tasks_per_1000_steps": 1000.0 * self.metrics.tasks_completed / total,
+            "mean_goal_completion_time": float(np.mean(self.metrics.task_completion_steps)) if self.metrics.task_completion_steps else 0.0,
+            "energy_per_task": self.metrics.energy_consumed / max(1, self.metrics.tasks_completed),
+            "backup_rate": self.metrics.backup_recovery_count / total,
+            "generator_acceptance_rate": self.metrics.generator_accepted_steps / total,
+            "no_generator_rate": self.metrics.no_generator_steps / total,
+            "charging_fraction": self.metrics.charging_steps / total,
+            "minimum_energy_margin": finite_margin,
         })
         return result

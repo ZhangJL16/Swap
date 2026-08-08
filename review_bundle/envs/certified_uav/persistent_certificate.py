@@ -10,12 +10,25 @@ from cert_runtime.certificates import certificate_hash
 from cert_runtime.interval import round_up
 from cert_runtime.types import Interval3
 
-from .mission_certificate import MissionActionContext, MultiStepSyntheticMissionCertificateProvider
+from .mission_certificate import (
+    MissionActionContext,
+    MissionClosureResult,
+    MissionFailureWitness,
+    MultiStepSyntheticMissionCertificateProvider,
+)
 from .persistent_task import (
     CertifiedGoalNetwork,
     GoalEdge,
     GoalEdgeType,
     PersistentGoalTask,
+)
+from .recoverability import (
+    RECOVERABILITY_ACTION_RULE_VERSION,
+    RECOVERABLE_SET_VERSION,
+    PolicyAuthorityCertificate,
+    RecoverabilityActionCertificate,
+    RecoverabilityVerifier,
+    RecoverableSetCertificate,
 )
 
 
@@ -46,7 +59,17 @@ class PersistentGoalCertificateManifest:
     departure_gate_valid: bool
     interruption_resume_valid: bool
     charging_separated_from_return_energy: bool
+    recoverable_set_valid: bool
+    recoverability_action_rule_valid: bool
+    complete_generator_recoverability_required: bool
     version_consistent: bool
+    recoverable_set_version: str
+    recoverability_action_rule_version: str
+    energy_field_version: str
+    kappa_version: str
+    geometry_version: str
+    tracking_version: str
+    dynamics_version: str
     gate_pass: bool
     failure_reasons: tuple[str, ...]
     manifest_hash: str
@@ -62,6 +85,7 @@ class PersistentGoalCertificateProvider:
         self.network = network
         self.battery_capacity = float(battery_capacity)
         self.providers: dict[str, MultiStepSyntheticMissionCertificateProvider] = {}
+        self.recoverability_verifiers: dict[str, RecoverabilityVerifier] = {}
         self.edge_energy_upper: dict[str, float] = {}
         self.active_edge_id = sorted(network.edges)[0]
         failures: list[str] = []
@@ -69,6 +93,7 @@ class PersistentGoalCertificateProvider:
         for edge_id, edge in sorted(network.edges.items()):
             provider = self._build_edge_provider(edge)
             self.providers[edge_id] = provider
+            self.recoverability_verifiers[edge_id] = RecoverabilityVerifier(runtime, provider)
             energy_upper = self._edge_energy_bound(provider)
             self.edge_energy_upper[edge_id] = energy_upper
             complete = bool(
@@ -120,10 +145,22 @@ class PersistentGoalCertificateProvider:
         )
         departure_valid = self._all_departures_fit_capacity()
         interruption_resume_valid = recovery_routes_valid and departure_routes_valid
-        version_consistent = len({
-            provider.runtime.recovery_policy.config.parameter_version
-            for provider in self.providers.values()
-        }) == 1
+        recoverable_set_valid = bool(
+            energy_valid
+            and all(
+                cell.hash_valid
+                and cell.complete_successor_containment
+                and cell.energy_upper >= 0.0
+                and cell.state_bounds.energy.low
+                >= cell.energy_upper + runtime.scenario.terminal.minimum_energy + provider.energy_reserve - 1e-12
+                for provider in self.providers.values()
+                for cell in provider.manifest.cells
+            )
+        )
+        recoverability_action_rule_valid = bool(task_routes_valid and recovery_routes_valid and recoverable_set_valid)
+        complete_generator_recoverability_required = True
+        version_values = tuple(self.providers.values())[0]._versions()
+        version_consistent = len({provider._versions() for provider in self.providers.values()}) == 1
         checks = {
             "TASK_ROUTE_GRAPH_INVALID": task_routes_valid,
             "RECOVERY_ROUTE_GRAPH_INVALID": recovery_routes_valid,
@@ -132,6 +169,8 @@ class PersistentGoalCertificateProvider:
             "ENERGY_RECURSION_INVALID": energy_valid,
             "DEPARTURE_GATE_INVALID": departure_valid,
             "INTERRUPTION_RESUME_INVALID": interruption_resume_valid,
+            "RECOVERABLE_SET_INVALID": recoverable_set_valid,
+            "RECOVERABILITY_ACTION_RULE_INVALID": recoverability_action_rule_valid,
             "VERSION_MISMATCH": version_consistent,
         }
         failures.extend(name for name, valid in checks.items() if not valid)
@@ -148,27 +187,46 @@ class PersistentGoalCertificateProvider:
             "departure_gate": departure_valid,
             "interruption_resume": interruption_resume_valid,
             "charging_separated": True,
+            "recoverable_set": recoverable_set_valid,
+            "recoverability_action_rule": recoverability_action_rule_valid,
+            "complete_generator_recoverability_required": complete_generator_recoverability_required,
+            "recoverable_set_version": RECOVERABLE_SET_VERSION,
+            "recoverability_action_rule_version": RECOVERABILITY_ACTION_RULE_VERSION,
+            "bound_versions": version_values,
             "versions": version_consistent,
             "failures": tuple(failures),
         }
         self.persistent_manifest = PersistentGoalCertificateManifest(
-            runtime.scenario.name,
-            network.network_hash,
-            tuple(certificates),
-            task_routes_valid,
-            recovery_routes_valid,
-            departure_routes_valid,
-            docking_valid,
-            energy_valid,
-            departure_valid,
-            interruption_resume_valid,
-            True,
-            version_consistent,
-            gate_pass,
-            tuple(failures),
-            certificate_hash(manifest_payload),
+            scenario_id=runtime.scenario.name,
+            goal_network_hash=network.network_hash,
+            edge_certificates=tuple(certificates),
+            task_routes_valid=task_routes_valid,
+            recovery_routes_valid=recovery_routes_valid,
+            departure_routes_valid=departure_routes_valid,
+            docking_valid=docking_valid,
+            energy_recursion_valid=energy_valid,
+            departure_gate_valid=departure_valid,
+            interruption_resume_valid=interruption_resume_valid,
+            charging_separated_from_return_energy=True,
+            recoverable_set_valid=recoverable_set_valid,
+            recoverability_action_rule_valid=recoverability_action_rule_valid,
+            complete_generator_recoverability_required=complete_generator_recoverability_required,
+            version_consistent=version_consistent,
+            recoverable_set_version=RECOVERABLE_SET_VERSION,
+            recoverability_action_rule_version=RECOVERABILITY_ACTION_RULE_VERSION,
+            energy_field_version=version_values[3],
+            kappa_version=version_values[5],
+            geometry_version=version_values[0],
+            tracking_version=version_values[2],
+            dynamics_version=version_values[1],
+            gate_pass=gate_pass,
+            failure_reasons=tuple(failures),
+            manifest_hash=certificate_hash(manifest_payload),
         )
         self.last_context: MissionActionContext | None = None
+        self.last_recoverable_set_certificate: RecoverableSetCertificate | None = None
+        self.last_recoverability_action_certificate: RecoverabilityActionCertificate | None = None
+        self.last_policy_authority_certificate: PolicyAuthorityCertificate | None = None
 
     def _edge_energy_bound(self, provider: MultiStepSyntheticMissionCertificateProvider) -> float:
         action = Interval3(-self.runtime.config.a_max, self.runtime.config.a_max)
@@ -307,9 +365,47 @@ class PersistentGoalCertificateProvider:
         for provider in self.providers.values():
             provider.reset()
         self.last_context = None
+        self.last_recoverable_set_certificate = None
+        self.last_recoverability_action_certificate = None
+        self.last_policy_authority_certificate = None
 
     def evaluate(self, state, timestamp: float | None = None) -> MissionActionContext:
-        context = self.providers[self.active_edge_id].evaluate(state, timestamp)
+        provider = self.providers[self.active_edge_id]
+        verifier = self.recoverability_verifiers[self.active_edge_id]
+        context = provider.evaluate(state, timestamp)
+        membership = verifier.membership(state, context)
+        self.last_recoverable_set_certificate = membership
+        certificate = context.closure.zonotope_certificate
+        zonotope = None if certificate is None else certificate.zonotope
+        if zonotope is not None:
+            action_certificate = verifier.certify_action_set(state, zonotope, context)
+            self.last_recoverability_action_certificate = action_certificate
+            if not action_certificate.verified:
+                closure = MissionClosureResult(
+                    False,
+                    None,
+                    action_certificate.reason,
+                    MissionFailureWitness(
+                        action_certificate.reason,
+                        action_certificate.target_recovery_cell_id,
+                        action_certificate.successor_required_energy,
+                        action_certificate.successor_energy_lower,
+                    ),
+                    context.closure.manifest,
+                )
+                context = MissionActionContext(
+                    context.recovery,
+                    closure,
+                    context.required_energy,
+                    context.current_energy_margin,
+                    context.recovery_cell_id,
+                    context.successor_cell_id,
+                    context.recovery_level,
+                    context.root_index,
+                    context.task_successor_cell_id,
+                )
+        else:
+            self.last_recoverability_action_certificate = None
         self.last_context = context
         return context
 
@@ -318,7 +414,53 @@ class PersistentGoalCertificateProvider:
         self.last_context = self.providers[self.active_edge_id].last_context
 
     def verify_task_action(self, state, action: np.ndarray) -> bool:
-        return self.providers[self.active_edge_id].verify_task_action(state, action)
+        context = self.evaluate(state)
+        result = self.recoverability_verifiers[self.active_edge_id].certify_point_action(
+            state,
+            np.asarray(action, dtype=np.float64),
+            context,
+        )
+        self.last_recoverability_action_certificate = result
+        return result.verified
+
+    def recoverable_set_membership(self, state, timestamp: float | None = None) -> RecoverableSetCertificate:
+        context = self.evaluate(state, timestamp)
+        result = self.recoverability_verifiers[self.active_edge_id].membership(state, context)
+        self.last_recoverable_set_certificate = result
+        return result
+
+    def certify_recoverability_action_set(
+        self,
+        state,
+        zonotope,
+        context: MissionActionContext | None = None,
+    ) -> RecoverabilityActionCertificate:
+        selected = self.evaluate(state) if context is None else context
+        result = self.recoverability_verifiers[self.active_edge_id].certify_action_set(state, zonotope, selected)
+        self.last_recoverability_action_certificate = result
+        return result
+
+    def policy_authority_gate(
+        self,
+        state,
+        goal_position: np.ndarray,
+        station_position: np.ndarray,
+    ) -> PolicyAuthorityCertificate:
+        context = self.evaluate(state)
+        result = self.recoverability_verifiers[self.active_edge_id].policy_authority(
+            state,
+            context,
+            goal_position,
+            station_position,
+        )
+        self.last_policy_authority_certificate = result
+        return result
+
+    def successor_stays_in_charging_set(self, state, action: np.ndarray) -> bool:
+        return self.recoverability_verifiers[self.active_edge_id].successor_stays_in_charging_set(state, action)
+
+    def certified_station_hold(self, state) -> bool:
+        return self.recoverability_verifiers[self.active_edge_id].certified_station_hold(state)
 
     def required_departure_energy(self, task: PersistentGoalTask | None) -> float:
         if task is None:

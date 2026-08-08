@@ -760,6 +760,8 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         zonotope = None if certificate is None else certificate.zonotope
         recovery = selected.recovery
         mission_context = self.mission_provider.last_context if self.mission_provider is not None else None
+        recoverable = getattr(self.mission_provider, "last_recoverable_set_certificate", None)
+        recoverability_action = getattr(self.mission_provider, "last_recoverability_action_certificate", None)
         return {
             "certificate_valid": bool(recovery is not None and recovery.certified),
             "generator_available": bool(certificate is not None and certificate.verified and zonotope is not None),
@@ -788,6 +790,15 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "recovery_energy_required": None if mission_context is None else mission_context.required_energy,
             "energy_margin": None if mission_context is None else mission_context.current_energy_margin,
             "recovery_cell_id": None if mission_context is None else mission_context.recovery_cell_id,
+            "recoverability_successor_cell_id": None if mission_context is None else mission_context.task_successor_cell_id,
+            "recoverable_set_member": None if recoverable is None else recoverable.recoverable,
+            "recoverable_set_version": None if recoverable is None else recoverable.recoverable_set_version,
+            "recoverable_set_hash": None if recoverable is None else recoverable.certificate_hash,
+            "recoverability_action_verified": None if recoverability_action is None else recoverability_action.verified,
+            "recoverability_action_rule_version": None if recoverability_action is None else recoverability_action.recoverability_action_rule_version,
+            "recoverability_action_hash": None if recoverability_action is None else recoverability_action.certificate_hash,
+            "successor_energy_lower": None if recoverability_action is None else recoverability_action.successor_energy_lower,
+            "successor_recovery_energy_required": None if recoverability_action is None else recoverability_action.successor_required_energy,
         }
 
     def preview_next_action_context(self) -> dict[str, Any]:
@@ -865,7 +876,7 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         """Execute the independently certified frozen recovery authority directly.
 
         This path does not construct a task candidate and does not call the task actor.
-        It is used by persistent voluntary/forced-return modes.
+        In the main persistent method it is used only after certified backup takeover.
         """
 
         total_started = monotonic()

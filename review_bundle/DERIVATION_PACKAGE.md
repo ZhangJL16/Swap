@@ -3336,40 +3336,102 @@ which Center-Only is feasible but suboptimal is required before spending a large
 whether residual learning adds value. The 50k multi-scenario interface remains available, grouped
 by immutable manifest epoch, but has not been used to manufacture a positive RL claim.
 
-## Persistent mission formulation (implementation-stage addendum)
+## Persistent recoverability formulation (implementation-stage addendum)
 
 Let the environment generate goal-reaching tasks \(\tau_1,\tau_2,\ldots\) for one UAV on a finite
-certified goal network. The policy does not select or schedule tasks. Completing \(\tau_i\) assigns
-\(\tau_{i+1}\), excluding the charging station from normal goals; goal completion and station
-arrival do not terminate a persistent episode. During flight and admissible charging, respectively,
+certified goal network. The policy neither selects nor schedules tasks. Completing \(\tau_i\)
+assigns \(\tau_{i+1}\), excluding the charging station from normal goals. One continuous policy
+emits only \(u_t\in\mathbb R^3\), with
 
 \[
-e_{t+1}=e_t-c_t,
+\eta_t=\tanh u_t,
 \qquad
-e_{t+1}=\min\{e_{\max},e_t+r_c\Delta t\}.
+a_t=c(z_t)+G(z_t)\eta_t.
 \]
 
-Charging availability does not alter the recovery first-passage value. The unchanged hard premise is
+The persistent default center is safety-neutral: it supports a nondegenerate verified action set but
+does not encode the task-goal direction, station direction, or a charging decision. Task flight,
+voluntary station approach, charger dwell, departure, and task resumption must arise from this same
+continuous policy. The categorical energy-management SMDP is retained only as an ablation and is
+not part of the main theorem chain.
+
+The recovery-energy field retains its undiscounted robust first-passage definition under frozen
+\(\kappa\). Define the certified recoverable set
 
 \[
-e_t\ge E^\kappa(z_t)+e_G+m_e.
+\mathcal R
+=
+\left\{z:
+\begin{array}{l}
+\text{a valid certified recovery chain for }\kappa\text{ exists},\\
+\text{the linked collision/geometry recovery certificate is valid},\\
+e-E^\kappa(z)-e_G-m_e\ge 0
+\end{array}
+\right\}.
 \]
 
-Approach to its configured boundary forces kappa recovery regardless of the energy-management request. A
-departure request is separately feasible only when a version-matched route certificate establishes
-\(e\ge E_{\rm depart}^{\rm required}+m_e\). Future charging therefore cannot justify insufficient
-current return energy.
+Membership in \(\mathcal R\) means that \(\kappa\) is available as a certified backup; it does not
+mean that \(\kappa\) currently controls the vehicle. Using the uncertainty-aware successor envelope,
+define
 
-The high-level energy-management policy acts at new-goal/task-completion events and charging checkpoints. For decision
-times \(n_k\), replay uses accumulated reward and duration \(\Delta n_k=n_{k+1}-n_k\), so its
-bootstrap multiplier is \(\gamma^{\Delta n_k}\). This categorical SMDP policy is not part of
-T12A's affine-tanh density. Continuous physical actions still use the verified Generator or kappa;
-its reward supplies charging-performance preferences only and may be overridden by the safety layer.
+\[
+\mathcal A_{\rm rec}(z)
+=
+\{a:\operatorname{Post}(z,a)\subseteq\mathcal R\}.
+\]
 
-`PERSISTENT_CERTIFICATE_GATE` separately verifies task edges between goal nodes, recovery edges to
-the station, and departure edges from the station to each pending goal. It requires complete task
-support, an independently certified strict-descent recovery chain, valid energy/E3 recursion,
-docking admissibility, interruption/resume closure, and consistent hashes/versions. Charging
-does not forge or shorten that chain. Code and deterministic unit contracts are implemented, but
-the persistent gate and experiments were not executed in this round. Physical premises remain
-blocked-by-calibration and deployment timing remains blocked-by-deployment-evidence.
+Thus the candidate-action verifier jointly checks actuator and velocity bounds, swept FREE geometry,
+tracking/dynamics uncertainty, and, for every robust successor,
+
+\[
+e^+_{\rm lower}
+\ge
+E^\kappa(z^+)_{\rm upper}+e_G+m_e.
+\]
+
+Checking only the current reserve is insufficient. The complete Generator must satisfy
+
+\[
+C_{\rm run}(z)=c(z)+G(z)[-1,1]^3\subseteq\mathcal A_{\rm rec}(z).
+\]
+
+**T_REC1 (one-step recoverability preservation).** Assume \(z_t\in\mathcal R\) and runtime publishes
+\(a_t\in C_{\rm run}(z_t)\), where the complete-set certificate proves
+\(C_{\rm run}(z_t)\subseteq\mathcal A_{\rm rec}(z_t)\). Then every state represented by the certified
+successor envelope belongs to \(\mathcal R\); in particular, the realized successor satisfies
+\(z_{t+1}\in\mathcal R\) whenever the physical bounds are sound.
+
+*Proof sketch.* Set containment gives
+\(a_t\in\mathcal A_{\rm rec}(z_t)\). By definition of \(\mathcal A_{\rm rec}\),
+\(\operatorname{Post}(z_t,a_t)\subseteq\mathcal R\). Soundness of the successor envelope places the
+realized successor in that envelope. This argument uses certificate construction and set
+containment, not RL contraction.
+
+**T_REC2 (recursive recoverability under learned actions).** If \(z_0\in\mathcal R\) and every normal
+learned action is published from a newly verified \(C_{\rm run}(z_t)\subseteq\mathcal A_{\rm rec}(z_t)\),
+then \(z_t\in\mathcal R\) for every normal-policy step.
+
+*Proof sketch.* Apply T_REC1 at \(t=0\); use its conclusion as the induction premise at the next
+step. The theorem preserves the existence of a certified recovery option. It does not claim that
+the learned policy itself reaches the terminal.
+
+Normal RL authority requires an interior energy margin. At the configured switching boundary, or
+after `NO_GENERATOR_SET`, evidence/version failure, deadline failure, or atomic publication failure,
+authority switches to frozen \(\kappa\). Since switching occurs from \(\mathcal R\), the existing
+strict corridor descent, E3 recursion, and finite-time terminal-arrival theorem apply. An invalid
+\(\kappa\) certificate instead causes fail-closed termination.
+
+Voluntary station approach while the margin remains interior is not recovery takeover: the
+Generator policy retains physical authority. Remaining inside the charge-admissible set applies
+\(e_{t+1}=\min\{e_{\max},e_t+r_c\Delta t\}\). A continuous successor leaving that set is a departure
+attempt and is accepted only when both its version-matched departure-energy condition and
+\(\mathcal A_{\rm rec}\) membership hold; otherwise a separately certified station hold is executed.
+Future charging never reduces current return energy.
+
+`PERSISTENT_CERTIFICATE_GATE` binds task, recovery, and departure routes to the recoverable-set,
+recoverability-action-rule, energy-field, \(\kappa\), geometry, tracking, and dynamics versions.
+`POLICY_AUTHORITY_GATE` additionally checks a three-dimensional output, neutral center, full-rank
+nondegenerate \(G\), task- and station-directed residual authority where permitted, and complete-set
+recoverability. These are synthetic software contracts. Physical premises remain
+blocked-by-calibration and deployment timing remains blocked-by-deployment-evidence; the persistent
+gate and formal experiments were not executed in this implementation round.

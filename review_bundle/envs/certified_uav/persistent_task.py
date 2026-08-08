@@ -14,11 +14,15 @@ from .state import as_vec3
 
 
 class PersistentMissionMode(IntEnum):
-    TASK = 0
-    VOLUNTARY_RETURN = 1
-    FORCED_RETURN = 2
-    CHARGING = 3
-    FAILURE = 4
+    TASK_RL = 0
+    CHARGING_RL = 1
+    BACKUP_RECOVERY = 2
+    FAILURE = 3
+
+    TASK = TASK_RL
+    CHARGING = CHARGING_RL
+    FORCED_RETURN = BACKUP_RECOVERY
+    VOLUNTARY_RETURN = TASK_RL
 
 
 class GoalEdgeType(str, Enum):
@@ -299,14 +303,13 @@ class PersistentGoalTaskManager:
 
     def mark_station_arrival(self) -> None:
         self.current_node = self.network.charging_station
-        self.active_route = ()
-        self.route_index = 0
+        self._plan_to_pending_goal()
 
     def resume_from_station(self) -> None:
         if self.current_task is None:
             raise RuntimeError("cannot leave station without a pending goal")
-        self.current_node = self.network.charging_station
-        self._plan_to_pending_goal()
+        if self.current_node != self.network.charging_station:
+            raise RuntimeError("departure can begin only from the charging station")
         self.task_resume_count += 1
         self.decision_required = False
 
@@ -344,10 +347,16 @@ class PersistentGoalTaskManager:
 @dataclass(frozen=True, slots=True)
 class PersistentRewardConfig:
     task_completion_reward: float = 10.0
+    goal_progress_weight: float = 1.0
     elapsed_time_cost: float = 0.01
     flight_energy_cost: float = 0.1
     charging_dwell_cost: float = 0.01
-    forced_return_interruption_cost: float = 1.0
+    backup_intervention_cost: float = 1.0
+
+    @property
+    def forced_return_interruption_cost(self) -> float:
+        """Deprecated name used only by the two-policy ablation wrapper."""
+        return self.backup_intervention_cost
 
 
 class PersistentGoalWrapper(gym.Wrapper):
@@ -368,12 +377,14 @@ class PersistentGoalWrapper(gym.Wrapper):
         self.network = network
         self.manager = PersistentGoalTaskManager(network, goal_radius, task_reward)
         self.reward_config = reward_config or PersistentRewardConfig(task_completion_reward=task_reward)
-        self.mode = PersistentMissionMode.TASK
+        self.mode = PersistentMissionMode.TASK_RL
         self.phase = self.mode
         self.required_return_energy = 0.0
         self.energy_margin = 0.0
         self.last_events: dict[str, Any] = {}
         self.episode_step = 0
+        self.time_since_last_charge = 0
+        self.voluntary_station_approach = False
         self.observation_layout: dict[str, slice] = {}
         cursor = 0
         for name, length in (
@@ -388,6 +399,9 @@ class PersistentGoalWrapper(gym.Wrapper):
             ("charging", 1),
             ("state_of_charge", 1),
             ("tasks_completed", 1),
+            ("distance_to_goal", 1),
+            ("distance_to_station", 1),
+            ("time_since_last_charge", 1),
             ("lidar_distances", plant.config.num_lasers),
             ("lidar_valid", plant.config.num_lasers),
             ("local_map_crop", plant.config.local_map_encoding_size),
@@ -403,11 +417,7 @@ class PersistentGoalWrapper(gym.Wrapper):
 
     @property
     def active_goal(self) -> np.ndarray:
-        if self.mode in {
-            PersistentMissionMode.VOLUNTARY_RETURN,
-            PersistentMissionMode.FORCED_RETURN,
-            PersistentMissionMode.CHARGING,
-        }:
+        if self.mode == PersistentMissionMode.BACKUP_RECOVERY:
             return self.plant.scenario.station_position
         return self.manager.navigation_target
 
@@ -416,25 +426,38 @@ class PersistentGoalWrapper(gym.Wrapper):
         self.energy_margin = float(energy_margin)
 
     def on_runtime_recovery(self, reason: str) -> None:
-        del reason
-        if self.mode == PersistentMissionMode.TASK:
-            self.request_return(forced=True)
+        self.begin_backup_recovery(reason)
 
     def request_return(self, forced: bool) -> None:
-        if self.mode == PersistentMissionMode.TASK:
+        if forced:
+            self.begin_backup_recovery("LEGACY_FORCED_RETURN_REQUEST")
+        else:
+            self.voluntary_station_approach = True
+
+    def begin_backup_recovery(self, reason: str) -> None:
+        del reason
+        if self.mode != PersistentMissionMode.BACKUP_RECOVERY:
             self.manager.interrupt_for_charge()
-        self.mode = PersistentMissionMode.FORCED_RETURN if forced else PersistentMissionMode.VOLUNTARY_RETURN
+        self.mode = PersistentMissionMode.BACKUP_RECOVERY
         self.phase = self.mode
 
-    def enter_charging(self) -> None:
+    def enter_charging(self, *, voluntary: bool) -> None:
         self.manager.mark_station_arrival()
-        self.mode = PersistentMissionMode.CHARGING
+        if voluntary:
+            self.manager.interrupt_for_charge()
+        self.voluntary_station_approach = voluntary
+        self.mode = PersistentMissionMode.CHARGING_RL
         self.phase = self.mode
+        self.time_since_last_charge = 0
 
     def leave_station(self) -> None:
         self.manager.resume_from_station()
-        self.mode = PersistentMissionMode.TASK
+        self.mode = PersistentMissionMode.TASK_RL
         self.phase = self.mode
+        self.voluntary_station_approach = False
+
+    def set_time_since_last_charge(self, steps: int) -> None:
+        self.time_since_last_charge = max(0, int(steps))
 
     def build_observation(
         self,
@@ -468,9 +491,12 @@ class PersistentGoalWrapper(gym.Wrapper):
             np.array([self.required_return_energy / capacity, self.energy_margin / capacity]),
             mode_vector,
             np.array([
-                float(self.mode == PersistentMissionMode.CHARGING),
+                float(self.mode == PersistentMissionMode.CHARGING_RL),
                 state.energy / capacity,
                 self.manager.tasks_completed / 100.0,
+                np.linalg.norm(goal - state.position) / float(np.linalg.norm(self.plant.config.world_size)),
+                np.linalg.norm(self.plant.scenario.station_position - state.position) / float(np.linalg.norm(self.plant.config.world_size)),
+                self.time_since_last_charge / max(1, self.plant.config.episode_limit),
             ]),
             lidar.distances / self.plant.config.lidar_range,
             lidar.valid.astype(np.float64),
@@ -482,13 +508,18 @@ class PersistentGoalWrapper(gym.Wrapper):
     def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
         _, info = self.plant.reset(seed=seed, options=options)
         self.manager.reset(seed, self.plant.state.position)
-        self.mode = PersistentMissionMode.TASK
+        self.mode = PersistentMissionMode.TASK_RL
         self.phase = self.mode
         self.episode_step = 0
         self.last_events = {}
+        self.time_since_last_charge = 0
+        self.voluntary_station_approach = False
         return self.build_observation(), info | {"observation_layout": dict(self.observation_layout)}
 
     def step(self, action):
+        task_before = self.manager.current_task
+        goal_before = self.plant.state.position.copy() if task_before is None else task_before.goal_position.copy()
+        distance_before = float(np.linalg.norm(self.plant.state.position - goal_before))
         _, _, terminated, truncated, info = self.plant.step(action)
         telemetry = info["telemetry"]
         self.episode_step += 1
@@ -498,15 +529,17 @@ class PersistentGoalWrapper(gym.Wrapper):
             "completed_task_id": None,
             "new_goal_id": None,
         }
-        if self.mode == PersistentMissionMode.TASK:
+        if self.mode == PersistentMissionMode.TASK_RL:
             events = self.manager.advance(self.plant.state.position, self.episode_step)
-        elif self.mode in {PersistentMissionMode.VOLUNTARY_RETURN, PersistentMissionMode.FORCED_RETURN} and telemetry.terminal_admissible:
-            self.enter_charging()
+        elif self.mode == PersistentMissionMode.BACKUP_RECOVERY and telemetry.terminal_admissible:
+            self.enter_charging(voluntary=False)
         if terminated or info.get("failure_reason"):
             self.mode = PersistentMissionMode.FAILURE
             self.phase = self.mode
+        distance_after = float(np.linalg.norm(self.plant.state.position - goal_before))
         reward = (
             self.reward_config.task_completion_reward * float(events["task_completed"])
+            + self.reward_config.goal_progress_weight * (distance_before - distance_after)
             - self.reward_config.elapsed_time_cost
             - self.reward_config.flight_energy_cost * telemetry.energy_cost
         )
