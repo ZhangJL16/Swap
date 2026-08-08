@@ -1,0 +1,3070 @@
+{
+  "persistent_certificate": [
+    {
+      "scenario": "persistent_open",
+      "gate": "FAIL",
+      "manifest_hash": "4e6513abaf4aedfec89ffbb5820b4ffd0e4d23a37f1f0edd269153456d56c672",
+      "network_hash": "f1fe00276baeba939d6bb683c199b6b4da2e16f8556b36d54d7c1bc85e94cbe0",
+      "edge_count": 16,
+      "recoverable_set_valid": true,
+      "recoverability_action_rule_valid": true,
+      "complete_generator_recoverability_required": true,
+      "recoverable_set_version": "recoverable-set-v1",
+      "recoverability_action_rule_version": "recoverability-action-rule-v1",
+      "energy_field_version": "synthetic-mission-energy-v2",
+      "kappa_version": "mission-kappa-persistent_open:depart_S_A-v2",
+      "failure_reasons": [
+        "VERSION_MISMATCH"
+      ],
+      "synthetic_only": true
+    },
+    {
+      "scenario": "persistent_obstacle",
+      "gate": "FAIL",
+      "manifest_hash": "8469dc02db0744e91564712452e1bad73531e07e0bfc0a41ca48d2e03795515c",
+      "network_hash": "8aaf3628eb7d8ebdedd008ebcbcea26f03374149944e6288c61188824f2370ab",
+      "edge_count": 16,
+      "recoverable_set_valid": false,
+      "recoverability_action_rule_valid": false,
+      "complete_generator_recoverability_required": true,
+      "recoverable_set_version": "recoverable-set-v1",
+      "recoverability_action_rule_version": "recoverability-action-rule-v1",
+      "energy_field_version": "synthetic-mission-energy-v2",
+      "kappa_version": "mission-kappa-persistent_obstacle:depart_S_A-v2",
+      "failure_reasons": [
+        "EDGE_RECOVERY_GATE_FAILED:recover_C_S",
+        "EDGE_RECOVERY_GATE_FAILED:task_C_B",
+        "EDGE_RECOVERY_GATE_FAILED:task_C_D",
+        "EDGE_RECOVERY_GATE_FAILED:task_D_C",
+        "RECOVERABLE_SET_INVALID",
+        "RECOVERABILITY_ACTION_RULE_INVALID",
+        "VERSION_MISMATCH"
+      ],
+      "synthetic_only": true
+    },
+    {
+      "scenario": "persistent_energy_tight",
+      "gate": "FAIL",
+      "manifest_hash": "19042a60705369c346bf745be0436683e93396307b9116577af91282e4e9222b",
+      "network_hash": "f1fe00276baeba939d6bb683c199b6b4da2e16f8556b36d54d7c1bc85e94cbe0",
+      "edge_count": 16,
+      "recoverable_set_valid": true,
+      "recoverability_action_rule_valid": true,
+      "complete_generator_recoverability_required": true,
+      "recoverable_set_version": "recoverable-set-v1",
+      "recoverability_action_rule_version": "recoverability-action-rule-v1",
+      "energy_field_version": "synthetic-mission-energy-v2",
+      "kappa_version": "mission-kappa-persistent_energy_tight:depart_S_A-v2",
+      "failure_reasons": [
+        "VERSION_MISMATCH"
+      ],
+      "synthetic_only": true
+    }
+  ],
+  "policy_authority": [
+    {
+      "scenario": "persistent_open",
+      "gate": "FAIL",
+      "neutral_center": false,
+      "output_dimension": 3,
+      "full_rank": false,
+      "minimum_sigma_min_G": 0.0,
+      "maximum_condition_G": Infinity,
+      "minimum_zonotope_volume": 0.0,
+      "goal_direction_available": false,
+      "station_direction_available": false,
+      "complete_set_recoverable": false,
+      "number_checked": 1951,
+      "number_failed": 19,
+      "failures": [
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-71-level-72",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-72-level-71",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-73-level-70",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-74-level-69",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-75-level-68",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-76-level-67",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-77-level-66",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-78-level-65",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_open:recover_B_S-root-79-level-64",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-135-level-72",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-136-level-71",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-137-level-70",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-138-level-69",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-139-level-68",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-140-level-67",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-141-level-66",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-142-level-65",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-143-level-64",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_open:recover_C_S-root-144-level-63",
+          "reason": "NO_GENERATOR_SET"
+        }
+      ],
+      "synthetic_only": true
+    },
+    {
+      "scenario": "persistent_obstacle",
+      "gate": "FAIL",
+      "neutral_center": false,
+      "output_dimension": 3,
+      "full_rank": false,
+      "minimum_sigma_min_G": 0.0,
+      "maximum_condition_G": Infinity,
+      "minimum_zonotope_volume": 0.0,
+      "goal_direction_available": false,
+      "station_direction_available": false,
+      "complete_set_recoverable": false,
+      "number_checked": 1985,
+      "number_failed": 552,
+      "failures": [
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-78-level-55",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-79-level-54",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-80-level-53",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-81-level-52",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-82-level-51",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-83-level-50",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-84-level-49",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-85-level-48",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-86-level-47",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_obstacle:recover_B_S-root-87-level-46",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-0-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-1-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-2-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-3-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-4-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-5-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-6-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-7-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-8-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-9-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-10-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-11-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-12-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-13-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-14-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-15-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-16-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-17-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-18-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-19-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-20-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-21-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-22-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-23-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-24-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-25-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-26-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-27-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-28-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-29-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-30-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-31-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-32-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-33-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-34-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-35-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-36-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-37-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-38-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-39-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-40-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-41-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-42-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-43-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-44-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-45-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-46-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-47-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-48-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-49-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-50-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-51-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-52-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-53-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-54-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-55-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-56-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-57-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-58-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-59-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-60-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-61-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-62-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-63-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-64-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-65-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-66-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-67-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-68-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-69-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-70-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-71-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-72-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-73-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-74-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-75-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-76-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-77-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-78-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-79-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-80-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-81-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-82-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-83-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-84-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-85-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-86-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-87-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-88-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-89-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-90-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-91-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-92-level-133",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-93-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-94-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-95-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-96-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-97-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-98-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-99-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-100-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-101-level-123",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-102-level-122",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-103-level-121",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-104-level-120",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-105-level-119",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-106-level-118",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-107-level-117",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-108-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-109-level-115",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-110-level-114",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-111-level-113",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-112-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-113-level-111",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-114-level-110",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-115-level-109",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-116-level-108",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-117-level-107",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-118-level-106",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-119-level-105",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-120-level-104",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-121-level-103",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-122-level-102",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-123-level-101",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-124-level-100",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-125-level-111",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-126-level-114",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-127-level-117",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-128-level-120",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-129-level-123",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-130-level-126",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-131-level-129",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-132-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-133-level-134",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-134-level-137",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-135-level-145",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-136-level-150",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-137-level-154",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-138-level-155",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-139-level-156",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-140-level-157",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-141-level-158",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-142-level-159",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-143-level-160",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-144-level-161",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-145-level-162",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-146-level-163",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-147-level-164",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-148-level-165",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-149-level-166",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-150-level-167",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-151-level-168",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-152-level-72",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-153-level-71",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-154-level-70",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-155-level-69",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-156-level-68",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-157-level-67",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-158-level-66",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-159-level-65",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-160-level-64",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-161-level-63",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-162-level-62",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-163-level-61",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-164-level-60",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-165-level-59",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-166-level-58",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-167-level-57",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-168-level-56",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-169-level-55",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-170-level-54",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-171-level-53",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-172-level-52",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-173-level-51",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-174-level-50",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-175-level-49",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-176-level-48",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-177-level-47",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-178-level-46",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-179-level-45",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-180-level-44",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-181-level-43",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-182-level-42",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-183-level-41",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-184-level-40",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-185-level-39",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-186-level-38",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-187-level-37",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-188-level-36",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-189-level-35",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-190-level-34",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-191-level-33",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-192-level-32",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-193-level-31",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-194-level-30",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-195-level-43",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-196-level-45",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-197-level-48",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-198-level-51",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-199-level-54",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-200-level-57",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-201-level-60",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-202-level-63",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-203-level-66",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-204-level-68",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-205-level-77",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-206-level-82",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-207-level-84",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-208-level-85",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-209-level-16",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-210-level-15",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-211-level-14",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-212-level-13",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-213-level-12",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-214-level-11",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-215-level-10",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-216-level-9",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-217-level-8",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-218-level-7",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-219-level-6",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-220-level-5",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-221-level-4",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-222-level-3",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-223-level-13",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-224-level-13",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-225-level-12",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-226-level-11",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-227-level-10",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-228-level-10",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-229-level-9",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-230-level-8",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-231-level-8",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-232-level-7",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_obstacle:recover_C_S-root-233-level-6",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-0-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-1-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-2-level-115",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-3-level-114",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-4-level-114",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-5-level-114",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-6-level-113",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-7-level-113",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-8-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-9-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-10-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-11-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-12-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-13-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-14-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-15-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-16-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-17-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-18-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-19-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-20-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-21-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-22-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-23-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-24-level-112",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-25-level-165",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-26-level-165",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-27-level-165",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-28-level-166",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-29-level-166",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-30-level-167",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-31-level-168",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-32-level-169",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-33-level-170",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-34-level-170",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-35-level-170",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-36-level-171",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-37-level-171",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-38-level-171",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-39-level-171",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-40-level-171",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-41-level-170",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-42-level-169",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-43-level-168",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-44-level-167",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-45-level-166",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-46-level-165",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-47-level-164",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-48-level-163",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-49-level-162",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-50-level-161",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-51-level-160",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-52-level-159",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-53-level-158",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-54-level-157",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-55-level-156",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-56-level-155",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-57-level-154",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-58-level-153",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-59-level-152",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-60-level-151",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-61-level-150",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-62-level-150",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-63-level-149",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-64-level-148",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-65-level-147",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-66-level-146",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-67-level-145",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-68-level-144",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-69-level-143",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-70-level-142",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-71-level-141",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-72-level-140",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-73-level-139",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-74-level-138",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-75-level-137",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-76-level-136",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-77-level-135",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-78-level-135",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-79-level-134",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-80-level-134",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-81-level-133",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-82-level-133",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-83-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-84-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-85-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-86-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-87-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-88-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-89-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-90-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-91-level-132",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-92-level-133",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-93-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-94-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-95-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-96-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-97-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-98-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_B",
+          "cell_id": "persistent_obstacle:task_C_B-root-99-level-124",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-0-level-87",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-1-level-86",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-2-level-85",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-3-level-84",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-4-level-83",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-5-level-82",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-6-level-81",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-7-level-80",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-8-level-79",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-9-level-78",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-10-level-77",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-11-level-76",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-12-level-75",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-13-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-14-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-15-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-16-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-17-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-18-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-19-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-20-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-21-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-22-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-23-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-24-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-25-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-26-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-27-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-28-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-29-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-30-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-31-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-32-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-33-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-34-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-35-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-36-level-74",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-37-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-38-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-39-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-40-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-41-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-42-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-43-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-44-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-45-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-46-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-47-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-48-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-49-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-50-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-51-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-52-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-53-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-54-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-55-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-56-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-57-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-58-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-59-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-60-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-61-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-62-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-63-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-64-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-65-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-66-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-67-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-68-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-69-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-70-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-71-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-72-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-73-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-74-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-75-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-76-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-77-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-78-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-79-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-80-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-81-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-82-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-83-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-84-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-85-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-86-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-87-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-88-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-89-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-90-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-91-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-92-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-93-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-94-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-95-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-96-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-97-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-98-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-99-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-100-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-101-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-102-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_C_D",
+          "cell_id": "persistent_obstacle:task_C_D-root-103-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-0-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-1-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-2-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-3-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-4-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-5-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-6-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-7-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-8-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-9-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-10-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-11-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-12-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-13-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-14-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-15-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-16-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-17-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-18-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-19-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-20-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-21-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-22-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-23-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-24-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-25-level-116",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-26-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-27-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-28-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-29-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-30-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-31-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-32-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-33-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-34-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-35-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-36-level-199",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-37-level-231",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-38-level-232",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-39-level-232",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-40-level-233",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-41-level-233",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-42-level-234",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-43-level-234",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-44-level-235",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-45-level-235",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-46-level-236",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-47-level-236",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-48-level-236",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-49-level-236",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-50-level-236",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-51-level-236",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-52-level-235",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-53-level-234",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-54-level-234",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-55-level-233",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-56-level-232",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-57-level-231",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-58-level-230",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-59-level-229",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-60-level-228",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-61-level-227",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-62-level-226",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-63-level-226",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-64-level-225",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-65-level-225",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-66-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-67-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-68-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-69-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-70-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-71-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-72-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-73-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-74-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-75-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-76-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-77-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-78-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-79-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-80-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-81-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-82-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-83-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-84-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-85-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-86-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-87-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-88-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-89-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-90-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-91-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-92-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-93-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-94-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-95-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-96-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-97-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-98-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-99-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-100-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-101-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-102-level-224",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "task_D_C",
+          "cell_id": "persistent_obstacle:task_D_C-root-103-level-224",
+          "reason": "NO_GENERATOR_SET"
+        }
+      ],
+      "synthetic_only": true
+    },
+    {
+      "scenario": "persistent_energy_tight",
+      "gate": "FAIL",
+      "neutral_center": false,
+      "output_dimension": 3,
+      "full_rank": false,
+      "minimum_sigma_min_G": 0.0,
+      "maximum_condition_G": Infinity,
+      "minimum_zonotope_volume": 0.0,
+      "goal_direction_available": false,
+      "station_direction_available": false,
+      "complete_set_recoverable": false,
+      "number_checked": 1951,
+      "number_failed": 19,
+      "failures": [
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-71-level-72",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-72-level-71",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-73-level-70",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-74-level-69",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-75-level-68",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-76-level-67",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-77-level-66",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-78-level-65",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_B_S",
+          "cell_id": "persistent_energy_tight:recover_B_S-root-79-level-64",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-135-level-72",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-136-level-71",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-137-level-70",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-138-level-69",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-139-level-68",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-140-level-67",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-141-level-66",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-142-level-65",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-143-level-64",
+          "reason": "NO_GENERATOR_SET"
+        },
+        {
+          "edge_id": "recover_C_S",
+          "cell_id": "persistent_energy_tight:recover_C_S-root-144-level-63",
+          "reason": "NO_GENERATOR_SET"
+        }
+      ],
+      "synthetic_only": true
+    }
+  ]
+}
