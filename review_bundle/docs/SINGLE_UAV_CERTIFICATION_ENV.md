@@ -405,8 +405,8 @@ linear scan followed by exact containment and averages 1.7--3.5 ms in the record
 These are offline/profile measurements, not online WCET evidence; a spatial index may accelerate
 lookup but cannot replace final cell-containment verification.
 
-The authoritative post-change suite is `128 tests in 176.973 s`, with 128 passes, zero failures,
-and zero skips. The four mission certificate gates also pass after regeneration. Exact raw outputs
+The authoritative current suite is `176 tests in 205.350 s`, with 176 passes, zero failures,
+and zero skips. The four single-mission certificate gates pass in their prior recorded run. Exact raw outputs
 are stored in `artifacts/paper/`.
 
 ## Persistent goal stream and charging extension
@@ -416,9 +416,11 @@ assigns a continuous stream of certified goals; one three-dimensional `Persisten
 policy controls both task flight and voluntary station approach. There is no discrete charging
 action in the main path. Every accepted Generator is completely contained in the joined
 collision-safe and recoverability-preserving action set. Kappa takes physical authority only at the
-configured recovery boundary or after certificate/runtime failure. Continuous dwell inside the
-charging set charges the battery, while unsafe departure attempts are replaced by a certified
-charger hold. Pending goals survive charging. See `docs/PERSISTENT_TASK_CHARGING.md`.
+configured recovery boundary or after certificate/runtime failure. With departure closed, the
+complete Generator is restricted to a certified charger-stay subset, so accepted and executed
+actions remain equal; station hold is exceptional fallback only. Pending goals survive charging.
+Runtime and persistent Bellman targets share the same execution-authority classification. See
+`docs/PERSISTENT_TASK_CHARGING.md`.
 
 This round added code and deterministic unit tests only; no persistent certificate gate, acceptance
 rollout, training, or baseline evaluation result is claimed.

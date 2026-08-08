@@ -109,11 +109,13 @@ The separate persistent path uses one continuous three-dimensional Generator-SAC
 flight, voluntary station approach, charger dwell, and departure. Every accepted action set must
 preserve certified kappa recoverability; kappa is backup authority only. The task center defaults to
 `safety_neutral`, pending goals survive charging, and the synthetic charger uses `30.0` capacity,
-`2.0` units/s, and `0.4` per 0.2 s. Only static checks and unit tests were run in this phase.
+`2.0` units/s, and `0.4` per 0.2 s. Closed departure uses a complete charger-stay Generator support,
+and replay/Bellman targets consume the same immutable execution-authority classification as runtime.
+Only static checks and unit tests were run in this phase.
 
 ```bash
 .venv/bin/python scripts/validate_persistent_certificate.py
-.venv/bin/python scripts/run_persistent_env_acceptance.py --scenario persistent_open
+.venv/bin/python scripts/run_persistent_env_acceptance.py --scenario persistent_open --probe all --strict
 .venv/bin/python scripts/train_persistent_generator_sac.py --scenario persistent_open --steps 50000
 .venv/bin/python scripts/evaluate_persistent_generator_sac.py --scenario persistent_open --checkpoint <path>
 .venv/bin/python scripts/run_persistent_single_policy_baselines.py --scenario persistent_open

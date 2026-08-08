@@ -6,6 +6,12 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
+from cert_runtime.persistent_authority import (
+    ExecutionAuthority,
+    PersistentAuthorityDecision,
+    PersistentAuthorityInput,
+    PersistentExecutionAuthority,
+)
 from cert_runtime.energy_management import (
     EnergyDecision,
     EnergyManagementPolicy,
@@ -501,6 +507,7 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self.certificate_provider: PersistentGoalCertificateProvider | None = None
         self.metrics = PersistentMetrics()
         self.policy_authority_certificate = None
+        self._last_authority_decision: PersistentAuthorityDecision | None = None
         self._active_task_start_step = 0
         self._time_since_last_charge = 0
         self._station_approach_active = False
@@ -522,6 +529,10 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
 
     def _refresh_context(self) -> dict[str, Any]:
         self._activate_current_edge()
+        charging_state = self.task_env.mode == PersistentMissionMode.CHARGING_RL
+        departure = self._departure_gate() if charging_state else DepartureGateResult(True, 0.0, None)
+        if self.certificate_provider is not None:
+            self.certificate_provider.configure_charging_support(charging_state and not departure.allowed)
         context = self.runtime.preview_next_action_context()
         required = float(context.get("recovery_energy_required") or float("inf"))
         margin = float(context.get("energy_margin") if context.get("energy_margin") is not None else float("-inf"))
@@ -540,7 +551,56 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
                 goal,
                 self.plant.scenario.station_position,
             )
-        return context
+            station_hold_valid = bool(verifier.certified_station_hold(self.runtime._certificate_state())) if charging_state and not departure.allowed else False
+        else:
+            self.policy_authority_certificate = None
+            station_hold_valid = False
+        policy_authority_pass = bool(
+            self.policy_authority_certificate is not None
+            and (
+                self.policy_authority_certificate.passed
+                or (
+                    charging_state
+                    and not departure.allowed
+                    and self.policy_authority_certificate.neutral_center
+                    and self.policy_authority_certificate.full_rank
+                    and self.policy_authority_certificate.nondegenerate
+                    and self.policy_authority_certificate.complete_set_recoverable
+                )
+            )
+        )
+        authority_input = PersistentAuthorityInput(
+            persistent_mode=self.task_env.mode.name,
+            energy_margin=margin,
+            backup_switch_margin=float(self.charging.config.forced_return_margin),
+            persistent_certificate_valid=bool(self.certificate_provider is not None and self.certificate_provider.gate_pass),
+            certificate_valid=bool(context.get("certificate_valid", False)),
+            kappa_valid=bool(context.get("certificate_valid", False) and context.get("kappa") is not None),
+            generator_available=bool(context.get("generator_available", False)),
+            recoverable_set_member=context.get("recoverable_set_member") is True,
+            recoverability_action_verified=context.get("recoverability_action_verified") is True,
+            policy_authority_pass=policy_authority_pass,
+            charging_state=charging_state,
+            departure_allowed=bool(departure.allowed),
+            charging_support_verified=context.get("charging_support_verified") is True,
+            station_hold_valid=station_hold_valid,
+        )
+        self._last_authority_decision = PersistentExecutionAuthority.evaluate(authority_input)
+        return context | {
+            "persistent_mode": self.task_env.mode.name,
+            "persistent_certificate_valid": authority_input.persistent_certificate_valid,
+            "policy_authority_pass": authority_input.policy_authority_pass,
+            "departure_allowed": authority_input.departure_allowed,
+            "departure_reason": departure.reason,
+            "station_hold_valid": station_hold_valid,
+            "execution_authority": self._last_authority_decision.authority.value,
+            "execution_authority_reason": self._last_authority_decision.reason,
+            "generator_executable": self._last_authority_decision.generator_executable,
+            "backup_required": self._last_authority_decision.kappa_required,
+            "backup_switch_margin": authority_input.backup_switch_margin,
+            "charging_restriction": self._last_authority_decision.charging_restriction,
+            "station_hold_required": self._last_authority_decision.station_hold_required,
+        }
 
     def _departure_required(self) -> float:
         if self.certificate_provider is None:
@@ -565,18 +625,29 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         return np.asarray(context["c"], dtype=np.float64) + np.asarray(context["G"], dtype=np.float64) @ np.tanh(selected)
 
     def _backup_reason(self, context: dict[str, Any]) -> str | None:
-        if self.certificate_provider is None or not self.certificate_provider.gate_pass:
-            return "PERSISTENT_CERTIFICATE_GATE_FAILED"
-        if not context.get("certificate_valid", False) or not context.get("recoverable_set_member", False):
-            return context.get("failure_reason") or "RECOVERABLE_SET_CERTIFICATE_INVALID"
-        if self.task_env.energy_margin <= self.charging.config.forced_return_margin:
-            return "ENERGY_MARGIN_BACKUP_SWITCH"
-        if not context.get("generator_available", False):
-            return context.get("generator_status") or "NO_GENERATOR_SET"
-        if context.get("recoverability_action_verified") is not True:
-            return "GENERATOR_NOT_CONTAINED_IN_A_REC"
-        if self.policy_authority_certificate is None or not self.policy_authority_certificate.passed:
-            return "POLICY_AUTHORITY_GATE_FAILED"
+        if not context.get("certificate_valid", False) and context.get("failure_reason"):
+            return str(context["failure_reason"])
+        if self._last_authority_decision is None:
+            self._last_authority_decision = PersistentExecutionAuthority.evaluate(PersistentAuthorityInput(
+                persistent_mode=self.task_env.mode.name,
+                energy_margin=float(self.task_env.energy_margin),
+                backup_switch_margin=float(self.charging.config.forced_return_margin),
+                persistent_certificate_valid=bool(self.certificate_provider is not None and self.certificate_provider.gate_pass),
+                certificate_valid=bool(context.get("certificate_valid", False)),
+                kappa_valid=bool(context.get("certificate_valid", False)),
+                generator_available=bool(context.get("generator_available", False)),
+                recoverable_set_member=context.get("recoverable_set_member") is True,
+                recoverability_action_verified=context.get("recoverability_action_verified") is True,
+                policy_authority_pass=bool(self.policy_authority_certificate is not None and self.policy_authority_certificate.passed),
+                charging_state=False,
+                departure_allowed=True,
+                charging_support_verified=False,
+                station_hold_valid=False,
+            ))
+        if self._last_authority_decision.authority in {ExecutionAuthority.KAPPA_BACKUP, ExecutionAuthority.FAIL_CLOSED}:
+            if self._last_authority_decision.reason == "RECOVERY_CERTIFICATE_INVALID" and context.get("failure_reason"):
+                return str(context["failure_reason"])
+            return self._last_authority_decision.reason
         return None
 
     def _begin_backup(self, reason: str) -> None:
@@ -618,6 +689,8 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "backup_reason": None,
             "critic_action": np.zeros(3, dtype=np.float64),
             "command_source": "charger_hold",
+            "execution_authority": ExecutionAuthority.CHARGER_CONSTRAINED.value,
+            "execution_authority_reason": reason,
             "departure_attempt": True,
             "departure_rejected": True,
             "departure_rejection_reason": reason,
@@ -651,6 +724,7 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self._active_task_start_step = 0
         self._time_since_last_charge = 0
         self._station_approach_active = False
+        self._last_authority_decision = None
         context = self._refresh_context()
         observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
         return observation, reset_info | {
@@ -667,35 +741,36 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             raise ValueError("persistent Generator policy output must have shape (3,)")
         mode_before = self.task_env.mode
         context = self._refresh_context()
-        backup_reason = None
-        if self.task_env.mode == PersistentMissionMode.BACKUP_RECOVERY:
-            backup_reason = "BACKUP_RECOVERY_CONTINUATION"
-        else:
-            backup_reason = self._backup_reason(context)
-        if backup_reason is not None:
+        decision = self._last_authority_decision
+        if decision is None:
+            raise RuntimeError("persistent execution authority was not evaluated")
+        backup_reason = self._backup_reason(context)
+        if decision.authority in {ExecutionAuthority.KAPPA_BACKUP, ExecutionAuthority.FAIL_CLOSED}:
+            backup_reason = decision.reason
             self._begin_backup(backup_reason)
             observation, reward, terminated, truncated, info = self.runtime.step_recovery(backup_reason)
+        elif decision.authority == ExecutionAuthority.CHARGER_CONSTRAINED and decision.station_hold_required:
+            return self._station_hold_step(decision.reason)
         else:
             candidate = self._candidate_from_context(actor_u, context)
             if candidate is None:
                 self._begin_backup("ACTOR_OR_GENERATOR_INVALID")
                 observation, reward, terminated, truncated, info = self.runtime.step_recovery("ACTOR_OR_GENERATOR_INVALID")
                 backup_reason = "ACTOR_OR_GENERATOR_INVALID"
-            elif self.task_env.mode == PersistentMissionMode.CHARGING_RL:
-                state = self.runtime._certificate_state()
-                departure_attempt = not self.certificate_provider.successor_stays_in_charging_set(state, candidate)
-                if departure_attempt:
-                    self.metrics.departure_attempts += 1
-                    gate = self._departure_gate()
-                    action_valid = self.certificate_provider.verify_task_action(state, candidate)
-                    if not gate.allowed or not action_valid:
-                        reason = gate.reason or "DEPARTURE_ACTION_NOT_RECOVERABLE"
-                        return self._station_hold_step(reason)
-                observation, reward, terminated, truncated, info = self.runtime.step(actor_u)
             else:
                 observation, reward, terminated, truncated, info = self.runtime.step(actor_u)
 
         telemetry = info["telemetry"]
+        actual_authority = decision.authority
+        actual_authority_reason = decision.reason
+        if not info.get("accepted", False):
+            runtime_reason = info.get("fallback_reason")
+            if runtime_reason is not None and backup_reason is None:
+                backup_reason = str(runtime_reason)
+                self._begin_backup(backup_reason)
+            if backup_reason is not None:
+                actual_authority = ExecutionAuthority.KAPPA_BACKUP
+                actual_authority_reason = backup_reason
         self.metrics.total_steps += 1
         self.metrics.energy_consumed += telemetry.energy_cost
         self._time_since_last_charge += 1
@@ -768,6 +843,13 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "required_return_energy": self.task_env.required_return_energy,
             "energy_margin": self.task_env.energy_margin,
             "persistent_manifest_hash": self.manifest_hash,
+            "execution_authority": actual_authority.value,
+            "execution_authority_reason": actual_authority_reason,
+            "generator_executable": decision.generator_executable and actual_authority in {
+                ExecutionAuthority.RL_GENERATOR,
+                ExecutionAuthority.CHARGER_CONSTRAINED,
+            },
+            "charging_restriction": decision.charging_restriction,
             "persistent_metrics": self.metric_snapshot(),
         }
 

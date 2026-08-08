@@ -25,3 +25,7 @@ controls normal task and voluntary charging behavior. Certified recoverability c
 accepted action, and kappa is backup only. Code and deterministic unit tests are included;
 persistent certificate validation, baseline comparisons, and learning are left for manual execution. See
 `review_bundle/docs/PERSISTENT_TASK_CHARGING.md`.
+
+The persistent Bellman/runtime closure records one shared execution authority for each next state.
+Closed charging departure is handled by a certified stay-inside Generator support; kappa and charger
+hold remain explicit fallback atoms rather than silently aliased accepted policy actions.

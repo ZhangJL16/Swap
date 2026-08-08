@@ -28,6 +28,12 @@ from .types import AABB2, Interval3, Zonotope3
 from .watchdog import AtomicCommandPublisher, CandidateBundle, SimulatedWatchdog
 from .zonotope import CertificateConfig, ZonotopeCertificate, ZonotopeConstructor
 from .generator_sac import GeneratorSACConfig, GeneratorTransition, PersistentGeneratorSAC
+from .persistent_authority import (
+    ExecutionAuthority,
+    PersistentAuthorityDecision,
+    PersistentAuthorityInput,
+    PersistentExecutionAuthority,
+)
 from .energy_management import (
     EnergyDecision,
     EnergyManagementPolicy,
@@ -98,6 +104,10 @@ __all__ = [
     "GeneratorSACConfig",
     "GeneratorTransition",
     "PersistentGeneratorSAC",
+    "ExecutionAuthority",
+    "PersistentAuthorityDecision",
+    "PersistentAuthorityInput",
+    "PersistentExecutionAuthority",
     "EnergyDecision",
     "EnergyManagementPolicy",
     "EnergyManagementReplayBuffer",

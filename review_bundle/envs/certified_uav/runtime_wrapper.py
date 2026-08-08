@@ -799,6 +799,9 @@ class CertifiedRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "recoverability_action_hash": None if recoverability_action is None else recoverability_action.certificate_hash,
             "successor_energy_lower": None if recoverability_action is None else recoverability_action.successor_energy_lower,
             "successor_recovery_energy_required": None if recoverability_action is None else recoverability_action.successor_required_energy,
+            "charging_support_required": bool(getattr(self.mission_provider, "charging_support_required", False)),
+            "charging_support_verified": bool(getattr(self.mission_provider, "last_charging_support_verified", False)),
+            "charging_support_hash": getattr(self.mission_provider, "last_charging_support_hash", None),
         }
 
     def preview_next_action_context(self) -> dict[str, Any]:

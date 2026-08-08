@@ -227,7 +227,7 @@ class MultiStepSyntheticMissionCertificateProvider:
     """
 
     def __init__(self, runtime: Any, center_mode: str = "task_oriented") -> None:
-        if center_mode not in {"braking", "zero", "task_oriented", "max_volume"}:
+        if center_mode not in {"braking", "zero", "safety_neutral", "task_oriented", "max_volume"}:
             raise ValueError(f"unsupported Generator center mode: {center_mode}")
         self.runtime = runtime
         self.profile = runtime.scenario.mission_config

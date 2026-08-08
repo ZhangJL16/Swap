@@ -3423,15 +3423,43 @@ strict corridor descent, E3 recursion, and finite-time terminal-arrival theorem 
 
 Voluntary station approach while the margin remains interior is not recovery takeover: the
 Generator policy retains physical authority. Remaining inside the charge-admissible set applies
-\(e_{t+1}=\min\{e_{\max},e_t+r_c\Delta t\}\). A continuous successor leaving that set is a departure
-attempt and is accepted only when both its version-matched departure-energy condition and
-\(\mathcal A_{\rm rec}\) membership hold; otherwise a separately certified station hold is executed.
-Future charging never reduces current return energy.
+\(e_{t+1}=\min\{e_{\max},e_t+r_c\Delta t\}\). While departure is closed, construction uses
+\[
+C_{\rm charge}(z)\subseteq\mathcal A_{\rm rec}(z)\cap
+\{a:\operatorname{Post}(z,a)\subseteq\mathcal G_{\rm charge}\}.
+\]
+Thus an accepted normal policy sample cannot request an executable departure and is not post-hoc
+aliased to another action. When the version-matched departure-energy gate opens, normal
+\(C_{\rm run}\subseteq\mathcal A_{\rm rec}\) is restored. Station hold is retained only for failure
+of the constrained support or runtime machinery. Future charging never reduces current return
+energy.
+
+### Persistent Bellman/runtime authority consistency
+
+The pure execution classifier has four outcomes: `RL_GENERATOR`, `KAPPA_BACKUP`,
+`CHARGER_CONSTRAINED`, and `FAIL_CLOSED`. It evaluates the persistent manifest, recovery and
+recoverable-set certificates, complete \(\mathcal A_{\rm rec}\) inclusion, policy-authority gate,
+energy switching margin, charging state, and departure gate. Runtime stores that result in the
+next-state replay context; the Bellman target does not reconstruct authority from only
+`next_generator_available`.
+
+If the recorded next authority is `RL_GENERATOR`, or `CHARGER_CONSTRAINED` with a verified
+full-rank \(C_{\rm charge}\), the target samples from that next-state affine-tanh support and includes
+its continuous entropy. If it is `KAPPA_BACKUP`, the target action is exactly
+\(\kappa(z_{t+1})\) and has no Generator entropy. An exceptional atomic charger hold likewise has
+no Generator density, and `FAIL_CLOSED` has no bootstrap continuation. This aligns the engineering
+Bellman branch with actual publish authority; it does not add a convergence theorem and does not
+enter T_REC1/T_REC2's safety proof.
 
 `PERSISTENT_CERTIFICATE_GATE` binds task, recovery, and departure routes to the recoverable-set,
 recoverability-action-rule, energy-field, \(\kappa\), geometry, tracking, and dynamics versions.
-`POLICY_AUTHORITY_GATE` additionally checks a three-dimensional output, neutral center, full-rank
-nondegenerate \(G\), task- and station-directed residual authority where permitted, and complete-set
-recoverability. These are synthetic software contracts. Physical premises remain
+`POLICY_AUTHORITY_GATE` additionally checks persistent edges and representative root states for a
+three-dimensional output, neutral center, full-rank nondegenerate \(G\), task- and station-directed
+residual authority where permitted, and complete-set recoverability. These are synthetic software
+contracts. Physical premises remain
 blocked-by-calibration and deployment timing remains blocked-by-deployment-evidence; the persistent
 gate and formal experiments were not executed in this implementation round.
+
+The implementation regression for this closure phase is 176 passed, zero skipped, zero failed in
+205.350 seconds. This is software evidence only; the persistent certificate and policy-authority
+gate scripts remain intentionally unexecuted pending the user's manual validation.

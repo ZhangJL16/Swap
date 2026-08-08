@@ -5,6 +5,7 @@ from typing import Any
 import numpy as np
 
 from cert_runtime.generator_sac import GeneratorTransition
+from cert_runtime.persistent_authority import ExecutionAuthority
 
 
 def transition_from_cycle(
@@ -26,6 +27,13 @@ def transition_from_cycle(
     epoch = str(context["certificate_epoch"])
     selected_next = {} if next_context is None else next_context
     next_epoch = epoch if next_context is None else str(selected_next["certificate_epoch"])
+    next_authority = str(selected_next.get("execution_authority", ExecutionAuthority.FAIL_CLOSED.value))
+    next_generator_executable = bool(selected_next.get("generator_executable", False))
+    next_kappa = np.asarray(selected_next.get("kappa", trace.fallback), dtype=np.float32)
+    if next_authority == ExecutionAuthority.CHARGER_CONSTRAINED.value and not next_generator_executable:
+        next_authority_action = np.zeros(3, dtype=np.float32)
+    else:
+        next_authority_action = next_kappa.copy()
     candidate = None if trace.candidate is None else np.asarray(trace.candidate, dtype=np.float32)
     eta = np.tanh(np.asarray(actor_u, dtype=np.float32)) if accepted else None
     return GeneratorTransition(
@@ -35,8 +43,8 @@ def transition_from_cycle(
         terminated=bool(terminated),
         truncated=bool(truncated),
         episode_id=int(episode_id),
-        mission_phase=str(info.get("persistent_mode", "TASK_RL")),
-        next_mission_phase=str(info.get("persistent_mode", "TASK_RL")),
+        mission_phase=str(context.get("persistent_mode", "TASK_RL")),
+        next_mission_phase=str(selected_next.get("persistent_mode", info.get("persistent_mode", "TASK_RL"))),
         certificate_epoch=epoch,
         next_certificate_epoch=next_epoch,
         u=np.asarray(actor_u, dtype=np.float32) if accepted else None,
@@ -49,10 +57,10 @@ def transition_from_cycle(
         measured_action=np.asarray(trace.measured, dtype=np.float32),
         accepted=accepted,
         fallback_reason=info.get("fallback_reason"),
-        next_c=selected_next.get("c") if selected_next.get("generator_available", False) else None,
-        next_G=selected_next.get("G") if selected_next.get("generator_available", False) else None,
-        next_kappa=np.asarray(selected_next.get("kappa", trace.fallback), dtype=np.float32),
-        next_generator_available=bool(selected_next.get("generator_available", False)),
+        next_c=selected_next.get("c") if next_generator_executable else None,
+        next_G=selected_next.get("G") if next_generator_executable else None,
+        next_kappa=next_kappa,
+        next_generator_available=next_generator_executable,
         next_certificate_valid=bool(selected_next.get("certificate_valid", False)),
         geometry_version=str(context.get("geometry_version", "")),
         corridor_version=str(context.get("corridor_version", "")),
@@ -74,4 +82,17 @@ def transition_from_cycle(
         tasks_completed=int(info.get("tasks_completed", 0)),
         recoverable_set_version=context.get("recoverable_set_version"),
         recoverability_action_rule_version=context.get("recoverability_action_rule_version"),
+        execution_authority=str(info.get("execution_authority", context.get("execution_authority", ""))),
+        next_execution_authority=next_authority,
+        next_generator_executable=next_generator_executable,
+        next_backup_required=bool(selected_next.get("backup_required", False)),
+        next_backup_reason=selected_next.get("execution_authority_reason") if selected_next.get("backup_required", False) else None,
+        next_recoverable_set_member=selected_next.get("recoverable_set_member") is True,
+        next_recoverability_action_verified=selected_next.get("recoverability_action_verified") is True,
+        next_policy_authority_pass=selected_next.get("policy_authority_pass") is True,
+        next_energy_margin=float(selected_next.get("energy_margin", np.nan)),
+        next_departure_allowed=selected_next.get("departure_allowed") is True,
+        next_charging_state=str(selected_next.get("persistent_mode", "")) == "CHARGING_RL",
+        next_charging_restriction=selected_next.get("charging_restriction") is True,
+        next_authority_action=next_authority_action,
     )

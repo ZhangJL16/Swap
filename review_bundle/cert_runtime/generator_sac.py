@@ -8,6 +8,7 @@ import torch
 from torch import Tensor, nn
 
 from .actor import FeedForwardAffineTanhActor
+from .persistent_authority import ExecutionAuthority
 
 
 EpochReplayPolicy = Literal["reject", "group", "clear_on_change"]
@@ -83,14 +84,31 @@ class GeneratorTransition:
     tasks_completed: int = 0
     recoverable_set_version: str | None = None
     recoverability_action_rule_version: str | None = None
+    execution_authority: str | None = None
+    next_execution_authority: str | None = None
+    next_generator_executable: bool | None = None
+    next_backup_required: bool | None = None
+    next_backup_reason: str | None = None
+    next_recoverable_set_member: bool | None = None
+    next_recoverability_action_verified: bool | None = None
+    next_policy_authority_pass: bool | None = None
+    next_energy_margin: float | None = None
+    next_departure_allowed: bool | None = None
+    next_charging_state: bool | None = None
+    next_charging_restriction: bool | None = None
+    next_authority_action: np.ndarray | None = None
 
     def __post_init__(self) -> None:
-        for name in ("observation", "next_observation", "u", "eta", "c", "G", "candidate_action", "kappa_action", "executed_action", "measured_action", "next_c", "next_G", "next_kappa"):
+        for name in ("observation", "next_observation", "u", "eta", "c", "G", "candidate_action", "kappa_action", "executed_action", "measured_action", "next_c", "next_G", "next_kappa", "next_authority_action"):
             object.__setattr__(self, name, _copy_array(getattr(self, name)))
         if self.executed_action is None or self.executed_action.shape != (3,):
             raise ValueError("executed_action must have shape (3,)")
         if self.next_kappa is None or self.next_kappa.shape != (3,):
             raise ValueError("next_kappa must have shape (3,)")
+        if self.next_authority_action is None:
+            object.__setattr__(self, "next_authority_action", self.next_kappa.copy())
+        elif self.next_authority_action.shape != (3,):
+            raise ValueError("next_authority_action must have shape (3,)")
         if self.accepted and (self.c is None or self.G is None or self.u is None):
             raise ValueError("accepted transition requires u,c,G")
         if self.next_generator_available and (self.next_c is None or self.next_G is None):
@@ -341,4 +359,88 @@ class GeneratorSAC:
 class PersistentGeneratorSAC(GeneratorSAC):
     """Main persistent agent: one continuous three-dimensional policy."""
 
-    pass
+    _GENERATOR_AUTHORITIES = {
+        ExecutionAuthority.RL_GENERATOR.value,
+        ExecutionAuthority.CHARGER_CONSTRAINED.value,
+    }
+
+    @staticmethod
+    def _validate_persistent_transition(transition: GeneratorTransition) -> None:
+        if transition.next_execution_authority is None:
+            raise ValueError("persistent transition requires next execution authority")
+        try:
+            authority = ExecutionAuthority(transition.next_execution_authority)
+        except ValueError as error:
+            raise ValueError("unknown persistent next execution authority") from error
+        if authority in {ExecutionAuthority.RL_GENERATOR, ExecutionAuthority.CHARGER_CONSTRAINED}:
+            if transition.next_generator_executable:
+                if transition.next_c is None or transition.next_G is None:
+                    raise ValueError("persistent Generator branch requires next c,G")
+                if not all((
+                    transition.next_certificate_valid,
+                    transition.next_recoverable_set_member,
+                    transition.next_recoverability_action_verified,
+                    transition.next_policy_authority_pass,
+                )):
+                    raise ValueError("persistent Generator authority lacks certified prerequisites")
+            elif authority == ExecutionAuthority.RL_GENERATOR:
+                raise ValueError("RL_GENERATOR authority must be executable")
+        if authority == ExecutionAuthority.KAPPA_BACKUP and not transition.next_backup_required:
+            raise ValueError("KAPPA_BACKUP authority requires backup metadata")
+
+    def observe(self, transition: GeneratorTransition) -> bool:
+        self._validate_persistent_transition(transition)
+        return super().observe(transition)
+
+    def bellman_target(self, batch: Sequence[GeneratorTransition]) -> tuple[Tensor, dict[str, int]]:
+        for transition in batch:
+            self._validate_persistent_transition(transition)
+        rewards = self._tensor([transition.reward for transition in batch])
+        terminated = self._tensor([float(transition.terminated) for transition in batch])
+        truncated = self._tensor([float(transition.truncated) for transition in batch])
+        done = terminated if self.config.bootstrap_on_truncation else torch.maximum(terminated, truncated)
+        fail_closed = self._tensor([
+            float(transition.next_execution_authority == ExecutionAuthority.FAIL_CLOSED.value)
+            for transition in batch
+        ])
+        bootstrap = (1.0 - done) * (1.0 - fail_closed)
+        next_observations = self._tensor(np.stack([transition.next_observation for transition in batch]))
+        next_actions = self._tensor(np.stack([transition.next_authority_action for transition in batch]))
+        entropy = torch.zeros(len(batch), dtype=torch.float32, device=self.device)
+        generator_indices = [
+            index
+            for index, transition in enumerate(batch)
+            if (
+                transition.next_execution_authority in self._GENERATOR_AUTHORITIES
+                and transition.next_generator_executable is True
+                and not transition.terminated
+            )
+        ]
+        if generator_indices:
+            index_tensor = torch.as_tensor(generator_indices, dtype=torch.long, device=self.device)
+            centers = self._tensor(np.stack([batch[index].next_c for index in generator_indices]))
+            generators = self._tensor(np.stack([batch[index].next_G for index in generator_indices]))
+            actions, log_prob, _ = self._sample_generator_actions(next_observations[index_tensor], centers, generators)
+            next_actions = next_actions.clone()
+            next_actions[index_tensor] = actions
+            entropy[index_tensor] = self.alpha.detach() * log_prob
+        with torch.no_grad():
+            q_next = torch.minimum(
+                self.target_critic_1(next_observations, next_actions),
+                self.target_critic_2(next_observations, next_actions),
+            )
+            target = rewards + self.config.gamma * bootstrap * (q_next - entropy)
+        return target, {
+            "generator_target_count": len(generator_indices),
+            "fallback_target_count": len(batch) - len(generator_indices),
+            "kappa_target_count": sum(
+                transition.next_execution_authority == ExecutionAuthority.KAPPA_BACKUP.value
+                for transition in batch
+            ),
+            "charger_atomic_target_count": sum(
+                transition.next_execution_authority == ExecutionAuthority.CHARGER_CONSTRAINED.value
+                and transition.next_generator_executable is not True
+                for transition in batch
+            ),
+            "fail_closed_target_count": int(fail_closed.sum().item()),
+        }

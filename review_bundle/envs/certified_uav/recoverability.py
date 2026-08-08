@@ -207,6 +207,9 @@ class RecoverabilityVerifier:
 
     def successor_stays_in_charging_set(self, state: CertificateState, action: np.ndarray) -> bool:
         envelope = self.runtime.envelope_builder.propagate_point_action(state, tuple(np.asarray(action, dtype=np.float64)))
+        return self._envelope_stays_in_charging_set(envelope)
+
+    def _envelope_stays_in_charging_set(self, envelope) -> bool:
         terminal = self.runtime.scenario.terminal
         return bool(
             np.all(np.asarray(envelope.position.low) >= terminal.position_low - 1e-12)
@@ -214,6 +217,55 @@ class RecoverabilityVerifier:
             and np.all(np.asarray(envelope.velocity.low) >= -terminal.velocity_abs_max - 1e-12)
             and np.all(np.asarray(envelope.velocity.high) <= terminal.velocity_abs_max + 1e-12)
         )
+
+    def action_set_stays_in_charging_set(self, state: CertificateState, action_set: Zonotope3) -> bool:
+        envelope = self.runtime.envelope_builder.propagate_zonotope(state, action_set)
+        return self._envelope_stays_in_charging_set(envelope)
+
+    def restrict_to_charging_set(
+        self,
+        state: CertificateState,
+        action_set: Zonotope3,
+        context: "MissionActionContext",
+    ) -> tuple[Zonotope3 | None, RecoverabilityActionCertificate | None]:
+        """Largest deterministic uniform scaling that stays in G_charge and A_rec."""
+
+        minimum_sigma = float(self.runtime.config.minimum_generator_sigma)
+        current_sigma = float(action_set.sigma_min_lower_bound)
+        if current_sigma < minimum_sigma - 1e-12:
+            return None, None
+        minimum_factor = minimum_sigma / current_sigma
+        center = np.asarray(action_set.center, dtype=np.float64)
+        generators = np.asarray(action_set.generators, dtype=np.float64)
+
+        def scaled(factor: float) -> Zonotope3:
+            matrix = generators * factor
+            return Zonotope3(
+                tuple(float(value) for value in center),
+                tuple(tuple(float(value) for value in row) for row in matrix),
+            )
+
+        minimum = scaled(minimum_factor)
+        minimum_certificate = self.certify_action_set(state, minimum, context)
+        if not minimum_certificate.verified or not self.action_set_stays_in_charging_set(state, minimum):
+            return None, None
+        if self.action_set_stays_in_charging_set(state, action_set):
+            full_certificate = self.certify_action_set(state, action_set, context)
+            return (action_set, full_certificate) if full_certificate.verified else (None, None)
+        low, high = minimum_factor, 1.0
+        accepted = minimum
+        accepted_certificate = minimum_certificate
+        for _ in range(self.runtime.config.generator_bisection_iterations):
+            factor = (low + high) / 2.0
+            candidate = scaled(factor)
+            candidate_certificate = self.certify_action_set(state, candidate, context)
+            if candidate_certificate.verified and self.action_set_stays_in_charging_set(state, candidate):
+                accepted = candidate
+                accepted_certificate = candidate_certificate
+                low = factor
+            else:
+                high = factor
+        return accepted, accepted_certificate
 
     def certified_station_hold(self, state: CertificateState) -> bool:
         zero = np.zeros(3, dtype=np.float64)

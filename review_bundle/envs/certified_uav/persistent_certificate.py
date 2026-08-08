@@ -227,6 +227,9 @@ class PersistentGoalCertificateProvider:
         self.last_recoverable_set_certificate: RecoverableSetCertificate | None = None
         self.last_recoverability_action_certificate: RecoverabilityActionCertificate | None = None
         self.last_policy_authority_certificate: PolicyAuthorityCertificate | None = None
+        self.charging_support_required = False
+        self.last_charging_support_verified = False
+        self.last_charging_support_hash: str | None = None
 
     def _edge_energy_bound(self, provider: MultiStepSyntheticMissionCertificateProvider) -> float:
         action = Interval3(-self.runtime.config.a_max, self.runtime.config.a_max)
@@ -368,11 +371,19 @@ class PersistentGoalCertificateProvider:
         self.last_recoverable_set_certificate = None
         self.last_recoverability_action_certificate = None
         self.last_policy_authority_certificate = None
+        self.charging_support_required = False
+        self.last_charging_support_verified = False
+        self.last_charging_support_hash = None
+
+    def configure_charging_support(self, required: bool) -> None:
+        self.charging_support_required = bool(required)
 
     def evaluate(self, state, timestamp: float | None = None) -> MissionActionContext:
         provider = self.providers[self.active_edge_id]
         verifier = self.recoverability_verifiers[self.active_edge_id]
         context = provider.evaluate(state, timestamp)
+        self.last_charging_support_verified = False
+        self.last_charging_support_hash = None
         membership = verifier.membership(state, context)
         self.last_recoverable_set_certificate = membership
         certificate = context.closure.zonotope_certificate
@@ -404,8 +415,57 @@ class PersistentGoalCertificateProvider:
                     context.root_index,
                     context.task_successor_cell_id,
                 )
+            elif self.charging_support_required:
+                restricted, restricted_certificate = verifier.restrict_to_charging_set(
+                    state,
+                    zonotope,
+                    context,
+                )
+                if restricted is None or restricted_certificate is None:
+                    self.last_charging_support_verified = False
+                    self.last_charging_support_hash = None
+                    closure = MissionClosureResult(
+                        False,
+                        None,
+                        "NO_CHARGING_GENERATOR_SET",
+                        MissionFailureWitness("NO_CHARGING_GENERATOR_SET", context.recovery_cell_id),
+                        context.closure.manifest,
+                    )
+                    context = replace(context, closure=closure)
+                    self.last_recoverability_action_certificate = None
+                else:
+                    original = context.closure.zonotope_certificate
+                    support_hash = certificate_hash({
+                        "base": original.complete_set_inclusion_hash,
+                        "restricted": repr(restricted),
+                        "a_rec": restricted_certificate.certificate_hash,
+                        "charging": True,
+                    })
+                    restricted_zonotope_certificate = replace(
+                        original,
+                        reason="VERIFIED_CHARGING_SUPPORT",
+                        zonotope=restricted,
+                        successor_envelope=self.runtime.envelope_builder.propagate_zonotope(state, restricted),
+                        complete_set_inclusion_hash=support_hash,
+                    )
+                    context = replace(
+                        context,
+                        closure=replace(
+                            context.closure,
+                            zonotope_certificate=restricted_zonotope_certificate,
+                            status="VERIFIED_CHARGING_SUPPORT",
+                        ),
+                    )
+                    self.last_recoverability_action_certificate = restricted_certificate
+                    self.last_charging_support_verified = True
+                    self.last_charging_support_hash = support_hash
+            else:
+                self.last_charging_support_verified = False
+                self.last_charging_support_hash = None
         else:
             self.last_recoverability_action_certificate = None
+            self.last_charging_support_verified = False
+            self.last_charging_support_hash = None
         self.last_context = context
         return context
 
