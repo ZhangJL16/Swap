@@ -3689,3 +3689,19 @@ not horizon restoration unless preferred certified actions gain opposite-goal re
 alignment, and nonadditive interaction. A temporary same-architecture supervised critic may fit fixed
 audit targets after per-state-goal action-advantage standardization. It is isolated from production
 networks and tests representation capacity only.
+
+### Goal-radius completion boundary and exposure prerequisite
+
+For normal task authority, completion uses the pre-transition pending goal and the closed set
+\[
+\|p_{t+1}-g_t\|\le r_g.
+\]
+The software comparison includes a fixed numerical tolerance solely to represent this closed-set
+boundary consistently. Entering the radius during backup or charging does not complete a task.
+This is a task-semantic contract, not a new safety theorem.
+
+Persistent evaluation assigns a new goal only after completion. Consequently, a run with no
+completion exposes its network to only one task goal. Such a run cannot establish general
+goal-conditioned learning failure. A future episodic multi-goal collection protocol must first be
+implemented and compared against an equal-step persistent-only baseline; this phase stopped at the
+completion-boundary bug as required and did not run that experiment.

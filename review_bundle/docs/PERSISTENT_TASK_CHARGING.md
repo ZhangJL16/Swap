@@ -285,3 +285,15 @@ The bootstrap is reported as reward return, target Q, normalized-policy entropy,
 diagnostic views of frozen data. A disposable QNetwork fit uses fixed targets and an order-preserving
 per-state-goal action-advantage transform to test representation capacity. It never changes actor,
 critics, target critics, replay, reward, or safety support.
+
+## Task completion and early goal exposure
+
+Task completion is evaluated only from `TASK_RL` against the pre-transition pending goal. The
+goal-radius set is closed, including the exact numerical boundary. Distances observed while
+`KAPPA_BACKUP` or `CHARGING_RL` remain telemetry only and cannot complete the pending task.
+
+The initial 2k physical-temperature runs completed no tasks and therefore exposed each network to
+one continuous random goal. They must be labeled `SINGLE_GOAL_TRAINING_DISTRIBUTION`; their
+counterfactual goal sensitivity does not yet characterize learning under a true multi-goal training
+distribution. Episodic multi-goal exposure is reserved for a later, controlled data-collection
+comparison. Persistent evaluation semantics remain unchanged.

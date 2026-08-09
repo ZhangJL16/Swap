@@ -105,7 +105,7 @@ class RandomPersistentGoalManager:
         }
         task = self.current_task
         point = as_vec3(position, "position")
-        if task is None or float(np.linalg.norm(point - task.goal_position)) > self.goal_radius:
+        if task is None or float(np.linalg.norm(point - task.goal_position)) > self.goal_radius + 1e-12:
             return events
         task.completion_step = int(step)
         self.completed_tasks.append(task)
@@ -297,6 +297,8 @@ class RandomPersistentTaskWrapper(gym.Wrapper):
         task_before = manager.current_task
         if task_before is None:
             raise RuntimeError("random persistent task is unavailable")
+        mode_before = self.mode
+        task_id_before = task_before.task_id
         goal_before = task_before.goal_position.copy()
         distance_before = float(np.linalg.norm(self.plant.state.position - goal_before))
         _, _, terminated, truncated, info = self.plant.step(action)
@@ -333,7 +335,10 @@ class RandomPersistentTaskWrapper(gym.Wrapper):
         }
         task = manager.current_task
         return self.build_observation(), reward, terminated, truncated, info | {
+            "persistent_mode_before": mode_before.name,
             "persistent_mode": self.mode.name,
+            "task_id_before": task_id_before,
+            "goal_before": goal_before,
             "task_id": None if task is None else task.task_id,
             "current_goal_id": None if task is None else task.task_id,
             "current_goal": None if task is None else task.goal_position.copy(),
@@ -345,6 +350,12 @@ class RandomPersistentTaskWrapper(gym.Wrapper):
             "recovery_atlas_hash": atlas.atlas_hash,
             "distance_to_goal_before": distance_before,
             "distance_to_goal_after": distance_after,
+            "goal_radius": manager.goal_radius,
+            "task_completion_distance_invariant": (
+                mode_before != PersistentMissionMode.TASK_RL
+                or distance_after > manager.goal_radius + 1e-12
+                or bool(events["task_completed"])
+            ),
             "goal_progress": goal_progress,
             "reward_components": reward_components,
         }

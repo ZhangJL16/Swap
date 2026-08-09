@@ -324,7 +324,7 @@ class PersistentGoalTaskManager:
         if edge is None:
             return events
         target = self.network.nodes[edge.target].position
-        if float(np.linalg.norm(as_vec3(position, "position") - target)) > self.goal_radius:
+        if float(np.linalg.norm(as_vec3(position, "position") - target)) > self.goal_radius + 1e-12:
             return events
         self.current_node = edge.target
         self.route_index += 1

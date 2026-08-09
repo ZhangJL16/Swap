@@ -207,3 +207,15 @@ objectives. The disposable critic cannot modify production checkpoints or replay
 
 This validator is deterministic synthetic software evidence, not training evidence or a
 real-flight safety claim.
+
+Task-completion consistency is audited separately with:
+
+```bash
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_goal_exposure_consistency.py
+```
+
+The historical `minimum_distance` diagnostic measured distance to the pending goal in every runtime
+mode. A close pass during certified kappa recovery is therefore not task completion. Task-eligible
+distance is now named separately, and completion uses the closed goal-radius set with a common
+floating-point boundary tolerance. The existing 2k checkpoints each saw one goal because none
+completed; they are single-goal training evidence, not general random-goal learning evidence.

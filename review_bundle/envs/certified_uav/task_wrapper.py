@@ -196,7 +196,7 @@ class CertifiedTaskWrapper(gym.Wrapper):
         _, _, terminated, truncated, info = self.plant.step(action)
         telemetry = info["telemetry"]
         self.episode_step += 1
-        reached_task = float(np.linalg.norm(self.plant.state.position - self.goal)) <= self.reward_config.goal_radius
+        reached_task = float(np.linalg.norm(self.plant.state.position - self.goal)) <= self.reward_config.goal_radius + 1e-12
         task_completed_now = bool(self.multi_step_mission and self.phase == MissionPhase.OUTBOUND and reached_task)
         if task_completed_now:
             self.task_completed = True

@@ -122,6 +122,10 @@ def main() -> None:
         }
 
     for step in range(args.steps):
+        active_task = environment.task_env.manager.current_task
+        goal_before = np.asarray(environment.task_env.manager.navigation_target, dtype=np.float64).copy()
+        task_id_before = getattr(active_task, "task_id", getattr(active_task, "edge_id", None))
+        mode_before = environment.task_env.mode.name
         actor_u = rng.normal(size=3) if step < args.warmup_steps else agent.select_u(observation)
         certificate_state_before = environment.runtime._certificate_state()
         candidate_action = environment._candidate_from_context(actor_u, context)
@@ -139,8 +143,16 @@ def main() -> None:
             "episode_seed": episode_seed,
             "episode_step": int(info.get("episode_step", episode_metrics.total_steps)),
             "task_id": info.get("task_id"),
+            "task_id_before": task_id_before,
             "goal": None if info.get("current_goal") is None else np.asarray(info["current_goal"], dtype=float).tolist(),
+            "goal_before": goal_before.tolist(),
+            "persistent_mode_before": mode_before,
+            "distance_to_goal_before": float(info.get("distance_to_goal_before", np.nan)),
+            "distance_to_goal_after": float(info.get("distance_to_goal_after", np.nan)),
+            "goal_radius": float(info.get("goal_radius", np.nan)),
+            "task_completion_distance_invariant": bool(info.get("task_completion_distance_invariant", False)),
             "task_completed_now": bool(info.get("task_completed_now", False)),
+            "task_assigned_now": bool(info.get("task_assigned_now", False)),
             "tasks_completed": int(info.get("tasks_completed", 0)),
             "persistent_mode": info.get("persistent_mode"),
             "execution_authority": info.get("execution_authority"),

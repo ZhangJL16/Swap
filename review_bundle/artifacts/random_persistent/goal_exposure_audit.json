@@ -1,0 +1,121 @@
+{
+  "runs": [
+    {
+      "artifact_directory": "artifacts/temp_compare_physical_seed0",
+      "unique_task_ids_seen": 1,
+      "task_ids": [
+        "random-goal-0"
+      ],
+      "unique_goals_seen": 1,
+      "goal_assignments": 1,
+      "tasks_completed": 0,
+      "steps_per_goal": [
+        2000
+      ],
+      "gradient_updates_per_goal": [
+        1700
+      ],
+      "goal_direction_angular_coverage_degrees": 0.0,
+      "goal_direction_entropy": -0.0,
+      "goal_distance_distribution": [
+        1.3154954303518749
+      ],
+      "goal_exposure_gate": "FAIL",
+      "distribution_annotation": "SINGLE_GOAL_TRAINING_DISTRIBUTION",
+      "goals": [
+        {
+          "goal": [
+            2.047485618695409,
+            2.2556794496354744,
+            1.0
+          ],
+          "first_step": 1,
+          "initial_position": [
+            3.0182927191790676,
+            3.14340565079015,
+            0.9980018231649512
+          ]
+        }
+      ]
+    },
+    {
+      "artifact_directory": "artifacts/temp_compare_physical_seed1",
+      "unique_task_ids_seen": 1,
+      "task_ids": [
+        "random-goal-0"
+      ],
+      "unique_goals_seen": 1,
+      "goal_assignments": 1,
+      "tasks_completed": 0,
+      "steps_per_goal": [
+        2000
+      ],
+      "gradient_updates_per_goal": [
+        1700
+      ],
+      "goal_direction_angular_coverage_degrees": 0.0,
+      "goal_direction_entropy": -0.0,
+      "goal_distance_distribution": [
+        0.6507478204527282
+      ],
+      "goal_exposure_gate": "FAIL",
+      "distribution_annotation": "SINGLE_GOAL_TRAINING_DISTRIBUTION",
+      "goals": [
+        {
+          "goal": [
+            0.8478822343604494,
+            2.0551251634573044,
+            1.0
+          ],
+          "first_step": 1,
+          "initial_position": [
+            0.8531215066892178,
+            1.4044010763138113,
+            1.0018542547582985
+          ]
+        }
+      ]
+    },
+    {
+      "artifact_directory": "artifacts/temp_compare_physical_seed2",
+      "unique_task_ids_seen": 1,
+      "task_ids": [
+        "random-goal-0"
+      ],
+      "unique_goals_seen": 1,
+      "goal_assignments": 1,
+      "tasks_completed": 0,
+      "steps_per_goal": [
+        2000
+      ],
+      "gradient_updates_per_goal": [
+        1700
+      ],
+      "goal_direction_angular_coverage_degrees": 0.0,
+      "goal_direction_entropy": -0.0,
+      "goal_distance_distribution": [
+        1.7749615428958836
+      ],
+      "goal_exposure_gate": "FAIL",
+      "distribution_annotation": "SINGLE_GOAL_TRAINING_DISTRIBUTION",
+      "goals": [
+        {
+          "goal": [
+            3.15147276706653,
+            1.3811685460871748,
+            1.0
+          ],
+          "first_step": 1,
+          "initial_position": [
+            3.122576886633731,
+            3.1558940635225983,
+            0.998313400783373
+          ]
+        }
+      ]
+    }
+  ],
+  "all_runs_multi_goal": false,
+  "goal_exposure_gate": "FAIL",
+  "annotation": "SINGLE_GOAL_TRAINING_DISTRIBUTION"
+}
