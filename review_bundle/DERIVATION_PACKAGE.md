@@ -3599,3 +3599,23 @@ H_{\mathrm{target}}^a(s)=H_{\mathrm{target}}^\eta+\log|\det G(s)|,
 because `log pi_a + H_target_a = log pi_eta + H_target_eta`. This alpha residual is invariant to
 uniform affine support scaling. It is an algorithm candidate, not a new performance theorem; all
 safety, support, runtime-authority, and physical-density statements remain unchanged.
+
+### Actor-gradient transmission audit boundary
+
+A global critic ordering such as (Q(s,a_{oracle})>Q(s,a_{actor})) does not imply that the local
+deterministic policy gradient is useful. The software audit therefore separates the chain
+\[
+\nabla_aQ
+\;\longrightarrow\;
+G^\top\nabla_aQ
+\;\longrightarrow\;
+\operatorname{diag}(1-\tanh^2u)G^\top\nabla_aQ
+\;\longrightarrow\;
+\nabla_\theta J_\pi.
+\]
+It compares the local autograd derivative with a centered finite difference toward the certified
+best-in-Generator oracle, decomposes actor parameter gradients into exploitation and physical-density
+entropy terms, and measures actor and critic Jacobians with respect to goal features. A frozen-critic
+Q-only actor update is an offline diagnostic of gradient actionability; it never uses oracle labels,
+never changes replay rewards, and is not a proposed control algorithm. These are optimization
+diagnostics only and add no safety or convergence theorem.

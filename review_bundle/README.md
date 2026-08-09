@@ -156,5 +156,17 @@ Persistent backup reward is charged once per authority takeover, not once per ka
 step. `--temperature-coordinate normalized` changes only automatic alpha adaptation; actor and
 Bellman objectives continue to use the exact physical affine-tanh density.
 
+Actor-gradient diagnostics are available through:
+
+```bash
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_actor_gradient_learning.py \
+  --checkpoint artifacts/temp_compare_physical_seed0/checkpoint_latest.pt \
+               artifacts/temp_compare_physical_seed1/checkpoint_latest.pt \
+               artifacts/temp_compare_physical_seed2/checkpoint_latest.pt \
+  --sample-count 200
+```
+
+The frozen-critic Q-only branch is diagnostic only and does not use oracle demonstrations.
+
 This validator is deterministic synthetic software evidence, not training evidence or a
 real-flight safety claim.

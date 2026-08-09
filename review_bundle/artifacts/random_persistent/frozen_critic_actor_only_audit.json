@@ -1,0 +1,595 @@
+{
+  "scenario": "random_persistent_open",
+  "checkpoints": [
+    {
+      "checkpoint": "artifacts/temp_compare_physical_seed0/checkpoint_latest.pt",
+      "updates": 500,
+      "fixed_recorded_state_stream": true,
+      "oracle_used_for_training": false,
+      "critic_parameters_unchanged": true,
+      "trajectories": {
+        "Q_ONLY": [
+          {
+            "update": 0,
+            "Q_actor": -66.34423065185547,
+            "actor_goal_projection": 0.003467200107780543,
+            "oracle_gap": 0.002344147009347938,
+            "action_goal_jacobian_norm": 0.0006211491825524717,
+            "Q_gradient_norm": 0.1640612781047821
+          },
+          {
+            "update": 50,
+            "Q_actor": -66.25345611572266,
+            "actor_goal_projection": 0.07249074927479525,
+            "oracle_gap": 0.0009641766067551576,
+            "action_goal_jacobian_norm": 0.0006291375961154699,
+            "Q_gradient_norm": 0.20605812966823578
+          },
+          {
+            "update": 100,
+            "Q_actor": -66.21971893310547,
+            "actor_goal_projection": 0.11683757606363669,
+            "oracle_gap": 7.738345053917056e-05,
+            "action_goal_jacobian_norm": 0.0001934231742779957,
+            "Q_gradient_norm": 0.02069205790758133
+          },
+          {
+            "update": 150,
+            "Q_actor": -66.21855163574219,
+            "actor_goal_projection": 0.11935651298815708,
+            "oracle_gap": 2.701009629917339e-05,
+            "action_goal_jacobian_norm": 8.109463342407253e-05,
+            "Q_gradient_norm": 0.008036638610064983
+          },
+          {
+            "update": 200,
+            "Q_actor": -66.21829223632812,
+            "actor_goal_projection": 0.11991128744593584,
+            "oracle_gap": 1.591578940379282e-05,
+            "action_goal_jacobian_norm": 4.8388216873718194e-05,
+            "Q_gradient_norm": 0.004695407114923
+          },
+          {
+            "update": 250,
+            "Q_actor": -66.21817779541016,
+            "actor_goal_projection": 0.12014091698702879,
+            "oracle_gap": 1.1323746808067079e-05,
+            "action_goal_jacobian_norm": 3.2349364755646096e-05,
+            "Q_gradient_norm": 0.003137260675430298
+          },
+          {
+            "update": 300,
+            "Q_actor": -66.21810913085938,
+            "actor_goal_projection": 0.12025891495096588,
+            "oracle_gap": 8.964097692562498e-06,
+            "action_goal_jacobian_norm": 2.3331093780143418e-05,
+            "Q_gradient_norm": 0.0022605229169130325
+          },
+          {
+            "update": 350,
+            "Q_actor": -66.21807861328125,
+            "actor_goal_projection": 0.12032773141150431,
+            "oracle_gap": 7.58796109716932e-06,
+            "action_goal_jacobian_norm": 1.769880375377397e-05,
+            "Q_gradient_norm": 0.0017143278382718563
+          },
+          {
+            "update": 400,
+            "Q_actor": -66.21806335449219,
+            "actor_goal_projection": 0.1203719832843335,
+            "oracle_gap": 6.703051903479703e-06,
+            "action_goal_jacobian_norm": 1.3864175912203791e-05,
+            "Q_gradient_norm": 0.0013438171008601785
+          },
+          {
+            "update": 450,
+            "Q_actor": -66.2180404663086,
+            "actor_goal_projection": 0.1203996143899566,
+            "oracle_gap": 6.150584926353158e-06,
+            "action_goal_jacobian_norm": 1.1242667324040666e-05,
+            "Q_gradient_norm": 0.001069190795533359
+          },
+          {
+            "update": 500,
+            "Q_actor": -66.218017578125,
+            "actor_goal_projection": 0.12043709609873227,
+            "oracle_gap": 5.4012541873075155e-06,
+            "action_goal_jacobian_norm": 7.697114199345378e-06,
+            "Q_gradient_norm": 0.0006186356185935438
+          }
+        ],
+        "CURRENT_ACTOR_OBJECTIVE": [
+          {
+            "update": 0,
+            "Q_actor": -66.34423065185547,
+            "actor_goal_projection": 0.003467200107780543,
+            "oracle_gap": 0.002344147009347938,
+            "action_goal_jacobian_norm": 0.0006211491825524717,
+            "Q_gradient_norm": 0.1640612781047821
+          },
+          {
+            "update": 50,
+            "Q_actor": -66.344482421875,
+            "actor_goal_projection": 0.002045307767554399,
+            "oracle_gap": 0.0023725903343025023,
+            "action_goal_jacobian_norm": 0.0007327515137149021,
+            "Q_gradient_norm": 0.16672611236572266
+          },
+          {
+            "update": 100,
+            "Q_actor": -66.34339141845703,
+            "actor_goal_projection": 0.0019808059142118343,
+            "oracle_gap": 0.0023738864527354624,
+            "action_goal_jacobian_norm": 0.0006166902167024091,
+            "Q_gradient_norm": 0.16914644837379456
+          },
+          {
+            "update": 150,
+            "Q_actor": -66.34400177001953,
+            "actor_goal_projection": 0.0004645134353035598,
+            "oracle_gap": 0.002404215502589928,
+            "action_goal_jacobian_norm": 0.0005111628779559396,
+            "Q_gradient_norm": 0.15263473987579346
+          },
+          {
+            "update": 200,
+            "Q_actor": -66.34329223632812,
+            "actor_goal_projection": 0.0013051088883386521,
+            "oracle_gap": 0.0023874050482931646,
+            "action_goal_jacobian_norm": 0.0005310897184244822,
+            "Q_gradient_norm": 0.15812604129314423
+          },
+          {
+            "update": 250,
+            "Q_actor": -66.34506225585938,
+            "actor_goal_projection": 0.0009543930038393813,
+            "oracle_gap": 0.0023944081458255988,
+            "action_goal_jacobian_norm": 0.0005960108857834712,
+            "Q_gradient_norm": 0.1492583155632019
+          },
+          {
+            "update": 300,
+            "Q_actor": -66.34288787841797,
+            "actor_goal_projection": 0.0025169884102517687,
+            "oracle_gap": 0.002363164747514756,
+            "action_goal_jacobian_norm": 0.0005913497196161188,
+            "Q_gradient_norm": 0.16258929669857025
+          },
+          {
+            "update": 350,
+            "Q_actor": -66.34192657470703,
+            "actor_goal_projection": 0.0012416936859719213,
+            "oracle_gap": 0.002388684560998517,
+            "action_goal_jacobian_norm": 0.0005757942140917294,
+            "Q_gradient_norm": 0.16746817529201508
+          },
+          {
+            "update": 400,
+            "Q_actor": -66.34412384033203,
+            "actor_goal_projection": 0.0009279725190640259,
+            "oracle_gap": 0.0023949456398833233,
+            "action_goal_jacobian_norm": 0.0004777531343279406,
+            "Q_gradient_norm": 0.15510515868663788
+          },
+          {
+            "update": 450,
+            "Q_actor": -66.3425521850586,
+            "actor_goal_projection": 0.002400683429405846,
+            "oracle_gap": 0.00236549578073129,
+            "action_goal_jacobian_norm": 0.0006178202987939585,
+            "Q_gradient_norm": 0.15811729431152344
+          },
+          {
+            "update": 500,
+            "Q_actor": -66.34307098388672,
+            "actor_goal_projection": 0.0031847848560364917,
+            "oracle_gap": 0.0023498051215554913,
+            "action_goal_jacobian_norm": 0.0005173463134269696,
+            "Q_gradient_norm": 0.15043510496616364
+          }
+        ]
+      }
+    },
+    {
+      "checkpoint": "artifacts/temp_compare_physical_seed1/checkpoint_latest.pt",
+      "updates": 500,
+      "fixed_recorded_state_stream": true,
+      "oracle_used_for_training": false,
+      "critic_parameters_unchanged": true,
+      "trajectories": {
+        "Q_ONLY": [
+          {
+            "update": 0,
+            "Q_actor": -67.66002655029297,
+            "actor_goal_projection": 0.0004222969158932743,
+            "oracle_gap": 0.0020144868188824434,
+            "action_goal_jacobian_norm": 0.0009611606306862086,
+            "Q_gradient_norm": 0.24499203264713287
+          },
+          {
+            "update": 50,
+            "Q_actor": -67.53307342529297,
+            "actor_goal_projection": 0.02884195986455211,
+            "oracle_gap": 0.0014471214415605791,
+            "action_goal_jacobian_norm": 0.0016692179997335188,
+            "Q_gradient_norm": 0.46974125504493713
+          },
+          {
+            "update": 100,
+            "Q_actor": -67.3838882446289,
+            "actor_goal_projection": 0.09136532025148121,
+            "oracle_gap": 0.00019843193399768561,
+            "action_goal_jacobian_norm": 0.0005068639933597296,
+            "Q_gradient_norm": 0.10369416326284409
+          },
+          {
+            "update": 150,
+            "Q_actor": -67.37777709960938,
+            "actor_goal_projection": 0.09555769860050876,
+            "oracle_gap": 0.00011461446810584557,
+            "action_goal_jacobian_norm": 0.00015979841500666226,
+            "Q_gradient_norm": 0.030050620436668396
+          },
+          {
+            "update": 200,
+            "Q_actor": -67.37686157226562,
+            "actor_goal_projection": 0.09615902577193182,
+            "oracle_gap": 0.00010259292862111663,
+            "action_goal_jacobian_norm": 9.03331831068499e-05,
+            "Q_gradient_norm": 0.016604706645011902
+          },
+          {
+            "update": 250,
+            "Q_actor": -67.3764419555664,
+            "actor_goal_projection": 0.09644347676791526,
+            "oracle_gap": 9.69058726936603e-05,
+            "action_goal_jacobian_norm": 5.273248775665707e-05,
+            "Q_gradient_norm": 0.009907353669404984
+          },
+          {
+            "update": 300,
+            "Q_actor": -67.3761978149414,
+            "actor_goal_projection": 0.09658796184789191,
+            "oracle_gap": 9.401758434210039e-05,
+            "action_goal_jacobian_norm": 3.10873210310092e-05,
+            "Q_gradient_norm": 0.005964691285043955
+          },
+          {
+            "update": 350,
+            "Q_actor": -67.3760757446289,
+            "actor_goal_projection": 0.09665740505949913,
+            "oracle_gap": 9.26297110860555e-05,
+            "action_goal_jacobian_norm": 1.941704990713333e-05,
+            "Q_gradient_norm": 0.003769731381908059
+          },
+          {
+            "update": 400,
+            "Q_actor": -67.37601470947266,
+            "actor_goal_projection": 0.09669234276024902,
+            "oracle_gap": 9.19316044620977e-05,
+            "action_goal_jacobian_norm": 1.2963770791429851e-05,
+            "Q_gradient_norm": 0.002528073498979211
+          },
+          {
+            "update": 450,
+            "Q_actor": -67.37596893310547,
+            "actor_goal_projection": 0.09671127945799723,
+            "oracle_gap": 9.155328933776685e-05,
+            "action_goal_jacobian_norm": 9.190626838062598e-06,
+            "Q_gradient_norm": 0.0017927682492882013
+          },
+          {
+            "update": 500,
+            "Q_actor": -67.37594604492188,
+            "actor_goal_projection": 0.09672241415971772,
+            "oracle_gap": 9.133087381810012e-05,
+            "action_goal_jacobian_norm": 6.831819473518408e-06,
+            "Q_gradient_norm": 0.0013300379505380988
+          }
+        ],
+        "CURRENT_ACTOR_OBJECTIVE": [
+          {
+            "update": 0,
+            "Q_actor": -67.66002655029297,
+            "actor_goal_projection": 0.0004222969158932743,
+            "oracle_gap": 0.0020144868188824434,
+            "action_goal_jacobian_norm": 0.0009611606306862086,
+            "Q_gradient_norm": 0.24499203264713287
+          },
+          {
+            "update": 50,
+            "Q_actor": -67.65544128417969,
+            "actor_goal_projection": 0.001201923752983421,
+            "oracle_gap": 0.0019988966409461933,
+            "action_goal_jacobian_norm": 0.0007614317422849126,
+            "Q_gradient_norm": 0.22730499505996704
+          },
+          {
+            "update": 100,
+            "Q_actor": -67.6506576538086,
+            "actor_goal_projection": 0.0016589707221059458,
+            "oracle_gap": 0.0019897579784815557,
+            "action_goal_jacobian_norm": 0.0005909302082727664,
+            "Q_gradient_norm": 0.21955609321594238
+          },
+          {
+            "update": 150,
+            "Q_actor": -67.6506576538086,
+            "actor_goal_projection": 0.001549080608991335,
+            "oracle_gap": 0.001991956098227628,
+            "action_goal_jacobian_norm": 0.0005979594658128917,
+            "Q_gradient_norm": 0.22260832786560059
+          },
+          {
+            "update": 200,
+            "Q_actor": -67.65017700195312,
+            "actor_goal_projection": 0.0011127842069164023,
+            "oracle_gap": 0.002000688055172325,
+            "action_goal_jacobian_norm": 0.0005391017482907045,
+            "Q_gradient_norm": 0.21993011236190796
+          },
+          {
+            "update": 250,
+            "Q_actor": -67.6525650024414,
+            "actor_goal_projection": 0.004528607963565977,
+            "oracle_gap": 0.0019323596427716656,
+            "action_goal_jacobian_norm": 0.0007364926503214519,
+            "Q_gradient_norm": 0.2326056957244873
+          },
+          {
+            "update": 300,
+            "Q_actor": -67.6497573852539,
+            "actor_goal_projection": 0.004659596538005056,
+            "oracle_gap": 0.001929742098136767,
+            "action_goal_jacobian_norm": 0.0005375468223064672,
+            "Q_gradient_norm": 0.22795569896697998
+          },
+          {
+            "update": 350,
+            "Q_actor": -67.65376281738281,
+            "actor_goal_projection": 0.002179886979654245,
+            "oracle_gap": 0.001979337442223381,
+            "action_goal_jacobian_norm": 0.0005372354200517293,
+            "Q_gradient_norm": 0.22551898658275604
+          },
+          {
+            "update": 400,
+            "Q_actor": -67.65040588378906,
+            "actor_goal_projection": 0.003337926051780614,
+            "oracle_gap": 0.001956178510917566,
+            "action_goal_jacobian_norm": 0.0005299567368638236,
+            "Q_gradient_norm": 0.2086392641067505
+          },
+          {
+            "update": 450,
+            "Q_actor": -67.6530990600586,
+            "actor_goal_projection": 0.00230823706330354,
+            "oracle_gap": 0.0019767719552745266,
+            "action_goal_jacobian_norm": 0.0005861682700924575,
+            "Q_gradient_norm": 0.21937787532806396
+          },
+          {
+            "update": 500,
+            "Q_actor": -67.65371704101562,
+            "actor_goal_projection": 0.0037881607125102735,
+            "oracle_gap": 0.0019471694339028777,
+            "action_goal_jacobian_norm": 0.0005271474423352629,
+            "Q_gradient_norm": 0.2212887853384018
+          }
+        ]
+      }
+    },
+    {
+      "checkpoint": "artifacts/temp_compare_physical_seed2/checkpoint_latest.pt",
+      "updates": 500,
+      "fixed_recorded_state_stream": true,
+      "oracle_used_for_training": false,
+      "critic_parameters_unchanged": true,
+      "trajectories": {
+        "Q_ONLY": [
+          {
+            "update": 0,
+            "Q_actor": -66.52299499511719,
+            "actor_goal_projection": 0.008998760251039118,
+            "oracle_gap": 0.001892856245146567,
+            "action_goal_jacobian_norm": 0.0008761875578784384,
+            "Q_gradient_norm": 0.4349718987941742
+          },
+          {
+            "update": 50,
+            "Q_actor": -66.18639373779297,
+            "actor_goal_projection": 0.08451933800773537,
+            "oracle_gap": 0.0003832831638323375,
+            "action_goal_jacobian_norm": 0.0008805176665191538,
+            "Q_gradient_norm": 0.2955346405506134
+          },
+          {
+            "update": 100,
+            "Q_actor": -66.15509033203125,
+            "actor_goal_projection": 0.08960885454064452,
+            "oracle_gap": 0.0002816833934394325,
+            "action_goal_jacobian_norm": 8.730451299925335e-05,
+            "Q_gradient_norm": 0.026529226452112198
+          },
+          {
+            "update": 150,
+            "Q_actor": -66.15398406982422,
+            "actor_goal_projection": 0.08978518701780669,
+            "oracle_gap": 0.00027816356878536007,
+            "action_goal_jacobian_norm": 3.888297364937898e-05,
+            "Q_gradient_norm": 0.011496085673570633
+          },
+          {
+            "update": 200,
+            "Q_actor": -66.15364837646484,
+            "actor_goal_projection": 0.0898387926122054,
+            "oracle_gap": 0.00027709346156801315,
+            "action_goal_jacobian_norm": 2.2795484164817025e-05,
+            "Q_gradient_norm": 0.006628391798585653
+          },
+          {
+            "update": 250,
+            "Q_actor": -66.15349578857422,
+            "actor_goal_projection": 0.08986332068358857,
+            "oracle_gap": 0.00027660380590929345,
+            "action_goal_jacobian_norm": 1.4977829800955078e-05,
+            "Q_gradient_norm": 0.004305119626224041
+          },
+          {
+            "update": 300,
+            "Q_actor": -66.1534194946289,
+            "actor_goal_projection": 0.08987649624848448,
+            "oracle_gap": 0.00027634077842664804,
+            "action_goal_jacobian_norm": 1.0587151450636156e-05,
+            "Q_gradient_norm": 0.00301478267647326
+          },
+          {
+            "update": 350,
+            "Q_actor": -66.15336608886719,
+            "actor_goal_projection": 0.08988437226598289,
+            "oracle_gap": 0.00027618354565489003,
+            "action_goal_jacobian_norm": 7.875305948346068e-06,
+            "Q_gradient_norm": 0.002224002033472061
+          },
+          {
+            "update": 400,
+            "Q_actor": -66.15333557128906,
+            "actor_goal_projection": 0.0898893252994132,
+            "oracle_gap": 0.000276084665497518,
+            "action_goal_jacobian_norm": 6.115171242981887e-06,
+            "Q_gradient_norm": 0.0017152490327134728
+          },
+          {
+            "update": 450,
+            "Q_actor": -66.1533203125,
+            "actor_goal_projection": 0.0898926872772968,
+            "oracle_gap": 0.00027601754817966896,
+            "action_goal_jacobian_norm": 4.890660267165003e-06,
+            "Q_gradient_norm": 0.001363586401566863
+          },
+          {
+            "update": 500,
+            "Q_actor": -66.1532974243164,
+            "actor_goal_projection": 0.08989506803286453,
+            "oracle_gap": 0.0002759700196683457,
+            "action_goal_jacobian_norm": 4.002768815780655e-06,
+            "Q_gradient_norm": 0.0011104680597782135
+          }
+        ],
+        "CURRENT_ACTOR_OBJECTIVE": [
+          {
+            "update": 0,
+            "Q_actor": -66.52299499511719,
+            "actor_goal_projection": 0.008998760251039118,
+            "oracle_gap": 0.001892856245146567,
+            "action_goal_jacobian_norm": 0.0008761875578784384,
+            "Q_gradient_norm": 0.4349718987941742
+          },
+          {
+            "update": 50,
+            "Q_actor": -66.52870178222656,
+            "actor_goal_projection": 0.007649334112999309,
+            "oracle_gap": 0.0019198445617650739,
+            "action_goal_jacobian_norm": 0.0008063025190494955,
+            "Q_gradient_norm": 0.4306027293205261
+          },
+          {
+            "update": 100,
+            "Q_actor": -66.5360336303711,
+            "actor_goal_projection": 0.005396355463498675,
+            "oracle_gap": 0.0019649014816059294,
+            "action_goal_jacobian_norm": 0.0007630455525941216,
+            "Q_gradient_norm": 0.4031965136528015
+          },
+          {
+            "update": 150,
+            "Q_actor": -66.5395278930664,
+            "actor_goal_projection": 0.0048642986462372724,
+            "oracle_gap": 0.0019755383123212056,
+            "action_goal_jacobian_norm": 0.0006886613293318078,
+            "Q_gradient_norm": 0.39549943804740906
+          },
+          {
+            "update": 200,
+            "Q_actor": -66.5313949584961,
+            "actor_goal_projection": 0.0078420575866402,
+            "oracle_gap": 0.0019159911099867054,
+            "action_goal_jacobian_norm": 0.0007210890325950459,
+            "Q_gradient_norm": 0.43237027525901794
+          },
+          {
+            "update": 250,
+            "Q_actor": -66.5380630493164,
+            "actor_goal_projection": 0.005407242932339071,
+            "oracle_gap": 0.00196467813665692,
+            "action_goal_jacobian_norm": 0.0006663091349764727,
+            "Q_gradient_norm": 0.3916991651058197
+          },
+          {
+            "update": 300,
+            "Q_actor": -66.5403060913086,
+            "actor_goal_projection": 0.0043311734972387075,
+            "oracle_gap": 0.0019862019846631053,
+            "action_goal_jacobian_norm": 0.0006288074349868111,
+            "Q_gradient_norm": 0.4043278992176056
+          },
+          {
+            "update": 350,
+            "Q_actor": -66.5380630493164,
+            "actor_goal_projection": 0.005158239014768366,
+            "oracle_gap": 0.0019696577702817742,
+            "action_goal_jacobian_norm": 0.0007809982809703798,
+            "Q_gradient_norm": 0.3986448347568512
+          },
+          {
+            "update": 400,
+            "Q_actor": -66.54148864746094,
+            "actor_goal_projection": 0.004340572361836022,
+            "oracle_gap": 0.001986014983142801,
+            "action_goal_jacobian_norm": 0.0008044104266446084,
+            "Q_gradient_norm": 0.39727237820625305
+          },
+          {
+            "update": 450,
+            "Q_actor": -66.5455551147461,
+            "actor_goal_projection": 0.0032493934433966256,
+            "oracle_gap": 0.002007843418346704,
+            "action_goal_jacobian_norm": 0.0008364869747310877,
+            "Q_gradient_norm": 0.3721769154071808
+          },
+          {
+            "update": 500,
+            "Q_actor": -66.54810333251953,
+            "actor_goal_projection": 0.0024026662470909986,
+            "oracle_gap": 0.002024771054278447,
+            "action_goal_jacobian_norm": 0.0007016886054771021,
+            "Q_gradient_norm": 0.377130925655365
+          }
+        ]
+      }
+    }
+  ],
+  "aggregate_Q_ONLY_changes": [
+    {
+      "Q": 0.12621307373046875,
+      "projection": 0.11696989599095173,
+      "oracle_gap": -0.002338745755160631,
+      "goal_jacobian": -0.0006134520683531263
+    },
+    {
+      "Q": 0.28408050537109375,
+      "projection": 0.09630011724382444,
+      "oracle_gap": -0.0019231559450643434,
+      "goal_jacobian": -0.0009543288112126902
+    },
+    {
+      "Q": 0.36969757080078125,
+      "projection": 0.08089630778182541,
+      "oracle_gap": -0.0016168862254782213,
+      "goal_jacobian": -0.0008721847890626577
+    }
+  ],
+  "oracle_used_for_training": false,
+  "environment_training": false,
+  "synthetic_only": true
+}

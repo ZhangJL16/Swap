@@ -232,6 +232,13 @@ steps still pay elapsed-time and energy costs, and charging steps retain their d
 therefore distinguishes `backup_recovery_count`, `kappa_backup_steps`, and
 `backup_intervention_reward_events`.
 
+Q-value ranking alone is not treated as evidence that the actor receives an actionable gradient.
+`actor_gradient_diagnostics.py` audits the local critic action derivative, affine-tanh Jacobian
+transmission, separate Q/entropy parameter gradients, interpolation landscapes, goal-conditioned
+actor and critic Jacobians, and critic action-input conditioning. Its frozen-critic Q-only update
+uses only recorded certified RL states and critic gradients; the oracle is evaluation-only and never
+enters replay, loss targets, or rewards.
+
 ## Task-neutral support expressiveness
 
 Random-persistent normal support no longer follows the directed velocity/action of the offline
