@@ -167,6 +167,7 @@ def main() -> None:
         alignment = goal_projection_metrics(
             state.position, state.velocity, goal, actor_action, center, oracle_action, environment.plant.config.dt
         )
+        alignment["step"] = int(row.get("step", 0))
         observations.append(obs)
         centers.append(center)
         generators.append(generators_matrix)
@@ -249,9 +250,15 @@ def main() -> None:
         "alpha": float(agent.alpha.detach()),
         "log_alpha": float(agent.log_alpha.detach()),
         "target_entropy": config.target_entropy,
+        "temperature_coordinate": config.temperature_coordinate,
     }
-    entropy_output["entropy_target_residual"] = entropy_output["mean_physical_log_prob"] + config.target_entropy
+    entropy_output["physical_entropy_target_residual"] = entropy_output["mean_physical_log_prob"] + config.target_entropy
     entropy_output["normalized_entropy_target_residual"] = entropy_output["mean_normalized_log_prob"] + config.target_entropy
+    entropy_output["alpha_residual_used_for_training"] = (
+        entropy_output["physical_entropy_target_residual"]
+        if config.temperature_coordinate == "physical"
+        else entropy_output["normalized_entropy_target_residual"]
+    )
     critic_output = {
         "fraction_Q_oracle_gt_Q_actor": float(np.mean(np.asarray(q_values["oracle"]) > np.asarray(q_values["actor"]))),
         "fraction_Q_oracle_gt_Q_center": float(np.mean(np.asarray(q_values["oracle"]) > np.asarray(q_values["center"]))),
@@ -268,20 +275,28 @@ def main() -> None:
         "goal_progress_reward": 0.0,
         "task_completion_reward": 0.0,
         "elapsed_time_cost": 0.0,
-        "flight_energy_cost": 0.0,
-        "backup_cost": 0.0,
-        "charging_cost": 0.0,
+        "energy_cost": 0.0,
+        "backup_intervention_event_cost": 0.0,
+        "charging_dwell_cost": 0.0,
     }
     for index, row in enumerate(rows):
+        recorded = row.get("reward_components")
+        if isinstance(recorded, dict) and set(reward_components).issubset(recorded):
+            for name in reward_components:
+                reward_components[name] += float(recorded[name])
+            continue
         progress = float(row.get("goal_progress", 0.0) or 0.0)
         reward_components["goal_progress_reward"] += environment.task_env.reward_config.goal_progress_weight * progress
         reward_components["task_completion_reward"] += environment.task_env.reward_config.task_completion_reward * float(row.get("task_completed_now", False))
         reward_components["elapsed_time_cost"] -= environment.task_env.reward_config.elapsed_time_cost
         if index:
             consumed = max(0.0, float(rows[index - 1].get("energy", 0.0)) - float(row.get("energy", 0.0)) + float(row.get("energy_charged", 0.0) or 0.0))
-            reward_components["flight_energy_cost"] -= environment.task_env.reward_config.flight_energy_cost * consumed
-        reward_components["backup_cost"] -= environment.task_env.reward_config.backup_intervention_cost * float(row.get("backup_triggered", False))
-        reward_components["charging_cost"] -= environment.task_env.reward_config.charging_dwell_cost * float(row.get("charging", False))
+            reward_components["energy_cost"] -= environment.task_env.reward_config.flight_energy_cost * consumed
+        reward_components["backup_intervention_event_cost"] -= (
+            environment.task_env.reward_config.backup_intervention_cost
+            * float(row.get("backup_started_now", row.get("backup_triggered", False)))
+        )
+        reward_components["charging_dwell_cost"] -= environment.task_env.reward_config.charging_dwell_cost * float(row.get("charging", False))
     absolute_total = sum(abs(value) for value in reward_components.values()) or 1.0
     reward_output["trajectory_contributions"] = reward_components
     reward_output["absolute_contribution_fraction"] = {key: abs(value) / absolute_total for key, value in reward_components.items()}
@@ -342,6 +357,16 @@ def main() -> None:
         "pairwise_latent_distance": _stats(pairwise_latent),
         "pairwise_action_distance": _stats(pairwise_action),
     }
+    temporal_output = {}
+    for name, lower, upper in (("early_0_500", 0, 500), ("late_1500_2000", 1500, 2000)):
+        selected_alignments = [entry for entry in alignments if lower < entry["step"] <= upper]
+        selected_rows = [row for row in rows if lower < int(row.get("step", 0)) <= upper]
+        temporal_output[name] = {
+            "actor_goal_projection": _stats([entry["actor_goal_projection"] for entry in selected_alignments]),
+            "oracle_gap": _stats([entry["oracle_gap"] for entry in selected_alignments]),
+            "goal_progress": float(sum(float(row.get("goal_progress", 0.0) or 0.0) for row in selected_rows)),
+            "tasks_completed": int(sum(bool(row.get("task_completed_now", False)) for row in selected_rows)),
+        }
     result = {
         "checkpoint": args.checkpoint,
         "trajectory": args.trajectory,
@@ -349,6 +374,7 @@ def main() -> None:
         "sample_count": len(observations),
         "ACTOR": actor_output,
         "TRAINED_GOAL_SENSITIVITY_DIAGNOSTIC": goal_sensitivity_output,
+        "TEMPORAL": temporal_output,
         "OBSERVATION": observation_output,
         "ENTROPY": entropy_output,
         "AFFINE_SCALE_AUDIT": affine,

@@ -1,0 +1,510 @@
+{
+  "variant_definitions": {
+    "physical": "event-only backup reward; alpha adapts using physical action log probability",
+    "normalized": "event-only backup reward; alpha adapts using normalized eta log probability"
+  },
+  "common_config": {
+    "scenario": "random_persistent_open",
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "steps": 2000,
+    "warmup_steps": 300,
+    "batch_size": 64,
+    "target_entropy": -3.0,
+    "physical_actor_density": true,
+    "physical_bellman_density": true
+  },
+  "per_seed": {
+    "physical": [
+      {
+        "variant": "physical",
+        "seed": 0,
+        "steps": 2000,
+        "tasks_completed": 0,
+        "tasks_per_1000_steps": 0.0,
+        "net_goal_progress": -0.6898761103726022,
+        "fraction_steps_progressing_to_goal": 0.523,
+        "initial_distance": 1.3154954303518749,
+        "minimum_distance": 0.006424276176273411,
+        "rl_generator_fraction": 0.833,
+        "kappa_backup_fraction": 0.167,
+        "backup_intervention_events": 1,
+        "kappa_backup_steps": 334,
+        "actor_goal_projection": 0.0034672001404812986,
+        "oracle_goal_projection": 0.12071060441789927,
+        "oracle_gap": 0.0023441470086975743,
+        "goal_sensitivity_latent_distance": 0.0012711560515496166,
+        "goal_sensitivity_action_distance": 0.00015393281390269837,
+        "alpha": 1.6621795892715454,
+        "mean_log_prob_u": -3.8278610203134353,
+        "mean_negative_tanh_log_jacobian": 1.7955705520495697,
+        "mean_negative_log_det_G": 8.48308752769202,
+        "normalized_log_prob": -2.0322904700609907,
+        "physical_log_prob": 6.450797057031986,
+        "alpha_residual_used_for_training": 3.450797057031986,
+        "fraction_Q_oracle_gt_Q_actor": 1.0,
+        "fraction_Q_oracle_gt_Q_center": 1.0,
+        "fraction_Q_oracle_gt_Q_opposite": 1.0,
+        "mean_Q_oracle_minus_actor": 0.10972039304186951,
+        "reward_decomposition": {
+          "goal_progress_reward": -0.6898761103726022,
+          "task_completion_reward": 0.0,
+          "elapsed_time_cost": -20.000000000000327,
+          "energy_cost": -2.4115738620492357,
+          "backup_intervention_event_cost": -1.0,
+          "charging_dwell_cost": 0.0
+        },
+        "early_0_500": {
+          "goal_progress": 0.10369485164962478,
+          "tasks_completed": 0,
+          "actor_goal_projection": 0.006386124872113139,
+          "oracle_gap": 0.002366386989360007
+        },
+        "late_1500_2000": {
+          "goal_progress": -0.9790084103089314,
+          "tasks_completed": 0,
+          "actor_goal_projection": 0.0030809132564550436,
+          "oracle_gap": 0.0021064161092063777
+        },
+        "safety": {
+          "invalid_kappa": 0,
+          "fail_closed": 0,
+          "collision": 0,
+          "depletion": 0,
+          "uncertified_publication": 0,
+          "accepted_into_kappa_only": 0
+        },
+        "safety_pass": true,
+        "artifact_directory": "artifacts/temp_compare_physical_seed0"
+      },
+      {
+        "variant": "physical",
+        "seed": 1,
+        "steps": 2000,
+        "tasks_completed": 0,
+        "tasks_per_1000_steps": 0.0,
+        "net_goal_progress": -0.9470780268221124,
+        "fraction_steps_progressing_to_goal": 0.515,
+        "initial_distance": 0.6507478204527282,
+        "minimum_distance": 0.427576717252074,
+        "rl_generator_fraction": 0.8895,
+        "kappa_backup_fraction": 0.1105,
+        "backup_intervention_events": 9,
+        "kappa_backup_steps": 221,
+        "actor_goal_projection": 0.00042229680884481107,
+        "oracle_goal_projection": 0.1013046484875228,
+        "oracle_gap": 0.0020144868210239682,
+        "goal_sensitivity_latent_distance": 0.0014322862187771204,
+        "goal_sensitivity_action_distance": 0.00018206709698298867,
+        "alpha": 1.6535006761550903,
+        "mean_log_prob_u": -3.6569514882564547,
+        "mean_negative_tanh_log_jacobian": 1.6143152132630347,
+        "mean_negative_log_det_G": 8.353391420841216,
+        "normalized_log_prob": -2.042636275887489,
+        "physical_log_prob": 6.310755136013031,
+        "alpha_residual_used_for_training": 3.3107551360130314,
+        "fraction_Q_oracle_gt_Q_actor": 0.875,
+        "fraction_Q_oracle_gt_Q_center": 0.875,
+        "fraction_Q_oracle_gt_Q_opposite": 0.875,
+        "mean_Q_oracle_minus_actor": 0.11911464691162109,
+        "reward_decomposition": {
+          "goal_progress_reward": -0.9470780268221124,
+          "task_completion_reward": 0.0,
+          "elapsed_time_cost": -20.000000000000327,
+          "energy_cost": -2.411070132359585,
+          "backup_intervention_event_cost": -9.0,
+          "charging_dwell_cost": -1.2100000000000009
+        },
+        "early_0_500": {
+          "goal_progress": 0.12256884608250196,
+          "tasks_completed": 0,
+          "actor_goal_projection": 0.0012718706229473196,
+          "oracle_gap": 0.0018319747191206897
+        },
+        "late_1500_2000": {
+          "goal_progress": -0.9984396541475451,
+          "tasks_completed": 0,
+          "actor_goal_projection": -0.0027027070949542436,
+          "oracle_gap": 0.0018457080474928132
+        },
+        "safety": {
+          "invalid_kappa": 0,
+          "fail_closed": 0,
+          "collision": 0,
+          "depletion": 0,
+          "uncertified_publication": 0,
+          "accepted_into_kappa_only": 0
+        },
+        "safety_pass": true,
+        "artifact_directory": "artifacts/temp_compare_physical_seed1"
+      },
+      {
+        "variant": "physical",
+        "seed": 2,
+        "steps": 2000,
+        "tasks_completed": 0,
+        "tasks_per_1000_steps": 0.0,
+        "net_goal_progress": -0.8933267530075824,
+        "fraction_steps_progressing_to_goal": 0.4945,
+        "initial_distance": 1.7749615428958836,
+        "minimum_distance": 0.03199033738539602,
+        "rl_generator_fraction": 0.8095,
+        "kappa_backup_fraction": 0.1905,
+        "backup_intervention_events": 9,
+        "kappa_backup_steps": 381,
+        "actor_goal_projection": 0.008998760230274941,
+        "oracle_goal_projection": 0.10368155279975082,
+        "oracle_gap": 0.001892856245554948,
+        "goal_sensitivity_latent_distance": 0.001830087729033966,
+        "goal_sensitivity_action_distance": 0.00024723818417369853,
+        "alpha": 1.6607264280319214,
+        "mean_log_prob_u": -3.8667993688583375,
+        "mean_negative_tanh_log_jacobian": 1.8310359936952592,
+        "mean_negative_log_det_G": 8.353008706569671,
+        "normalized_log_prob": -2.035763370990753,
+        "physical_log_prob": 6.317245320081711,
+        "alpha_residual_used_for_training": 3.317245320081711,
+        "fraction_Q_oracle_gt_Q_actor": 0.79,
+        "fraction_Q_oracle_gt_Q_center": 0.86,
+        "fraction_Q_oracle_gt_Q_opposite": 0.86,
+        "mean_Q_oracle_minus_actor": 0.20545707702636717,
+        "reward_decomposition": {
+          "goal_progress_reward": -0.8933267530075824,
+          "task_completion_reward": 0.0,
+          "elapsed_time_cost": -20.000000000000327,
+          "energy_cost": -2.4128897371879257,
+          "backup_intervention_event_cost": -9.0,
+          "charging_dwell_cost": -2.4199999999999924
+        },
+        "early_0_500": {
+          "goal_progress": -0.03989935294907254,
+          "tasks_completed": 0,
+          "actor_goal_projection": 0.013971416387195556,
+          "oracle_gap": 0.001664000231639964
+        },
+        "late_1500_2000": {
+          "goal_progress": -2.6215586428232442,
+          "tasks_completed": 0,
+          "actor_goal_projection": -0.002567347097858619,
+          "oracle_gap": 0.0023811910408466836
+        },
+        "safety": {
+          "invalid_kappa": 0,
+          "fail_closed": 0,
+          "collision": 0,
+          "depletion": 0,
+          "uncertified_publication": 0,
+          "accepted_into_kappa_only": 0
+        },
+        "safety_pass": true,
+        "artifact_directory": "artifacts/temp_compare_physical_seed2"
+      }
+    ],
+    "normalized": [
+      {
+        "variant": "normalized",
+        "seed": 0,
+        "steps": 2000,
+        "tasks_completed": 0,
+        "tasks_per_1000_steps": 0.0,
+        "net_goal_progress": -0.6898761103726025,
+        "fraction_steps_progressing_to_goal": 0.527,
+        "initial_distance": 1.3154954303518749,
+        "minimum_distance": 0.006424276236243308,
+        "rl_generator_fraction": 0.8325,
+        "kappa_backup_fraction": 0.1675,
+        "backup_intervention_events": 1,
+        "kappa_backup_steps": 335,
+        "actor_goal_projection": -0.0010649485656418702,
+        "oracle_goal_projection": 0.12009544297806957,
+        "oracle_gap": 0.0024225614001047472,
+        "goal_sensitivity_latent_distance": 0.0014522403135142341,
+        "goal_sensitivity_action_distance": 0.00020040236004085677,
+        "alpha": 0.6004726886749268,
+        "mean_log_prob_u": -3.938024398669526,
+        "mean_negative_tanh_log_jacobian": 1.9121264491848011,
+        "mean_negative_log_det_G": 8.454169393184795,
+        "normalized_log_prob": -2.025897946789037,
+        "physical_log_prob": 6.428271415844635,
+        "alpha_residual_used_for_training": -5.025897946789037,
+        "fraction_Q_oracle_gt_Q_actor": 1.0,
+        "fraction_Q_oracle_gt_Q_center": 1.0,
+        "fraction_Q_oracle_gt_Q_opposite": 1.0,
+        "mean_Q_oracle_minus_actor": 0.05837276592925565,
+        "reward_decomposition": {
+          "goal_progress_reward": -0.6898761103726025,
+          "task_completion_reward": 0.0,
+          "elapsed_time_cost": -20.000000000000327,
+          "energy_cost": -2.4115881385592486,
+          "backup_intervention_event_cost": -1.0,
+          "charging_dwell_cost": 0.0
+        },
+        "early_0_500": {
+          "goal_progress": 0.10343252774745193,
+          "tasks_completed": 0,
+          "actor_goal_projection": 0.002219459254876491,
+          "oracle_gap": 0.0024130224900999328
+        },
+        "late_1500_2000": {
+          "goal_progress": -1.0002971392829623,
+          "tasks_completed": 0,
+          "actor_goal_projection": 0.001230993355482551,
+          "oracle_gap": 0.002481967312797642
+        },
+        "safety": {
+          "invalid_kappa": 0,
+          "fail_closed": 0,
+          "collision": 0,
+          "depletion": 0,
+          "uncertified_publication": 0,
+          "accepted_into_kappa_only": 0
+        },
+        "safety_pass": true,
+        "artifact_directory": "artifacts/temp_compare_normalized_seed0"
+      },
+      {
+        "variant": "normalized",
+        "seed": 1,
+        "steps": 2000,
+        "tasks_completed": 0,
+        "tasks_per_1000_steps": 0.0,
+        "net_goal_progress": -0.9384999051344478,
+        "fraction_steps_progressing_to_goal": 0.5065,
+        "initial_distance": 0.6507478204527282,
+        "minimum_distance": 0.48779379631135994,
+        "rl_generator_fraction": 0.894,
+        "kappa_backup_fraction": 0.106,
+        "backup_intervention_events": 9,
+        "kappa_backup_steps": 212,
+        "actor_goal_projection": 0.0059504522404354365,
+        "oracle_goal_projection": 0.10174273073253494,
+        "oracle_gap": 0.0019119102140823902,
+        "goal_sensitivity_latent_distance": 0.000908985283615028,
+        "goal_sensitivity_action_distance": 0.00010696691163891192,
+        "alpha": 0.6004559397697449,
+        "mean_log_prob_u": -3.678983029127121,
+        "mean_negative_tanh_log_jacobian": 1.6252430760860443,
+        "mean_negative_log_det_G": 8.3322660946846,
+        "normalized_log_prob": -2.053739951848984,
+        "physical_log_prob": 6.278526136875152,
+        "alpha_residual_used_for_training": -5.053739951848984,
+        "fraction_Q_oracle_gt_Q_actor": 0.845,
+        "fraction_Q_oracle_gt_Q_center": 0.845,
+        "fraction_Q_oracle_gt_Q_opposite": 0.845,
+        "mean_Q_oracle_minus_actor": 0.0676247787475586,
+        "reward_decomposition": {
+          "goal_progress_reward": -0.9384999051344478,
+          "task_completion_reward": 0.0,
+          "elapsed_time_cost": -20.000000000000327,
+          "energy_cost": -2.4109812277072398,
+          "backup_intervention_event_cost": -9.0,
+          "charging_dwell_cost": -1.2000000000000008
+        },
+        "early_0_500": {
+          "goal_progress": 0.12239751625430251,
+          "tasks_completed": 0,
+          "actor_goal_projection": 0.0024293837558747554,
+          "oracle_gap": 0.0016646852240040169
+        },
+        "late_1500_2000": {
+          "goal_progress": -0.8638873447608112,
+          "tasks_completed": 0,
+          "actor_goal_projection": -0.0008051335661824926,
+          "oracle_gap": 0.001958830524941179
+        },
+        "safety": {
+          "invalid_kappa": 0,
+          "fail_closed": 0,
+          "collision": 0,
+          "depletion": 0,
+          "uncertified_publication": 0,
+          "accepted_into_kappa_only": 0
+        },
+        "safety_pass": true,
+        "artifact_directory": "artifacts/temp_compare_normalized_seed1"
+      },
+      {
+        "variant": "normalized",
+        "seed": 2,
+        "steps": 2000,
+        "tasks_completed": 0,
+        "tasks_per_1000_steps": 0.0,
+        "net_goal_progress": -0.6886459821911164,
+        "fraction_steps_progressing_to_goal": 0.5165,
+        "initial_distance": 1.7749615428958836,
+        "minimum_distance": 0.03199033752796814,
+        "rl_generator_fraction": 0.8075,
+        "kappa_backup_fraction": 0.1925,
+        "backup_intervention_events": 9,
+        "kappa_backup_steps": 385,
+        "actor_goal_projection": 0.005317593401871931,
+        "oracle_goal_projection": 0.09564248847052298,
+        "oracle_gap": 0.0018057833565561655,
+        "goal_sensitivity_latent_distance": 0.0027473224788069944,
+        "goal_sensitivity_action_distance": 0.00035512221676986647,
+        "alpha": 0.6004751920700073,
+        "mean_log_prob_u": -3.8296273624897004,
+        "mean_negative_tanh_log_jacobian": 1.7938402688503265,
+        "mean_negative_log_det_G": 8.517835490703582,
+        "normalized_log_prob": -2.035787096619606,
+        "physical_log_prob": 6.48204838514328,
+        "alpha_residual_used_for_training": -5.035787096619606,
+        "fraction_Q_oracle_gt_Q_actor": 0.84,
+        "fraction_Q_oracle_gt_Q_center": 0.86,
+        "fraction_Q_oracle_gt_Q_opposite": 0.86,
+        "mean_Q_oracle_minus_actor": 0.10808849334716797,
+        "reward_decomposition": {
+          "goal_progress_reward": -0.6886459821911164,
+          "task_completion_reward": 0.0,
+          "elapsed_time_cost": -20.000000000000327,
+          "energy_cost": -2.4129154070142405,
+          "backup_intervention_event_cost": -9.0,
+          "charging_dwell_cost": -0.6200000000000003
+        },
+        "early_0_500": {
+          "goal_progress": -0.039792995019582555,
+          "tasks_completed": 0,
+          "actor_goal_projection": 0.007986238498982952,
+          "oracle_gap": 0.0017786372394641926
+        },
+        "late_1500_2000": {
+          "goal_progress": -2.4168778719327175,
+          "tasks_completed": 0,
+          "actor_goal_projection": -0.006141715468482381,
+          "oracle_gap": 0.0021018904642824024
+        },
+        "safety": {
+          "invalid_kappa": 0,
+          "fail_closed": 0,
+          "collision": 0,
+          "depletion": 0,
+          "uncertified_publication": 0,
+          "accepted_into_kappa_only": 0
+        },
+        "safety_pass": true,
+        "artifact_directory": "artifacts/temp_compare_normalized_seed2"
+      }
+    ]
+  },
+  "aggregate": {
+    "physical": {
+      "tasks_completed": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "net_goal_progress": {
+        "mean": -0.8434269634007657,
+        "std": 0.11077213310343786
+      },
+      "fraction_steps_progressing_to_goal": {
+        "mean": 0.5108333333333334,
+        "std": 0.012002314591592565
+      },
+      "actor_goal_projection": {
+        "mean": 0.004296085726533684,
+        "std": 0.0035500441021538787
+      },
+      "oracle_gap": {
+        "mean": 0.002083830025092163,
+        "std": 0.00019065186105796092
+      },
+      "goal_sensitivity_latent_distance": {
+        "mean": 0.0015111766664535678,
+        "std": 0.0002349027203969193
+      },
+      "goal_sensitivity_action_distance": {
+        "mean": 0.0001944126983531285,
+        "std": 3.907926504976699e-05
+      },
+      "alpha": {
+        "mean": 1.6588022311528523,
+        "std": 0.0037954168363793883
+      },
+      "normalized_log_prob": {
+        "mean": -2.0368967056464107,
+        "std": 0.004299012299834226
+      },
+      "physical_log_prob": {
+        "mean": 6.359599171042242,
+        "std": 0.06454105375164954
+      },
+      "mean_Q_oracle_minus_actor": {
+        "mean": 0.1447640389932859,
+        "std": 0.04308748194627701
+      }
+    },
+    "normalized": {
+      "tasks_completed": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "net_goal_progress": {
+        "mean": -0.7723406658993889,
+        "std": 0.11749339808748369
+      },
+      "fraction_steps_progressing_to_goal": {
+        "mean": 0.5166666666666667,
+        "std": 0.00836991968632651
+      },
+      "actor_goal_projection": {
+        "mean": 0.0034010323588884992,
+        "std": 0.003168476688787935
+      },
+      "oracle_gap": {
+        "mean": 0.002046751656914434,
+        "std": 0.0002692464172211949
+      },
+      "goal_sensitivity_latent_distance": {
+        "mean": 0.001702849358645419,
+        "std": 0.000771135345203309
+      },
+      "goal_sensitivity_action_distance": {
+        "mean": 0.0002208304961498784,
+        "std": 0.0001023335898742468
+      },
+      "alpha": {
+        "mean": 0.6004679401715597,
+        "std": 8.546889473933698e-06
+      },
+      "normalized_log_prob": {
+        "mean": -2.038474998419209,
+        "std": 0.011524262044421975
+      },
+      "physical_log_prob": {
+        "mean": 6.396281979287689,
+        "std": 0.08611163074154178
+      },
+      "mean_Q_oracle_minus_actor": {
+        "mean": 0.0780286793413274,
+        "std": 0.021588488427042266
+      }
+    }
+  },
+  "controlled_delta_normalized_minus_physical": {
+    "tasks_completed": 0.0,
+    "net_goal_progress": 0.07108629750137685,
+    "fraction_steps_progressing_to_goal": 0.005833333333333357,
+    "actor_goal_projection": -0.0008950533676451845,
+    "oracle_gap": -3.707836817772904e-05,
+    "goal_sensitivity_latent_distance": 0.00019167269219185108,
+    "goal_sensitivity_action_distance": 2.6417797796749902e-05,
+    "alpha": -1.0583342909812927,
+    "normalized_log_prob": -0.0015782927727983065,
+    "physical_log_prob": 0.03668280824544734,
+    "mean_Q_oracle_minus_actor": -0.06673535965195851
+  },
+  "improvement_signals": {
+    "mean_goal_progress_better": true,
+    "actor_goal_projection_better": false,
+    "oracle_gap_smaller": true,
+    "goal_sensitivity_larger": true
+  },
+  "positive_task_learning_signal": false,
+  "all_safety_gates_pass": true,
+  "classification": "NO_IMPROVEMENT",
+  "promotion_to_5k": false,
+  "synthetic_only": true
+}

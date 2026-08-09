@@ -3572,3 +3572,30 @@ temperature using normalized-support density `log pi_eta = log pi_u - log J_tanh
 invariant to affine support scaling; it changes only temperature adaptation, not T12 density,
 T_REC, T_AUTH, runtime authority, or executed-action critic semantics. No superiority claim is made
 before a controlled experiment.
+
+### Backup-event reward and normalized-temperature candidate
+
+The persistent performance reward charges backup intervention once at the authority-transfer
+event,
+\[
+r_{\mathrm{backup},t}=-\lambda_F\mathbf 1\{A_t\ne\mathrm{KAPPA\_BACKUP},\ A_{t+1}=\mathrm{KAPPA\_BACKUP}\}.
+\]
+Continuation under kappa does not repeat this event cost, but every recovery step still incurs the
+ordinary elapsed-time and conservative realized-energy terms. Hence backup duration is not free,
+and no separate backup-occupancy penalty is introduced.
+
+For the controlled temperature candidate, define
+\[
+\log\pi_\eta=\log\pi_u-\log J_{\tanh},\qquad
+\log\pi_a=\log\pi_\eta-\log|\det G|.
+\]
+T12, the actor objective, and the Generator Bellman branch continue to use the complete physical
+density `log pi_a`. Only automatic temperature adaptation changes: the normalized candidate uses
+`log pi_eta + H_target_eta` with `H_target_eta=-3`. Equivalently, it uses the state-dependent
+physical target
+\[
+H_{\mathrm{target}}^a(s)=H_{\mathrm{target}}^\eta+\log|\det G(s)|,
+\]
+because `log pi_a + H_target_a = log pi_eta + H_target_eta`. This alpha residual is invariant to
+uniform affine support scaling. It is an algorithm candidate, not a new performance theorem; all
+safety, support, runtime-authority, and physical-density statements remain unchanged.

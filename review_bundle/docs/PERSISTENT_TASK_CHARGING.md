@@ -220,9 +220,17 @@ from being reinterpreted as a missing nonterminal successor. A closed departure 
 an open departure is accepted only when its complete successor returns to `R_RL`.
 
 Generator-SAC diagnostics decompose normalized and physical log density. The physical density keeps
-the affine determinant term exactly. A future normalized-temperature variant, if evaluated, changes
-only the automatic temperature residual; it does not alter the actor/Bellman physical density or
-certificate semantics.
+the affine determinant term exactly. The controlled normalized-temperature candidate changes only
+the automatic alpha residual to use `log pi_eta`; actor and Bellman terms still use `log pi_a`, so
+the executed policy density and certificate semantics are unchanged. This is equivalent to a
+state-dependent physical entropy target shifted by `log|det G|` and is invariant to uniform affine
+support scaling.
+
+The persistent reward uses `backup_intervention_cost` as an event cost only when authority first
+transfers into `KAPPA_BACKUP`. Kappa continuation does not repeat that intervention charge. Recovery
+steps still pay elapsed-time and energy costs, and charging steps retain their dwell cost. Telemetry
+therefore distinguishes `backup_recovery_count`, `kappa_backup_steps`, and
+`backup_intervention_reward_events`.
 
 ## Task-neutral support expressiveness
 

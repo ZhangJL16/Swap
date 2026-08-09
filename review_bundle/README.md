@@ -149,8 +149,12 @@ PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/validate_random_persistent
 PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/validate_random_persistent_authority_lifecycle.py
 PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/validate_stochastic_kappa_closure.py
 PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_persistent_generator_sac_optimization.py --checkpoint artifacts/task_authority_smoke_open_seed0/checkpoint_latest.pt
-PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/train_persistent_generator_sac.py --scenario random_persistent_open --steps 5000
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/train_persistent_generator_sac.py --scenario random_persistent_open --temperature-coordinate physical --steps 2000
 ```
+
+Persistent backup reward is charged once per authority takeover, not once per kappa-controlled
+step. `--temperature-coordinate normalized` changes only automatic alpha adaptation; actor and
+Bellman objectives continue to use the exact physical affine-tanh density.
 
 This validator is deterministic synthetic software evidence, not training evidence or a
 real-flight safety claim.

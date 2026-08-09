@@ -25,6 +25,16 @@ from .recovery_atlas import CertifiedRecoverabilityAtlas
 from .runtime_wrapper import CertifiedRuntimeWrapper
 
 
+def backup_intervention_started(
+    mode_before: PersistentMissionMode,
+    actual_authority: ExecutionAuthority,
+) -> bool:
+    return (
+        actual_authority == ExecutionAuthority.KAPPA_BACKUP
+        and mode_before != PersistentMissionMode.BACKUP_RECOVERY
+    )
+
+
 @dataclass(slots=True)
 class PersistentMetrics:
     tasks_completed: int = 0
@@ -51,6 +61,7 @@ class PersistentMetrics:
     task_completion_steps: list[int] = field(default_factory=list)
     voluntary_station_arrivals: int = 0
     backup_recovery_count: int = 0
+    backup_intervention_reward_events: int = 0
     departure_attempts: int = 0
     generator_accepted_steps: int = 0
     no_generator_steps: int = 0
@@ -707,6 +718,14 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         self._time_since_last_charge = 0
         self.task_env.set_time_since_last_charge(0)
         reward = -self.task_env.reward_config.charging_dwell_cost
+        reward_components = {
+            "goal_progress_reward": 0.0,
+            "task_completion_reward": 0.0,
+            "elapsed_time_cost": 0.0,
+            "energy_cost": 0.0,
+            "backup_intervention_event_cost": 0.0,
+            "charging_dwell_cost": reward,
+        }
         observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
         return observation, reward, False, result.truncated, {
             "telemetry": result.telemetry,
@@ -721,6 +740,7 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
             "departure_attempt": True,
             "departure_rejected": True,
             "departure_rejection_reason": reason,
+            "reward_components": reward_components,
             "persistent_mode": self.task_env.mode.name,
             "persistent_manifest_hash": self.manifest_hash,
             "persistent_metrics": self.metric_snapshot(),
@@ -858,16 +878,25 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         if self.task_env.mode == PersistentMissionMode.CHARGING_RL and terminal_now:
             info, reward = self._apply_charging(info, reward)
             components = dict(info.get("reward_components", {}))
-            components["charging_cost"] = components.get("charging_cost", 0.0) - self.task_env.reward_config.charging_dwell_cost
+            if float(info.get("charged_energy", 0.0)) > 0.0:
+                components["charging_dwell_cost"] = (
+                    components.get("charging_dwell_cost", 0.0)
+                    - self.task_env.reward_config.charging_dwell_cost
+                )
             info = info | {"reward_components": components}
             observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
         elif left_station:
             observation = self.task_env.build_observation(self.runtime._map_encoding(), self.runtime._corridor_encoding())
-        if backup_reason is not None:
+        backup_started_now = backup_intervention_started(mode_before, actual_authority)
+        if backup_started_now:
             reward -= self.task_env.reward_config.backup_intervention_cost
             components = dict(info.get("reward_components", {}))
-            components["backup_cost"] = components.get("backup_cost", 0.0) - self.task_env.reward_config.backup_intervention_cost
+            components["backup_intervention_event_cost"] = (
+                components.get("backup_intervention_event_cost", 0.0)
+                - self.task_env.reward_config.backup_intervention_cost
+            )
             info = info | {"reward_components": components}
+            self.metrics.backup_intervention_reward_events += 1
         if info.get("task_completed_now"):
             self.metrics.task_completion_steps.append(self.metrics.total_steps - self._active_task_start_step)
             self._active_task_start_step = self.metrics.total_steps
@@ -876,6 +905,7 @@ class PersistentRuntimeWrapper(gym.Env[np.ndarray, np.ndarray]):
         return observation, reward, terminated, truncated, info | {
             "persistent_mode": self.task_env.mode.name,
             "backup_triggered": backup_reason is not None,
+            "backup_started_now": backup_started_now,
             "backup_reason": backup_reason,
             "voluntary_station_approach": self._station_approach_active,
             "voluntary_station_arrival": self.metrics.voluntary_station_arrivals > 0 and terminal_now and backup_reason is None,

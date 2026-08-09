@@ -1,0 +1,74 @@
+{
+  "definition": "backup_intervention_cost is charged once on entry into KAPPA_BACKUP",
+  "backup_intervention_cost": 1.0,
+  "runs": [
+    {
+      "trajectory": "artifacts/task_authority_smoke_open_seed0/trajectory_events.jsonl",
+      "steps": 2000,
+      "old_per_step_backup_penalty_steps": 334,
+      "new_backup_intervention_events": 1,
+      "backup_event_steps": [
+        1667
+      ],
+      "old_per_step_backup_contribution": -334.0,
+      "new_event_only_backup_contribution": -1.0,
+      "goal_progress_reward": -0.6898761103726025,
+      "task_completion_reward": 0.0,
+      "elapsed_time_cost": -20.0,
+      "energy_cost": -2.41156616015881,
+      "charging_dwell_cost": -0.0,
+      "old_reconstructed_total": -357.10144227053144,
+      "new_reconstructed_total": -24.10144227053141,
+      "reward_scale_change": 333.0
+    },
+    {
+      "trajectory": "artifacts/task_authority_smoke_open_seed1/trajectory_events.jsonl",
+      "steps": 2000,
+      "old_per_step_backup_penalty_steps": 221,
+      "new_backup_intervention_events": 1,
+      "backup_event_steps": [
+        1668
+      ],
+      "old_per_step_backup_contribution": -221.0,
+      "new_event_only_backup_contribution": -1.0,
+      "goal_progress_reward": -0.9800895691357907,
+      "task_completion_reward": 0.0,
+      "elapsed_time_cost": -20.0,
+      "energy_cost": -2.4111102572492724,
+      "charging_dwell_cost": -0.07,
+      "old_reconstructed_total": -244.46119982638507,
+      "new_reconstructed_total": -24.461199826385062,
+      "reward_scale_change": 220.0
+    },
+    {
+      "trajectory": "artifacts/task_authority_smoke_open_seed2/trajectory_events.jsonl",
+      "steps": 2000,
+      "old_per_step_backup_penalty_steps": 383,
+      "new_backup_intervention_events": 1,
+      "backup_event_steps": [
+        1247
+      ],
+      "old_per_step_backup_contribution": -383.0,
+      "new_event_only_backup_contribution": -1.0,
+      "goal_progress_reward": -1.1368360452006252,
+      "task_completion_reward": 0.0,
+      "elapsed_time_cost": -20.0,
+      "energy_cost": -2.412747039827523,
+      "charging_dwell_cost": -0.07,
+      "old_reconstructed_total": -406.6195830850281,
+      "new_reconstructed_total": -24.619583085028147,
+      "reward_scale_change": 382.0
+    }
+  ],
+  "aggregate_mean": {
+    "old_per_step_backup_contribution": -312.6666666666667,
+    "new_event_only_backup_contribution": -1.0,
+    "goal_progress_reward": -0.9356005749030061,
+    "task_completion_reward": 0.0,
+    "elapsed_time_cost": -20.0,
+    "energy_cost": -2.4118078190785353,
+    "charging_dwell_cost": -0.04666666666666667
+  },
+  "reconstructed_only": true,
+  "synthetic_only": true
+}

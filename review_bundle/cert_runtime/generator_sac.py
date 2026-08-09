@@ -9,10 +9,11 @@ from torch import Tensor, nn
 
 from .actor import FeedForwardAffineTanhActor
 from .persistent_authority import ExecutionAuthority
-from .optimization_diagnostics import entropy_decomposition
+from .optimization_diagnostics import entropy_decomposition, temperature_log_probability
 
 
 EpochReplayPolicy = Literal["reject", "group", "clear_on_change"]
+TemperatureCoordinate = Literal["physical", "normalized"]
 
 
 @dataclass(frozen=True)
@@ -27,9 +28,14 @@ class GeneratorSACConfig:
     warmup_steps: int = 5_000
     updates_per_step: int = 1
     target_entropy: float = -3.0
+    temperature_coordinate: TemperatureCoordinate = "physical"
     hidden_dim: int = 128
     bootstrap_on_truncation: bool = True
     epoch_replay_policy: EpochReplayPolicy = "clear_on_change"
+
+    def __post_init__(self) -> None:
+        if self.temperature_coordinate not in {"physical", "normalized"}:
+            raise ValueError("temperature_coordinate must be 'physical' or 'normalized'")
 
 
 def _copy_array(value):
@@ -72,6 +78,7 @@ class GeneratorTransition:
     scenario_hash: str | None = None
     certificate_manifest_hash: str | None = None
     backup_triggered: bool = False
+    backup_started_now: bool = False
     backup_reason: str | None = None
     energy: float | None = None
     required_return_energy: float | None = None
@@ -236,11 +243,18 @@ class GeneratorSAC:
     def _mapped_action(c: Tensor, G: Tensor, u: Tensor) -> Tensor:
         return c + torch.bmm(G, torch.tanh(u).unsqueeze(-1)).squeeze(-1)
 
+    def _temperature_log_probability(self, terms) -> Tensor:
+        return temperature_log_probability(terms, self.config.temperature_coordinate)
+
+    @staticmethod
+    def _actor_log_probability(terms) -> Tensor:
+        return terms.physical_log_prob
+
     def _sample_generator_actions(self, observations: Tensor, centers: Tensor, generators: Tensor) -> tuple[Tensor, Tensor, Tensor]:
         distribution = self.actor.distribution(observations)
         u = distribution.rsample()
         actions = self._mapped_action(centers.detach(), generators.detach(), u)
-        log_prob = distribution.log_prob(u).sum(-1) - self.actor.stable_tanh_log_jacobian(u) - torch.linalg.slogdet(generators.detach()).logabsdet
+        log_prob = entropy_decomposition(distribution, u, generators).physical_log_prob
         self.generator_log_density_calls += int(observations.shape[0])
         return actions, log_prob, u
 
@@ -298,6 +312,9 @@ class GeneratorSAC:
             "mean_negative_log_det_G": None,
             "mean_normalized_log_prob": None,
             "entropy_target_residual": None,
+            "physical_entropy_target_residual": None,
+            "normalized_entropy_target_residual": None,
+            "temperature_coordinate": self.config.temperature_coordinate,
             "alpha_gradient": None,
             "mean_u": None,
             "std_u": None,
@@ -320,15 +337,17 @@ class GeneratorSAC:
             actions, log_prob, u = self._sample_generator_actions(observations[index_tensor], centers, generators)
             distribution = self.actor.distribution(observations[index_tensor])
             terms = entropy_decomposition(distribution, u, generators)
+            alpha_log_prob = self._temperature_log_probability(terms)
             q_value = torch.minimum(self.critic_1(observations[index_tensor], actions), self.critic_2(observations[index_tensor], actions))
-            actor_loss = (self.alpha.detach() * log_prob - q_value).mean()
+            actor_loss = (self.alpha.detach() * self._actor_log_probability(terms) - q_value).mean()
             self.actor_optimizer.zero_grad(set_to_none=True)
             actor_loss.backward()
             if not torch.isfinite(actor_loss) or not self._finite_gradients(self.actor.parameters()):
                 raise FloatingPointError("nonfinite actor loss or gradient")
             actor_gradient_norm = float(torch.nn.utils.clip_grad_norm_(self.actor.parameters(), 100.0))
             self.actor_optimizer.step()
-            alpha_loss = -(self.log_alpha * (log_prob.detach() + self.config.target_entropy)).mean()
+            alpha_residual = alpha_log_prob.detach() + self.config.target_entropy
+            alpha_loss = -(self.log_alpha * alpha_residual).mean()
             self.alpha_optimizer.zero_grad(set_to_none=True)
             alpha_loss.backward()
             if not torch.isfinite(alpha_loss) or self.log_alpha.grad is None or not torch.isfinite(self.log_alpha.grad):
@@ -337,7 +356,7 @@ class GeneratorSAC:
             actor_status = "updated"
             actor_loss_value = float(actor_loss.detach())
             alpha_loss_value = float(alpha_loss.detach())
-            mean_log_prob = float(log_prob.mean().detach())
+            mean_log_prob = float(terms.physical_log_prob.mean().detach())
             mean_log_det = float(torch.linalg.slogdet(generators).logabsdet.mean().detach())
             mean_jacobian = float(self.actor.stable_tanh_log_jacobian(u).mean().detach())
             eta = torch.tanh(u)
@@ -346,7 +365,10 @@ class GeneratorSAC:
                 "mean_negative_tanh_log_jacobian": float(terms.negative_tanh_log_jacobian_term.mean().detach()),
                 "mean_negative_log_det_G": float(terms.negative_log_det_G_term.mean().detach()),
                 "mean_normalized_log_prob": float(terms.normalized_log_prob.mean().detach()),
-                "entropy_target_residual": float((terms.physical_log_prob + self.config.target_entropy).mean().detach()),
+                "entropy_target_residual": float(alpha_residual.mean().detach()),
+                "physical_entropy_target_residual": float((terms.physical_log_prob + self.config.target_entropy).mean().detach()),
+                "normalized_entropy_target_residual": float((terms.normalized_log_prob + self.config.target_entropy).mean().detach()),
+                "temperature_coordinate": self.config.temperature_coordinate,
                 "alpha_gradient": float(self.log_alpha.grad.detach()),
                 "mean_u": float(u.mean().detach()),
                 "std_u": float(u.std(unbiased=False).detach()),
@@ -368,6 +390,7 @@ class GeneratorSAC:
             "actor_loss": actor_loss_value, "alpha_loss": alpha_loss_value, "alpha": float(self.alpha.detach()),
             "mean_log_prob": mean_log_prob, "mean_log_det_G": mean_log_det,
             "mean_tanh_log_jacobian": mean_jacobian,
+            "temperature_coordinate": self.config.temperature_coordinate,
             "q_value_exec": float(torch.minimum(prediction_1, prediction_2).mean().detach()),
             "accepted_batch_count": len(accepted_indices), "fallback_batch_count": len(selected) - len(accepted_indices),
             "accepted_batch_fraction": len(accepted_indices) / len(selected), "actor_status": actor_status,

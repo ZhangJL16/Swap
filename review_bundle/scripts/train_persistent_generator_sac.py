@@ -38,6 +38,7 @@ def main() -> None:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--output-dir", default="artifacts/persistent_generator_sac")
     parser.add_argument("--log-interval", type=int, default=500)
+    parser.add_argument("--temperature-coordinate", choices=("physical", "normalized"), default="physical")
     args = parser.parse_args()
     if args.log_interval <= 0:
         raise ValueError("log interval must be positive")
@@ -46,7 +47,11 @@ def main() -> None:
     environment = factory(f"{args.scenario}.json", seed=args.seed)
     observation, reset_info = environment.reset(seed=args.seed)
     context = reset_info["action_context"]
-    config = GeneratorSACConfig(batch_size=args.batch_size, warmup_steps=args.warmup_steps)
+    config = GeneratorSACConfig(
+        batch_size=args.batch_size,
+        warmup_steps=args.warmup_steps,
+        temperature_coordinate=args.temperature_coordinate,
+    )
     agent = PersistentGeneratorSAC(observation.size, config, seed=args.seed, device=args.device)
     rng = np.random.default_rng(args.seed)
     episode_id = 0
@@ -81,6 +86,7 @@ def main() -> None:
             "tasks_per_1000_steps": interval["tasks_per_1000_steps"],
             "interval_voluntary_station_arrivals": interval["voluntary_station_arrivals"],
             "interval_backup_recoveries": interval["backup_recovery_count"],
+            "interval_backup_intervention_reward_events": interval["backup_intervention_reward_events"],
             "backup_rate": interval["backup_rate"],
             "charging_fraction": interval["charging_fraction"],
             "generator_acceptance_rate": interval["generator_acceptance_rate"],
@@ -102,6 +108,9 @@ def main() -> None:
             "mean_normalized_log_prob": update.get("mean_normalized_log_prob"),
             "mean_physical_log_prob": update.get("mean_log_prob"),
             "entropy_target_residual": update.get("entropy_target_residual"),
+            "physical_entropy_target_residual": update.get("physical_entropy_target_residual"),
+            "normalized_entropy_target_residual": update.get("normalized_entropy_target_residual"),
+            "temperature_coordinate": args.temperature_coordinate,
             "alpha_gradient": update.get("alpha_gradient"),
             "accepted_batch_fraction": update.get("accepted_batch_fraction"),
             "kappa_target_fraction": float(update.get("kappa_target_count", 0) or 0) / target_count,
@@ -138,6 +147,7 @@ def main() -> None:
             "execution_authority_reason": info.get("execution_authority_reason"),
             "accepted": bool(info.get("accepted", False)),
             "backup_triggered": bool(info.get("backup_triggered", False)),
+            "backup_started_now": bool(info.get("backup_started_now", False)),
             "backup_reason": info.get("backup_reason"),
             "voluntary_station_approach": bool(info.get("voluntary_station_approach", False)),
             "voluntary_station_arrival": bool(delta.get("voluntary_station_arrivals", 0.0) > 0.0),
@@ -270,6 +280,7 @@ def main() -> None:
         "scenario": args.scenario,
         "legacy_fixed_graph": args.legacy_fixed_graph,
         "seed": args.seed,
+        "temperature_coordinate": args.temperature_coordinate,
         "steps": args.steps,
         "episodes": len(episode_records),
         "gradient_steps": agent.gradient_steps,

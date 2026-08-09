@@ -69,6 +69,7 @@ def transition_from_cycle(
         scenario_id=str(info.get("scenario_id", "persistent")),
         certificate_manifest_hash=epoch,
         backup_triggered=bool(info.get("backup_triggered", False)),
+        backup_started_now=bool(info.get("backup_started_now", False)),
         backup_reason=info.get("backup_reason"),
         energy=float(telemetry.state_before.energy),
         required_return_energy=float(info.get("required_return_energy", np.nan)),

@@ -21,6 +21,17 @@ class EntropyDecomposition:
     physical_log_prob: Tensor
 
 
+def temperature_log_probability(
+    terms: EntropyDecomposition,
+    coordinate: str,
+) -> Tensor:
+    if coordinate == "physical":
+        return terms.physical_log_prob
+    if coordinate == "normalized":
+        return terms.normalized_log_prob
+    raise ValueError(f"unsupported temperature coordinate: {coordinate}")
+
+
 def entropy_decomposition(distribution: Normal, u: Tensor, generators: Tensor) -> EntropyDecomposition:
     normal = distribution.log_prob(u).sum(-1)
     jacobian = FeedForwardAffineTanhActor.stable_tanh_log_jacobian(u)
