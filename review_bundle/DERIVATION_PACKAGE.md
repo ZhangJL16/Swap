@@ -3636,3 +3636,32 @@ action, opposite-goal reversals, and alignment with the one-step environment ora
 diagnostic only: it does not supervise either network, enter replay, or modify rewards. These results
 are optimization and representation evidence, not a new safety theorem or a global critic-optimum
 claim.
+
+### Bellman goal-action coupling and replay identifiability
+
+The current empirical failure hypothesis is an almost additive critic,
+\[
+Q(x,g,a)\approx V(x,g)+A(x,a),
+\]
+rather than the task-control interaction required for goal-conditioned action preference,
+`A=A(x,g,a)`. A goal-dependent value offset, or a nonzero local goal Jacobian, does not establish
+that the preferred certified action changes with the goal. For the ReLU critic, a zero mixed second
+derivative inside one activation region is likewise not primary evidence of goal insensitivity.
+
+The Bellman coupling audit freezes physical/certificate state and complete Generator support,
+propagates each certified candidate action through the same nominal plant convention, recomputes
+the formal task reward for multiple counterfactual goals, and decomposes
+\[
+Y_{ij}=R_{ij}+\gamma Q_{\rm target}(s'_{ij},a'_{ij})
+-\gamma\alpha\log\pi_a(a'_{ij}\mid s'_{ij}).
+\]
+It compares the centered goal-action interaction in `R`, `Y`, and learned `Q`, plus the finite-set
+preferred actions. The target actor uses common reparameterization noise across goals for each
+fixed physical successor so goal comparisons are not contaminated by sampling noise. Completion
+transitions are separated because the continuing MDP assigns a fresh next goal.
+
+Replay identifiability is audited independently in local physical neighborhoods using recovery
+cell, position, velocity, energy, and mode. Goal angular coverage, normalized Generator-action
+coverage, and the rank/conditioning of `g tensor-product eta` are reported. Counterfactual goal
+augmentation is diagnostic only: it never enters replay or updates a network. These diagnostics
+add no safety theorem and do not implement n-step returns, relabeling, or a new critic.

@@ -245,6 +245,20 @@ membership, RL-authority membership, `E^kappa`, continuation support, and certif
 unchanged. Goal-dependent critic values are reported separately from goal-dependent action gradients
 and searched critic-preferred actions; the former does not imply the latter.
 
+The Bellman/replay audit next asks whether the one-step training target itself contains a usable
+goal-by-action interaction and whether rollout replay identifies it locally. It constructs
+counterfactual non-completion matrices `R(g,a)`, the physical-density Bellman target `Y(g,a)`, and
+the learned `Q(g,a)` over the same certified action set. Additive explained variance is reported
+alongside finite-set preferred-action sensitivity; interaction variance alone is not treated as
+task-control competence when the preferred action remains goal-invariant.
+
+Replay neighborhoods are goal-independent and use recovery cell, physical state, energy margin,
+and mode. The audit reports goal angular spread, action covariance, normalized support coverage,
+and effective rank of `g tensor-product eta`. Hypothetical counterfactual augmentation recomputes
+goal observations, rewards, and targets for the same physical transition only when the relabeled
+goal is not completed. It is diagnostic only: no relabeled item is inserted into replay and no
+actor or critic is updated.
+
 ## Task-neutral support expressiveness
 
 Random-persistent normal support no longer follows the directed velocity/action of the offline

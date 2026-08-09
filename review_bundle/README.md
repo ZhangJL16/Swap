@@ -181,5 +181,16 @@ PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_counterfactual_goal_
 The script changes only named goal observation fields and fails immediately if any certificate or
 safe-support identity changes.
 
+Bellman goal-action coupling and replay identifiability diagnostics use frozen checkpoints and
+trajectory artifacts only:
+
+```bash
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_bellman_goal_action_coupling.py
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_replay_goal_action_identifiability.py
+```
+
+These scripts distinguish a goal-dependent value offset from a goal-conditioned certified-action
+preference. They do not train, relabel replay, alter rewards, or change the safety support.
+
 This validator is deterministic synthetic software evidence, not training evidence or a
 real-flight safety claim.
