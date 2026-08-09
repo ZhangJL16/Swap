@@ -239,6 +239,12 @@ actor and critic Jacobians, and critic action-input conditioning. Its frozen-cri
 uses only recorded certified RL states and critic gradients; the oracle is evaluation-only and never
 enters replay, loss targets, or rewards.
 
+The counterfactual goal critic audit additionally freezes the complete physical/certificate state
+and changes only `goal_delta` and `distance_to_goal`. It verifies that `c`, `G`, recoverable-set
+membership, RL-authority membership, `E^kappa`, continuation support, and certificate hashes remain
+unchanged. Goal-dependent critic values are reported separately from goal-dependent action gradients
+and searched critic-preferred actions; the former does not imply the latter.
+
 ## Task-neutral support expressiveness
 
 Random-persistent normal support no longer follows the directed velocity/action of the offline

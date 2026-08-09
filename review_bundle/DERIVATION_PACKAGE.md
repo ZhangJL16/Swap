@@ -3619,3 +3619,20 @@ entropy terms, and measures actor and critic Jacobians with respect to goal feat
 Q-only actor update is an offline diagnostic of gradient actionability; it never uses oracle labels,
 never changes replay rewards, and is not a proposed control algorithm. These are optimization
 diagnostics only and add no safety or convergence theorem.
+
+### Counterfactual goal critic-preference boundary
+
+For a fixed physical and certificate state (x), goal-dependent value is not the same claim as
+goal-conditioned control preference:
+\[
+\frac{\partial Q(x,g,a)}{\partial g}\ne 0
+\quad\not\Rightarrow\quad
+\frac{\partial}{\partial g}\operatorname*{arg\,max}_{a\in C_{\rm run}(x)}Q(x,g,a)\ne 0.
+\]
+The counterfactual audit therefore holds (x), (C_{\rm run}(x)), (c), (G), recovery evidence,
+and certificate identities fixed while replacing only the formally named goal-derived observation
+fields. It compares value offsets, the action-gradient field, a searched critic-preferred certified
+action, opposite-goal reversals, and alignment with the one-step environment oracle. The search is
+diagnostic only: it does not supervise either network, enter replay, or modify rewards. These results
+are optimization and representation evidence, not a new safety theorem or a global critic-optimum
+claim.

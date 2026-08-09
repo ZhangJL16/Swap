@@ -168,5 +168,18 @@ PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_actor_gradient_learn
 
 The frozen-critic Q-only branch is diagnostic only and does not use oracle demonstrations.
 
+Counterfactual critic control-preference diagnostics use existing checkpoints only:
+
+```bash
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_counterfactual_goal_critic.py \
+  --checkpoint artifacts/temp_compare_physical_seed0/checkpoint_latest.pt \
+               artifacts/temp_compare_physical_seed1/checkpoint_latest.pt \
+               artifacts/temp_compare_physical_seed2/checkpoint_latest.pt \
+  --scenario random_persistent_open --sample-count 100 --goals-per-state 8
+```
+
+The script changes only named goal observation fields and fails immediately if any certificate or
+safe-support identity changes.
+
 This validator is deterministic synthetic software evidence, not training evidence or a
 real-flight safety claim.
