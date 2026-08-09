@@ -3665,3 +3665,27 @@ cell, position, velocity, energy, and mode. Goal angular coverage, normalized Ge
 coverage, and the rank/conditioning of `g tensor-product eta` are reported. Counterfactual goal
 augmentation is diagnostic only: it never enters replay or updates a network. These diagnostics
 add no safety theorem and do not implement n-step returns, relabeling, or a new critic.
+
+### Crossed horizon, goal coverage, and soft-entropy audit
+
+The crossed audit separates immediate task-control reward, return horizon, replay goal coverage,
+physical soft entropy, and critic representation capacity without updating the production algorithm.
+For a valid fixed-goal segment it evaluates
+\[
+Y_t^{(n)}=\sum_{k=0}^{n-1}\gamma^k r_{t+k}
++\gamma^n\left[Q_{\rm target}(s_{t+n},a'_{t+n})
+-\alpha\log\pi_a(a'_{t+n}\mid s_{t+n})\right].
+\]
+The physical-density contribution is separated exactly as
+\[
+-\alpha\log\pi_a=-\alpha\log\pi_\eta+\alpha\log|\det G|.
+\]
+The no-entropy and normalized-entropy targets localize preference sources only; neither is a training
+proposal and the physical SAC density theorem is unchanged.
+
+Large target contrast is not useful goal-conditioned control evidence when goal-generic bootstrap
+value or state-dependent entropy/support volume dominates it. Likewise, cumulative reward growth is
+not horizon restoration unless preferred certified actions gain opposite-goal reversal, oracle
+alignment, and nonadditive interaction. A temporary same-architecture supervised critic may fit fixed
+audit targets after per-state-goal action-advantage standardization. It is isolated from production
+networks and tests representation capacity only.

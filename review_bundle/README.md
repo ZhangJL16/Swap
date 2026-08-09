@@ -192,5 +192,18 @@ PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_replay_goal_action_i
 These scripts distinguish a goal-dependent value offset from a goal-conditioned certified-action
 preference. They do not train, relabel replay, alter rewards, or change the safety support.
 
+Crossed horizon/coverage/entropy diagnostics and the isolated same-architecture capacity probe use
+frozen artifacts only:
+
+```bash
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python \
+  scripts/audit_crossed_horizon_goal_coverage.py --horizons 1 3 5 10
+PYTHONPATH=. /home/zjl/mappo/.venv/bin/python \
+  scripts/audit_disposable_goal_action_critic_fit.py --horizon 10 --target-semantics physical
+```
+
+No-entropy and normalized-entropy outputs are localization diagnostics, not alternate training
+objectives. The disposable critic cannot modify production checkpoints or replay.
+
 This validator is deterministic synthetic software evidence, not training evidence or a
 real-flight safety claim.

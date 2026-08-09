@@ -271,3 +271,17 @@ scales are enlarged only through the complete verifier. Task goals affect the po
 The best-in-Generator oracle is a diagnostic, not a controller in the main method and not a safety
 proof. It establishes whether a goal-aware selector can make progress inside the certified support
 before additional SAC training is justified.
+
+## Crossed causal optimization audit
+
+`audit_crossed_horizon_goal_coverage.py` evaluates horizons 1, 3, 5, and 10 under observed-goal and
+strict non-completion counterfactual coverage. Every comparison reuses the same physical branch,
+candidate actions, disturbance convention, reward coefficients, certificates, `c`, and `G`.
+Observed replay has one goal per physical transition, so within-state goal-preference sensitivity is
+not identifiable there; this absence is reported rather than filled with invented transitions.
+
+The bootstrap is reported as reward return, target Q, normalized-policy entropy, and
+`log|det G|` support-volume contributions. Physical, no-entropy, and normalized-entropy targets are
+diagnostic views of frozen data. A disposable QNetwork fit uses fixed targets and an order-preserving
+per-state-goal action-advantage transform to test representation capacity. It never changes actor,
+critics, target critics, replay, reward, or safety support.

@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "architecture": "current QNetwork concat(observation, physical_action), hidden_dim=128",
+    "horizon": 10,
+    "target_semantics": "physical",
+    "DIAGNOSTIC_TEMPORARY_MODEL_ONLY": true,
+    "ENVIRONMENT_TRAINING_STEPS": 0,
+    "PRODUCTION_ACTOR_UPDATED": false,
+    "PRODUCTION_CRITIC_UPDATED": false,
+    "TARGET_CRITIC_UPDATED": false,
+    "REPLAY_MODIFIED": false
+  },
+  "results": {
+    "actual": {
+      "dataset_rows": 222,
+      "order_preserving_target_transform": "per-state-goal action advantage standardization",
+      "fit": {
+        "initial_mse": 1.0302000045776367,
+        "final_mse": 0.014349318109452724,
+        "steps": 10000
+      },
+      "heldout_counterfactual_grid": {
+        "heldout_S_Q_probe": 0.12977524456401462,
+        "heldout_S_target": 0.13170663326905416,
+        "x_reversal_fraction": 0.3,
+        "y_reversal_fraction": 0.7,
+        "oracle_alignment_mean": 0.05609722984472696,
+        "target_mse": 4.198498254380697,
+        "preferred_action_ranking_accuracy": 0.1625
+      }
+    },
+    "counterfactual": {
+      "dataset_rows": 1776,
+      "order_preserving_target_transform": "per-state-goal action advantage standardization",
+      "fit": {
+        "initial_mse": 1.001631259918213,
+        "final_mse": 0.015049156732857227,
+        "steps": 10000
+      },
+      "heldout_counterfactual_grid": {
+        "heldout_S_Q_probe": 0.0171083384013434,
+        "heldout_S_target": 0.13170663326905416,
+        "x_reversal_fraction": 0.1,
+        "y_reversal_fraction": 0.2,
+        "oracle_alignment_mean": 0.06290557610073691,
+        "target_mse": 0.014625046908416345,
+        "preferred_action_ranking_accuracy": 0.125
+      }
+    }
+  },
+  "counterfactual_preference_recovery_ratio": 0.12989731782448638,
+  "representation_failure_supported": true
+}
