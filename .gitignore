@@ -1,6 +1,73 @@
+# Python/cache
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local editor/runtime state
+.autodl/
+.agents
+.agents/
+.codex
+.codex/
+.vscode/
+.idea/
+*.out
+*.log
+
+# Training outputs and evaluation artifacts
+result/
+model/
+replay/
+replay_gifs/*.gif
+logs/
+train_logs/
+test_result/
+plots/
+log.txt
+!train_logs/
+train_logs/*
+!train_logs/uav_delivery_experiments.csv
+
+# Model/checkpoint/data artifacts
+model_runs/
+model_runs*/
+eval_model_runs/
+saved_methods/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.pkl
+*.pickle
+*.npy
+*.npz
+*.mat
+*.csv
+!train_logs/uav_delivery_experiments.csv
+*.SC2Replay
+
+# Environment datasets generated or downloaded locally
+envs/stego/dataset/
+envs/stego/steganalysis/
+!envs/stego/metric.py
+
+# External reference code. Keep only the compact HAC implementation in this repo.
+ref_code/*
+!ref_code/Hierarchical-Actor-Critic-HAC-PyTorch/
+!ref_code/Hierarchical-Actor-Critic-HAC-PyTorch/**
+ref_code/Hierarchical-Actor-Critic-HAC-PyTorch/preTrained/
+ref_code/Hierarchical-Actor-Critic-HAC-PyTorch/gif/
+
+# Local cleanup/reference artifacts
+.cleanup_trash/
+ref_article/*.pdf
+ref_article/*.pdf:Zone.Identifier
+
+# Review-bundle experiment artifacts
 review_bundle/artifacts/**/checkpoint_*.pt
 !review_bundle/artifacts/checkpoints/
 !review_bundle/artifacts/checkpoints/**
