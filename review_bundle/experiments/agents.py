@@ -87,6 +87,7 @@ class DirectSACAgent:
         self.gamma, self.tau, self.batch_size, self.capacity = gamma, tau, batch_size, capacity
         self.replay: list[DirectTransition] = []
         self.rng = np.random.default_rng(seed)
+        self.gradient_steps = 0
 
     @property
     def alpha(self):
@@ -145,10 +146,26 @@ class DirectSACAgent:
             for online, target_network in ((self.critic_1, self.target_critic_1), (self.critic_2, self.target_critic_2)):
                 for source, target_parameter in zip(online.parameters(), target_network.parameters()):
                     target_parameter.mul_(1.0 - self.tau).add_(self.tau * source)
+        self.gradient_steps += 1
         return {
             "actor_loss": float(actor_loss.detach()), "critic_loss_1": float(loss_1.detach()), "critic_loss_2": float(loss_2.detach()),
             "alpha": float(self.alpha.detach()), "entropy": float(-log_prob.mean().detach()),
             "q_value_exec": float(torch.minimum(pred_1, pred_2).mean().detach()), "gradient_norm": max(actor_grad, critic_grad),
+        }
+
+    def state_dict(self) -> dict[str, object]:
+        return {
+            "actor": self.actor.state_dict(),
+            "critic_1": self.critic_1.state_dict(),
+            "critic_2": self.critic_2.state_dict(),
+            "target_critic_1": self.target_critic_1.state_dict(),
+            "target_critic_2": self.target_critic_2.state_dict(),
+            "actor_optimizer": self.actor_optimizer.state_dict(),
+            "critic_optimizer": self.critic_optimizer.state_dict(),
+            "alpha_optimizer": self.alpha_optimizer.state_dict(),
+            "log_alpha": self.log_alpha.detach().cpu(),
+            "gradient_steps": self.gradient_steps,
+            "rng_state": self.rng.bit_generator.state,
         }
 
     def load_state_dict(self, state: dict[str, object]) -> None:
@@ -158,3 +175,18 @@ class DirectSACAgent:
         if "target_critic_1" in state:
             self.target_critic_1.load_state_dict(state["target_critic_1"])
             self.target_critic_2.load_state_dict(state["target_critic_2"])
+        else:
+            self.target_critic_1.load_state_dict(self.critic_1.state_dict())
+            self.target_critic_2.load_state_dict(self.critic_2.state_dict())
+        if "log_alpha" in state:
+            with torch.no_grad():
+                self.log_alpha.copy_(torch.as_tensor(state["log_alpha"], device=self.device))
+        if "actor_optimizer" in state:
+            self.actor_optimizer.load_state_dict(state["actor_optimizer"])
+        if "critic_optimizer" in state:
+            self.critic_optimizer.load_state_dict(state["critic_optimizer"])
+        if "alpha_optimizer" in state:
+            self.alpha_optimizer.load_state_dict(state["alpha_optimizer"])
+        self.gradient_steps = int(state.get("gradient_steps", 0))
+        if "rng_state" in state:
+            self.rng.bit_generator.state = state["rng_state"]

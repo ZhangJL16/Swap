@@ -180,6 +180,23 @@ class BaselineFairnessTests(unittest.TestCase):
         self.assertIsNotNone(metrics)
         self.assertTrue(np.isfinite(metrics["critic_loss_1"]))
 
+    def test_direct_sac_checkpoint_restores_policy_temperature_and_step(self):
+        action_max = np.array([0.1, 0.1, 0.1])
+        agent = DirectSACAgent(12, action_max, seed=0, batch_size=2, hidden_dim=16)
+        for action in (np.array([0.1, 0.0, 0.0]), np.array([-0.1, 0.0, 0.0])):
+            agent.observe(DirectTransition(np.zeros(12), np.ones(12), 0.1, False, False, action))
+        agent.update()
+        restored = DirectSACAgent(12, action_max, seed=1, batch_size=2, hidden_dim=16)
+        restored.load_state_dict(agent.state_dict())
+        observation = np.linspace(-1.0, 1.0, 12)
+        np.testing.assert_allclose(
+            restored.select_action(observation, deterministic=True),
+            agent.select_action(observation, deterministic=True),
+            atol=1e-7,
+        )
+        self.assertAlmostEqual(float(restored.alpha.detach()), float(agent.alpha.detach()))
+        self.assertEqual(restored.gradient_steps, agent.gradient_steps)
+
 
 if __name__ == "__main__":
     unittest.main()
