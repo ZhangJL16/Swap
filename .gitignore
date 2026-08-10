@@ -79,3 +79,5 @@ review_bundle/artifacts/checkpoints/**/safety_events.jsonl
 review_bundle/artifacts/**/training_metrics.csv
 review_bundle/artifacts/paper/*.log
 review_bundle/artifacts/paper/generalization_*_heldout_*.csv
+review_bundle/artifacts/phase1_sb3_sac_smoke/
+review_bundle/artifacts/phase1_sb3_sac_200k/

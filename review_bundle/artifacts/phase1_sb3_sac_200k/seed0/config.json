@@ -1,0 +1,85 @@
+{
+  "action_space_high": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "action_space_low": [
+    -1.0,
+    -1.0,
+    -1.0
+  ],
+  "backup_intervention_cost": 0.1,
+  "batch_size": 256,
+  "buffer_size": 1000000,
+  "checkpoint_steps": [
+    10000,
+    50000,
+    100000,
+    200000
+  ],
+  "collision_penalty": 1.2,
+  "completion_reward": 10.0,
+  "device": "cpu",
+  "energy_cost_weight": 0.01,
+  "energy_semantics": "navigation_baseline_nonterminating_large_budget",
+  "evaluation_steps": 2000,
+  "gamma": 0.99,
+  "goal_radius": 0.2,
+  "gradient_steps": 1,
+  "heldout_seeds": [
+    100,
+    101,
+    102,
+    103,
+    104
+  ],
+  "learning_rate": 0.0003,
+  "learning_starts": 5000,
+  "log_interval": 1000,
+  "max_episode_steps": 5000,
+  "minimum_goal_separation": 0.6,
+  "navigation_energy_capacity": 1000.0,
+  "observation_dimension": 77,
+  "observation_fields": [
+    "absolute_position",
+    "velocity",
+    "absolute_goal_position",
+    "absolute_station_position",
+    "state_of_charge",
+    "lidar_distances",
+    "lidar_valid"
+  ],
+  "output_dir": "artifacts/phase1_sb3_sac_200k/seed0",
+  "package_versions": {
+    "gymnasium": "1.2.3",
+    "numpy": "1.26.4",
+    "stable_baselines3": "2.8.0",
+    "torch": "2.7.1+cu128"
+  },
+  "physical_acceleration_limit": [
+    0.18,
+    0.18,
+    0.08
+  ],
+  "pid": 1607835,
+  "policy": "MlpPolicy",
+  "policy_kwargs": null,
+  "progress_weight": 2.5,
+  "sac_implementation": "stable_baselines3.SAC",
+  "sampling_margin": 0.2,
+  "scenario": "random_persistent_open.json",
+  "seed": 0,
+  "started_at": "2026-08-10T15:18:57.702109+00:00",
+  "steps": 200000,
+  "tau": 0.005,
+  "time_cost": 0.01,
+  "torch_threads": 1,
+  "train_frequency": 1,
+  "velocity_limit": [
+    0.3,
+    0.3,
+    0.12
+  ],
+  "velocity_reward_weight": 0.1
+}

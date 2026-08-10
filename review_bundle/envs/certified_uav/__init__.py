@@ -48,6 +48,11 @@ from .recoverability import (
     RecoverabilityVerifier,
     RecoverableSetCertificate,
 )
+from .sb3_persistent_navigation import (
+    NavigationRewardConfig,
+    PersistentNavigationEnv,
+    make_sb3_persistent_navigation_env,
+)
 
 __all__ = [
     "ActionTrace",
@@ -111,6 +116,9 @@ __all__ = [
     "PersistentTask",
     "PersistentTaskManager",
     "PersistentTaskWrapper",
+    "NavigationRewardConfig",
+    "PersistentNavigationEnv",
+    "make_sb3_persistent_navigation_env",
 ]
 
 

@@ -1,0 +1,48 @@
+{
+  "action_max": [
+    0.9999935626983643,
+    0.9999988079071045,
+    0.999793291091919
+  ],
+  "action_mean": [
+    -0.0034896152451634405,
+    0.0017604497945308685,
+    -0.0006939827421307564
+  ],
+  "action_mean_abs": [
+    0.46505511005073785,
+    0.4679103619015217,
+    0.4791754233923554
+  ],
+  "action_min": [
+    -0.9999082088470459,
+    -0.9999951124191284,
+    -0.9999985098838806
+  ],
+  "action_rms": [
+    0.543009358920981,
+    0.5448327339250357,
+    0.5560468810641521
+  ],
+  "collision_count": 1106,
+  "collision_rate": 0.00553,
+  "completed_at": "2026-08-10T16:16:36.028783+00:00",
+  "current_episode_return": 0.0,
+  "energy_usage": 2438.570960115572,
+  "episode_index": 40,
+  "mean_goal_progress": 0.0015093627388766614,
+  "mean_velocity_toward_goal": 0.07636346153404547,
+  "minimum_goal_distance": 0.16022607093784486,
+  "sb3_train_metrics": {
+    "train/actor_loss": -6.376803874969482,
+    "train/critic_loss": 0.011885378509759903,
+    "train/ent_coef": 0.004202008247375488,
+    "train/ent_coef_loss": -0.5712512731552124,
+    "train/learning_rate": 0.0003,
+    "train/n_updates": 195000
+  },
+  "status": "COMPLETED",
+  "tasks_completed": 133,
+  "tasks_per_1000_steps": 0.665,
+  "training_step": 200000
+}

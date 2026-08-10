@@ -1,0 +1,32 @@
+{
+  "status": "INVALID_FOR_LEARNABILITY_CONCLUSION",
+  "reason": "ENTROPY_ACTION_COORDINATE_MISMATCH",
+  "classification": [
+    "IMPLEMENTATION_FAILURE",
+    "OPTIMIZATION_FAILURE"
+  ],
+  "affected_runs": [
+    {
+      "seed": 0,
+      "pid": 1561914,
+      "failure_step": 92490,
+      "artifact_path": "review_bundle/artifacts/phase1_sac_learnability_200k/seed0",
+      "log_path": "review_bundle/artifacts/phase1_sac_learnability_200k/seed0/train.log"
+    },
+    {
+      "seed": 1,
+      "pid": 1561927,
+      "failure_step": 92137,
+      "artifact_path": "review_bundle/artifacts/phase1_sac_learnability_200k/seed1",
+      "log_path": "review_bundle/artifacts/phase1_sac_learnability_200k/seed1/train.log"
+    },
+    {
+      "seed": 2,
+      "pid": 1561943,
+      "failure_step": 92941,
+      "artifact_path": "review_bundle/artifacts/phase1_sac_learnability_200k/seed2",
+      "log_path": "review_bundle/artifacts/phase1_sac_learnability_200k/seed2/train.log"
+    }
+  ],
+  "research_interpretation": "These custom SAC runs cannot support any task-learnability conclusion."
+}

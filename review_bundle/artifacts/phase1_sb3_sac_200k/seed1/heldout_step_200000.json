@@ -1,0 +1,167 @@
+{
+  "aggregate": {
+    "collision_count": 0,
+    "collision_rate": 0.0,
+    "goal_attempt_success_rate": 0.16666666666666666,
+    "mean_abs_action": [
+      0.1974570724248886,
+      0.2829611504137516,
+      0.23439786334037782
+    ],
+    "mean_energy_usage": 24.290490097817624,
+    "mean_episode_return": -0.1605087112793699,
+    "mean_goal_distance": 0.5027183907373085,
+    "mean_goal_progress": 0.001102417323303892,
+    "mean_minimum_goal_distance": 0.31336372523279005,
+    "mean_velocity_toward_goal": 0.06285154786589672,
+    "rms_action": [
+      0.2869819751551216,
+      0.3762407469054002,
+      0.315444494996281
+    ],
+    "seed_success_rate": 0.2,
+    "steps": 10000,
+    "tasks_completed": 1,
+    "tasks_per_1000_steps": 0.1
+  },
+  "heldout_seeds": [
+    100,
+    101,
+    102,
+    103,
+    104
+  ],
+  "seed_results": [
+    {
+      "collision_count": 0,
+      "collision_rate": 0.0,
+      "energy_usage": 24.037205545604216,
+      "episode_return": -10.355775679154384,
+      "goal_attempt_success_rate": 0.0,
+      "goal_success": false,
+      "mean_abs_action": [
+        0.025745894998311997,
+        0.036497141122817996,
+        0.022451878279447557
+      ],
+      "mean_goal_distance": 0.5778797653836767,
+      "mean_goal_progress": 0.001325494859050007,
+      "mean_velocity_toward_goal": 0.016285610405258017,
+      "minimum_goal_distance": 0.46154850533522285,
+      "rms_action": [
+        0.12663301027019258,
+        0.15726622307994179,
+        0.10838693916840575
+      ],
+      "seed": 100,
+      "steps": 2000,
+      "tasks_completed": 0,
+      "tasks_per_1000_steps": 0.0
+    },
+    {
+      "collision_count": 0,
+      "collision_rate": 0.0,
+      "energy_usage": 24.5490224262115,
+      "episode_return": 0.33400717465732765,
+      "goal_attempt_success_rate": 0.0,
+      "goal_success": false,
+      "mean_abs_action": [
+        0.4531162876188755,
+        0.5160643704533577,
+        0.541584632396698
+      ],
+      "mean_goal_distance": 0.5824885123183899,
+      "mean_goal_progress": 0.00038671068749759994,
+      "mean_velocity_toward_goal": 0.09322971980715722,
+      "minimum_goal_distance": 0.300858734127275,
+      "rms_action": [
+        0.5265367041731225,
+        0.6181970953615155,
+        0.5921791645522853
+      ],
+      "seed": 101,
+      "steps": 2000,
+      "tasks_completed": 0,
+      "tasks_per_1000_steps": 0.0
+    },
+    {
+      "collision_count": 0,
+      "collision_rate": 0.0,
+      "energy_usage": 24.668504249160378,
+      "episode_return": 7.87806594506383,
+      "goal_attempt_success_rate": 0.0,
+      "goal_success": false,
+      "mean_abs_action": [
+        0.36324413734674454,
+        0.6165199482142926,
+        0.5086632066965103
+      ],
+      "mean_goal_distance": 0.39924440056973076,
+      "mean_goal_progress": 0.00028554703070235866,
+      "mean_velocity_toward_goal": 0.13348507917021823,
+      "minimum_goal_distance": 0.21806015039122295,
+      "rms_action": [
+        0.4587087096199992,
+        0.689689022388513,
+        0.6249084603550829
+      ],
+      "seed": 102,
+      "steps": 2000,
+      "tasks_completed": 0,
+      "tasks_per_1000_steps": 0.0
+    },
+    {
+      "collision_count": 0,
+      "collision_rate": 0.0,
+      "energy_usage": 24.12339279577292,
+      "episode_return": -5.9475866571253695,
+      "goal_attempt_success_rate": 0.0,
+      "goal_success": false,
+      "mean_abs_action": [
+        0.09000833401083946,
+        0.19641412818431855,
+        0.06438717573881149
+      ],
+      "mean_goal_distance": 0.4924181712234725,
+      "mean_goal_progress": 0.001259903333198111,
+      "mean_velocity_toward_goal": 0.03997065302420904,
+      "minimum_goal_distance": 0.3906364569130691,
+      "rms_action": [
+        0.12026488756913897,
+        0.2353481156668705,
+        0.11056097257070822
+      ],
+      "seed": 103,
+      "steps": 2000,
+      "tasks_completed": 0,
+      "tasks_per_1000_steps": 0.0
+    },
+    {
+      "collision_count": 0,
+      "collision_rate": 0.0,
+      "energy_usage": 24.07432547233911,
+      "episode_return": 7.288745660161745,
+      "goal_attempt_success_rate": 0.5,
+      "goal_success": true,
+      "mean_abs_action": [
+        0.05517070814967155,
+        0.04931016409397125,
+        0.03490242359042168
+      ],
+      "mean_goal_distance": 0.46156110419127266,
+      "mean_goal_progress": 0.0022544307060713828,
+      "mean_velocity_toward_goal": 0.031286676922641164,
+      "minimum_goal_distance": 0.1957147793971603,
+      "rms_action": [
+        0.2027665641431548,
+        0.18070327803016026,
+        0.1411869383349229
+      ],
+      "seed": 104,
+      "steps": 2000,
+      "tasks_completed": 1,
+      "tasks_per_1000_steps": 0.5
+    }
+  ],
+  "training_step": 200000
+}
