@@ -1,0 +1,10 @@
+{
+  "source_commit": "78d9f77714957b41fc9c66109864a3f8288d5186",
+  "source_tree": "89c6a496c34d6d5584156a88349ac3aa4de2b42a",
+  "baseline_commit": "5771d5034aa21b78897b732477264a3943dc3e8a",
+  "training_protocol": "corrected_one_step_multi_goal_exposure",
+  "goal_exposure_reset_steps": 250,
+  "steps": 5000,
+  "seeds": [0, 1, 2],
+  "note": "Training processes were launched from the same source contents before this freeze commit was created."
+}

@@ -1,0 +1,302 @@
+{
+  "scenario": "random_persistent_open",
+  "evaluation_protocol": "persistent_random_goal",
+  "periodic_exposure_resets": false,
+  "deterministic_actor": true,
+  "results": {
+    "corrected_exposure_seed2": {
+      "checkpoint": "/home/zjl/Swap-multistep-20260807/review_bundle/artifacts/corrected_exposure_5k/seed2/checkpoint_latest.pt",
+      "evaluation_protocol": "persistent_random_goal",
+      "deterministic_actor": true,
+      "heldout_seeds": [
+        100,
+        101,
+        102,
+        103,
+        104
+      ],
+      "steps_per_seed": 2000,
+      "aggregate_metrics": {
+        "total_steps": 10000,
+        "total_reward": -145.93619304703535,
+        "tasks_completed": 0,
+        "tasks_per_1000_steps": 0.0,
+        "task_completion_count": 0,
+        "task_completion_steps": [],
+        "mean_task_completion_steps": null,
+        "voluntary_station_arrivals": 0,
+        "backup_recovery_count": 29,
+        "backup_intervention_reward_events": 29,
+        "backup_rate": 0.0029,
+        "charging_visits": 3,
+        "charging_steps": 248,
+        "charging_fraction": 0.0248,
+        "energy_charged": 61.82926150910502,
+        "departure_attempts": 0,
+        "departure_rejections": 0,
+        "generator_accepted_steps": 9151,
+        "generator_acceptance_rate": 0.9151,
+        "no_generator_steps": 24,
+        "no_generator_rate": 0.0024,
+        "energy_consumed": 120.12452365046352,
+        "energy_per_task": 120.12452365046352,
+        "minimum_energy_margin": 0.9886002807412106,
+        "collision_count": 0,
+        "energy_depletion_count": 0,
+        "uncertified_publication_count": 0,
+        "invalid_kappa_fallback_count": 0,
+        "rl_generator_steps": 9151,
+        "rl_generator_fraction": 0.9151,
+        "kappa_backup_steps": 849,
+        "kappa_backup_fraction": 0.0849,
+        "charger_constrained_steps": 0,
+        "charger_constrained_fraction": 0.0,
+        "fail_closed_steps": 0,
+        "fail_closed_fraction": 0.0,
+        "accepted_into_kappa_only_count": 0,
+        "total_goal_progress": -2.4437406819895124,
+        "fraction_steps_progressing_to_goal": 0.503,
+        "mean_goal_progress_per_step": -0.00024437406819895126,
+        "energy_margin_at_backup": [
+          0.998347867827948,
+          0.9936556756307011,
+          1.6265087322829257,
+          2.0144553141351467,
+          2.4024277952838573,
+          2.790419969325611,
+          3.1784094421311417,
+          3.56639113309393,
+          3.954367513200629,
+          4.342340711579036,
+          0.9980679973698159,
+          1.7445118335354484,
+          2.1324584761607253,
+          2.5204310091640836,
+          2.9084232262185665,
+          3.2964126699368164,
+          3.6843943370075554,
+          4.072370698109895,
+          4.460343881959419,
+          0.9971572984087658,
+          0.9886002807412106,
+          1.6760426341686214,
+          2.063989245044383,
+          2.4519617509609333,
+          2.8399539455502705,
+          3.227943404461418,
+          3.6159250840138437,
+          4.003901455046587,
+          4.391874646489951
+        ],
+        "energy_margin_at_station_approach": [],
+        "energy_on_station_arrival": [
+          2.477008732282926,
+          2.5950118335354486,
+          2.5265426341686217
+        ],
+        "energy_on_departure": [],
+        "charge_durations": []
+      },
+      "completion_run_fraction": 0.0,
+      "median_minimum_task_rl_distance": 2.3370152743436825,
+      "mean_time_to_first_completion": null,
+      "seed_records": [
+        {
+          "heldout_seed": 100,
+          "steps": 2000,
+          "tasks_completed": 0,
+          "tasks_per_1000_steps": 0.0,
+          "net_goal_progress": -0.33291179180582264,
+          "fraction_steps_progressing_to_goal": 0.8245,
+          "minimum_task_rl_distance": 1.6415830748514852,
+          "time_to_first_completion": null,
+          "unique_goals_completed": 0,
+          "voluntary_station_arrivals": 0,
+          "backup_recovery_count": 1,
+          "charging_visits": 0,
+          "collision_count": 0,
+          "energy_depletion_count": 0,
+          "uncertified_publication_count": 0,
+          "invalid_kappa_fallback_count": 0,
+          "fail_closed_steps": 0,
+          "accepted_into_kappa_only_count": 0,
+          "sampled_start": [
+            3.149075830071429,
+            2.693301724232584,
+            0.9981110324993805
+          ],
+          "initial_goal": [
+            1.5632761077711088,
+            3.145835659655015,
+            1.0
+          ],
+          "goal_sequence": [
+            [
+              1.5632761077711088,
+              3.145835659655015,
+              1.0
+            ]
+          ],
+          "terminated": false,
+          "truncated": false
+        },
+        {
+          "heldout_seed": 101,
+          "steps": 2000,
+          "tasks_completed": 0,
+          "tasks_per_1000_steps": 0.0,
+          "net_goal_progress": -0.22394762634449528,
+          "fraction_steps_progressing_to_goal": 0.572,
+          "minimum_task_rl_distance": 2.5577354361317104,
+          "time_to_first_completion": null,
+          "unique_goals_completed": 0,
+          "voluntary_station_arrivals": 0,
+          "backup_recovery_count": 9,
+          "charging_visits": 1,
+          "collision_count": 0,
+          "energy_depletion_count": 0,
+          "uncertified_publication_count": 0,
+          "invalid_kappa_fallback_count": 0,
+          "fail_closed_steps": 0,
+          "accepted_into_kappa_only_count": 0,
+          "sampled_start": [
+            3.0190931982452343,
+            1.350461222327074,
+            1.0003772500119423
+          ],
+          "initial_goal": [
+            1.2059653529714425,
+            3.1556944781762843,
+            1.0
+          ],
+          "goal_sequence": [
+            [
+              1.2059653529714425,
+              3.1556944781762843,
+              1.0
+            ]
+          ],
+          "terminated": false,
+          "truncated": false
+        },
+        {
+          "heldout_seed": 102,
+          "steps": 2000,
+          "tasks_completed": 0,
+          "tasks_per_1000_steps": 0.0,
+          "net_goal_progress": -0.269186511938893,
+          "fraction_steps_progressing_to_goal": 0.1445,
+          "minimum_task_rl_distance": 2.50045721175926,
+          "time_to_first_completion": null,
+          "unique_goals_completed": 0,
+          "voluntary_station_arrivals": 0,
+          "backup_recovery_count": 9,
+          "charging_visits": 1,
+          "collision_count": 0,
+          "energy_depletion_count": 0,
+          "uncertified_publication_count": 0,
+          "invalid_kappa_fallback_count": 0,
+          "fail_closed_steps": 0,
+          "accepted_into_kappa_only_count": 0,
+          "sampled_start": [
+            0.7911439455476362,
+            1.3529113343094408,
+            0.9991620826168799
+          ],
+          "initial_goal": [
+            3.141542976020804,
+            0.49951297673508777,
+            1.0
+          ],
+          "goal_sequence": [
+            [
+              3.141542976020804,
+              0.49951297673508777,
+              1.0
+            ]
+          ],
+          "terminated": false,
+          "truncated": false
+        },
+        {
+          "heldout_seed": 103,
+          "steps": 2000,
+          "tasks_completed": 0,
+          "tasks_per_1000_steps": 0.0,
+          "net_goal_progress": 1.2836423104246655,
+          "fraction_steps_progressing_to_goal": 0.087,
+          "minimum_task_rl_distance": 2.3370152743436825,
+          "time_to_first_completion": null,
+          "unique_goals_completed": 0,
+          "voluntary_station_arrivals": 0,
+          "backup_recovery_count": 1,
+          "charging_visits": 0,
+          "collision_count": 0,
+          "energy_depletion_count": 0,
+          "uncertified_publication_count": 0,
+          "invalid_kappa_fallback_count": 0,
+          "fail_closed_steps": 0,
+          "accepted_into_kappa_only_count": 0,
+          "sampled_start": [
+            0.8474910964312478,
+            2.27827374830901,
+            1.0014886075792373
+          ],
+          "initial_goal": [
+            2.994771881601258,
+            1.3421256723218675,
+            1.0
+          ],
+          "goal_sequence": [
+            [
+              2.994771881601258,
+              1.3421256723218675,
+              1.0
+            ]
+          ],
+          "terminated": false,
+          "truncated": false
+        },
+        {
+          "heldout_seed": 104,
+          "steps": 2000,
+          "tasks_completed": 0,
+          "tasks_per_1000_steps": 0.0,
+          "net_goal_progress": -2.901337062324967,
+          "fraction_steps_progressing_to_goal": 0.887,
+          "minimum_task_rl_distance": 0.9115157030444225,
+          "time_to_first_completion": null,
+          "unique_goals_completed": 0,
+          "voluntary_station_arrivals": 0,
+          "backup_recovery_count": 9,
+          "charging_visits": 1,
+          "collision_count": 0,
+          "energy_depletion_count": 0,
+          "uncertified_publication_count": 0,
+          "invalid_kappa_fallback_count": 0,
+          "fail_closed_steps": 0,
+          "accepted_into_kappa_only_count": 0,
+          "sampled_start": [
+            3.1931074200457967,
+            2.2474470665353703,
+            0.9984518385677793
+          ],
+          "initial_goal": [
+            3.12270376092262,
+            3.15649286221597,
+            1.0
+          ],
+          "goal_sequence": [
+            [
+              3.12270376092262,
+              3.15649286221597,
+              1.0
+            ]
+          ],
+          "terminated": false,
+          "truncated": false
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "status": "COMPLETE",
+  "completed_at": "2026-08-10T01:52:02.941629+00:00",
+  "all_training_exit_codes": [
+    0,
+    0,
+    0
+  ],
+  "all_evaluation_exit_codes": [
+    0,
+    0,
+    0
+  ],
+  "all_visualization_exit_codes": [
+    0,
+    0,
+    0
+  ],
+  "comparison": "artifacts/random_persistent/corrected_exposure_5k_comparison.json",
+  "seed_done_markers": [
+    "artifacts/corrected_exposure_5k/seed0/PIPELINE_DONE.json",
+    "artifacts/corrected_exposure_5k/seed1/PIPELINE_DONE.json",
+    "artifacts/corrected_exposure_5k/seed2/PIPELINE_DONE.json"
+  ]
+}

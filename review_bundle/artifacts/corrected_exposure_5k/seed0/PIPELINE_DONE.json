@@ -1,0 +1,21 @@
+{
+  "seed": 0,
+  "completed_at": "2026-08-10T01:51:57.086112+00:00",
+  "training_exit_code": 0,
+  "evaluation_exit_code": 0,
+  "visualization_exit_code": 0,
+  "artifacts": {
+    "heldout_evaluation": "artifacts/corrected_exposure_5k/seed0/heldout_evaluation.json",
+    "seed100_evaluation": "artifacts/corrected_exposure_5k/seed0/eval_seed100/evaluation.json",
+    "seed100_trajectory": "artifacts/corrected_exposure_5k/seed0/eval_seed100/trajectory_events.jsonl",
+    "seed100_png": "artifacts/corrected_exposure_5k/seed0/trajectory_eval_seed100.png",
+    "seed100_gif": "artifacts/corrected_exposure_5k/seed0/eval_seed100.gif"
+  },
+  "baseline_artifacts": {
+    "heldout_evaluation": "artifacts/multigoal_5k/persistent_seed0/heldout_evaluation.json",
+    "seed100_evaluation": "artifacts/multigoal_5k/persistent_seed0/eval_seed100/evaluation.json",
+    "seed100_trajectory": "artifacts/multigoal_5k/persistent_seed0/eval_seed100/trajectory_events.jsonl",
+    "seed100_png": "artifacts/multigoal_5k/persistent_seed0/trajectory_eval_seed100.png",
+    "seed100_gif": "artifacts/multigoal_5k/persistent_seed0/eval_seed100.gif"
+  }
+}

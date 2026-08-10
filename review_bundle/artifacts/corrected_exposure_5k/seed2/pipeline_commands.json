@@ -1,0 +1,22 @@
+{
+  "train": [
+    "/home/zjl/mappo/.venv/bin/python",
+    "scripts/train_persistent_generator_sac.py",
+    "--scenario",
+    "random_persistent_open",
+    "--seed",
+    "2",
+    "--steps",
+    "5000",
+    "--warmup-steps",
+    "300",
+    "--batch-size",
+    "64",
+    "--temperature-coordinate",
+    "physical",
+    "--goal-exposure-reset-steps",
+    "250",
+    "--output-dir",
+    "artifacts/corrected_exposure_5k/seed2"
+  ]
+}

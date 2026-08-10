@@ -1,0 +1,14 @@
+{
+  "launched_at": "2026-08-10T01:01:30.058323+00:00",
+  "worker_pids": {
+    "seed0": 1355881,
+    "seed1": 1355887,
+    "seed2": 1355895
+  },
+  "finalizer_pid": 1355915,
+  "worker_logs": {
+    "seed0": "artifacts/corrected_exposure_5k/seed0/pipeline.log",
+    "seed1": "artifacts/corrected_exposure_5k/seed1/pipeline.log",
+    "seed2": "artifacts/corrected_exposure_5k/seed2/pipeline.log"
+  }
+}
