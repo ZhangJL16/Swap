@@ -16,7 +16,8 @@ from .state import UAVPhysicalState, as_vec3
 
 @dataclass(frozen=True)
 class NavigationRewardConfig:
-    progress_weight: float = 2.5
+    distance_potential_scale: float = 0.25
+    gamma: float = 0.99
     velocity_toward_goal_weight: float = 0.1
     time_cost: float = 0.01
     task_completion_reward: float = 10.0
@@ -24,15 +25,24 @@ class NavigationRewardConfig:
     energy_cost_weight: float = 0.01
     backup_intervention_cost: float = 0.1
 
+    def __post_init__(self) -> None:
+        if self.distance_potential_scale < 0.0:
+            raise ValueError("distance_potential_scale must be nonnegative")
+        if not 0.0 < self.gamma <= 1.0:
+            raise ValueError("gamma must lie in (0, 1]")
+
 
 class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
     """Direct-SAC navigation environment isolated from certification internals.
 
     Scenario ``coverage_waypoints`` are offline certification partition seeds;
     they are never task waypoints, observations, rewards, or sampling inputs here.
+    This phase uses a nonterminating large energy budget and does not establish
+    charging or energy-management learnability.
     """
 
     metadata = {"render_modes": []}
+    distance_level_boundaries = (2.0, 1.2, 0.7, 0.4)
 
     def __init__(
         self,
@@ -53,7 +63,9 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
             raise ValueError("max_episode_steps must be positive")
         if navigation_energy_capacity <= 0.0:
             raise ValueError("navigation_energy_capacity must be positive")
-        if goal_radius <= 0.0 or minimum_goal_separation <= goal_radius:
+        if goal_radius != 0.20:
+            raise ValueError("the formal distance-potential baseline requires goal_radius=0.20")
+        if minimum_goal_separation <= goal_radius:
             raise ValueError("goal sampling distances are invalid")
         if sampling_margin < self.config.body_radius:
             raise ValueError("sampling_margin must cover the UAV body radius")
@@ -101,11 +113,9 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
                 np.zeros(self.config.num_lasers),
             )
         )
-        observation_high = np.ones(cursor)
-        observation_high[self.observation_layout["velocity"]] = 1.0
         self.observation_space = gym.spaces.Box(
             observation_low.astype(np.float32),
-            observation_high.astype(np.float32),
+            np.ones(cursor, dtype=np.float32),
             dtype=np.float32,
         )
 
@@ -127,10 +137,48 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         self.minimum_goal_distance = float("inf")
         self.goal_distance_sum = 0.0
         self.goal_distance_samples = 0
+        self.current_consecutive_boundary_contacts = 0
+        self.maximum_consecutive_boundary_contacts = 0
+        self.boundary_lock_event_count = 0
+        self._episode_index = -1
+        self._next_goal_index = 0
+        self._episode_truncated = False
+        self._goal_attempt: dict[str, Any] = {}
 
     @property
     def observation_fields(self) -> tuple[str, ...]:
         return tuple(self.observation_layout)
+
+    def distance_potential(self, distance: float) -> float:
+        value = float(distance)
+        if not np.isfinite(value) or value < 0.0:
+            raise ValueError("distance must be finite and nonnegative")
+        if value > 2.0:
+            return 0.0
+        if value > 1.2:
+            return 1.0
+        if value > 0.7:
+            return 2.0
+        if value > 0.4:
+            return 3.0
+        return 4.0
+
+    def distance_potential_shaping(self, distance_before: float, distance_after: float) -> float:
+        potential_before = self.distance_potential(distance_before)
+        potential_after = self.distance_potential(distance_after)
+        return self.reward_config.distance_potential_scale * (
+            self.reward_config.gamma * potential_after - potential_before
+        )
+
+    def signed_velocity_toward_goal(self, velocity: np.ndarray, position: np.ndarray, goal: np.ndarray) -> float:
+        velocity_array = as_vec3(velocity, "velocity")
+        direction = as_vec3(goal, "goal") - as_vec3(position, "position")
+        direction_norm = float(np.linalg.norm(direction))
+        if direction_norm <= 1e-12:
+            return 0.0
+        projection = float(np.dot(velocity_array, direction / direction_norm))
+        normalized = projection / float(np.linalg.norm(self.config.v_max))
+        return float(np.clip(normalized, -1.0, 1.0))
 
     def normalized_to_physical_action(self, action: np.ndarray) -> np.ndarray:
         normalized = np.asarray(action, dtype=np.float64)
@@ -183,6 +231,68 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
             raise FloatingPointError("nonfinite navigation observation")
         return np.clip(observation, self.observation_space.low, self.observation_space.high).astype(np.float32)
 
+    def _start_goal_attempt(self) -> None:
+        delta = self.goal - self.state.position
+        self._goal_attempt = {
+            "goal_id": f"episode-{self._episode_index}-goal-{self._next_goal_index}",
+            "goal_absolute_coordinates": self.goal.copy(),
+            "goal_start_episode_step": self.episode_step,
+            "goal_initial_distance": float(np.linalg.norm(delta)),
+            "initial_xy_distance": float(np.linalg.norm(delta[:2])),
+            "initial_z_distance": float(abs(delta[2])),
+            "start_position": self.state.position.copy(),
+            "steps": 0,
+            "collisions_during_goal": 0,
+            "boundary_contacts_during_goal": 0,
+            "velocity_saturations_during_goal": 0,
+            "signed_velocity_sum": 0.0,
+            "reward_component_totals": {
+                "distance_potential_shaping": 0.0,
+                "signed_velocity_toward_goal_reward": 0.0,
+                "time_cost": 0.0,
+                "task_completion_reward": 0.0,
+                "collision_penalty": 0.0,
+                "energy_cost": 0.0,
+                "backup_intervention_event_cost": 0.0,
+            },
+        }
+        self._next_goal_index += 1
+
+    def _update_goal_attempt(
+        self,
+        reward_components: dict[str, float],
+        signed_velocity: float,
+        collision: bool,
+        boundary_collision: bool,
+        velocity_saturated: bool,
+    ) -> None:
+        self._goal_attempt["steps"] += 1
+        self._goal_attempt["collisions_during_goal"] += int(collision)
+        self._goal_attempt["boundary_contacts_during_goal"] += int(boundary_collision)
+        self._goal_attempt["velocity_saturations_during_goal"] += int(velocity_saturated)
+        self._goal_attempt["signed_velocity_sum"] += signed_velocity
+        for name, value in reward_components.items():
+            self._goal_attempt["reward_component_totals"][name] += float(value)
+
+    def _finalize_goal_attempt(self, *, completed: bool, final_distance: float) -> dict[str, Any]:
+        steps = int(self._goal_attempt["steps"])
+        record = {
+            key: value
+            for key, value in self._goal_attempt.items()
+            if key not in {"signed_velocity_sum", "steps"}
+        }
+        record |= {
+            "status": "completed" if completed else "unfinished_goal",
+            "completed": completed,
+            "completion_episode_step": self.episode_step if completed else None,
+            "attempt_end_episode_step": self.episode_step,
+            "steps_to_goal": steps if completed else None,
+            "attempt_steps": steps,
+            "final_distance": float(final_distance),
+            "mean_signed_velocity_toward_goal": self._goal_attempt["signed_velocity_sum"] / max(1, steps),
+        }
+        return record
+
     def reset(
         self,
         *,
@@ -191,14 +301,16 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
     ) -> tuple[np.ndarray, dict[str, Any]]:
         super().reset(seed=seed)
         reset_options = {} if options is None else dict(options)
-        if "start_position" in reset_options:
-            start = self._validate_reset_position(reset_options["start_position"], "start_position")
-        else:
-            start = self._sample_free_position()
-        if "goal_position" in reset_options:
-            goal = self._validate_reset_position(reset_options["goal_position"], "goal_position")
-        else:
-            goal = self._sample_free_position(start)
+        start = (
+            self._validate_reset_position(reset_options["start_position"], "start_position")
+            if "start_position" in reset_options
+            else self._sample_free_position()
+        )
+        goal = (
+            self._validate_reset_position(reset_options["goal_position"], "goal_position")
+            if "goal_position" in reset_options
+            else self._sample_free_position(start)
+        )
         if "start_velocity" in reset_options:
             velocity = as_vec3(np.asarray(reset_options["start_velocity"], dtype=np.float64), "start_velocity")
             velocity = np.clip(velocity, -self.config.v_max, self.config.v_max)
@@ -219,11 +331,20 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         self.minimum_goal_distance = initial_distance
         self.goal_distance_sum = initial_distance
         self.goal_distance_samples = 1
+        self.current_consecutive_boundary_contacts = 0
+        self.maximum_consecutive_boundary_contacts = 0
+        self.boundary_lock_event_count = 0
+        self._episode_index += 1
+        self._next_goal_index = 0
+        self._episode_truncated = False
+        self._start_goal_attempt()
         return self._observation(), {
             "sampled_start": start.copy(),
             "sampled_goal": goal.copy(),
+            "goal_id": self._goal_attempt["goal_id"],
             "observation_layout": dict(self.observation_layout),
             "energy_semantics": "navigation_baseline_nonterminating_large_budget",
+            "phase_scope": "DOES_NOT_ESTABLISH_CHARGING_OR_ENERGY_MANAGEMENT_LEARNABILITY",
         }
 
     def _correct_collision(
@@ -231,7 +352,7 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         position_before: np.ndarray,
         candidate_position: np.ndarray,
         candidate_velocity: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray, bool, bool]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, bool]:
         radius = self.config.body_radius
         safe_low = np.full(3, radius)
         safe_high = self.config.world_size - radius
@@ -239,7 +360,6 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         corrected_position = np.clip(candidate_position, safe_low, safe_high)
         corrected_velocity = candidate_velocity.copy()
         corrected_velocity[boundary_axes] = 0.0
-        boundary_collision = bool(np.any(boundary_axes))
 
         obstacle_collision = self.world.swept_collision(position_before, corrected_position, radius)
         if obstacle_collision:
@@ -257,13 +377,16 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
             corrected_velocity[:] = 0.0
         if not self._is_legal_position(corrected_position):
             raise RuntimeError("collision correction failed to produce a legal state")
-        return corrected_position, corrected_velocity, boundary_collision, obstacle_collision
+        return corrected_position, corrected_velocity, boundary_axes, obstacle_collision
 
     def step(self, action: np.ndarray):
+        if self._episode_truncated:
+            raise RuntimeError("step called after truncation without reset")
         normalized_action = np.asarray(action, dtype=np.float64)
         physical_action = self.normalized_to_physical_action(normalized_action)
         state_before = self.state.copy()
         goal_before = self.goal.copy()
+        goal_id_before = str(self._goal_attempt["goal_id"])
         distance_before = float(np.linalg.norm(goal_before - state_before.position))
 
         candidate_position, raw_velocity = integrate_double_integrator(
@@ -274,11 +397,12 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         )
         clipped_velocity = np.clip(raw_velocity, -self.config.v_max, self.config.v_max)
         velocity_saturated = bool(np.any(np.abs(raw_velocity) > self.config.v_max + 1e-12))
-        position_after, velocity_after, boundary_collision, obstacle_collision = self._correct_collision(
+        position_after, velocity_after, boundary_axes, obstacle_collision = self._correct_collision(
             state_before.position,
             candidate_position,
             clipped_velocity,
         )
+        boundary_collision = bool(np.any(boundary_axes))
         collision = boundary_collision or obstacle_collision
 
         energy_usage = self.energy_model.realized_cost(state_before, physical_action, self.config.dt)
@@ -296,18 +420,14 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
 
         distance_after = float(np.linalg.norm(goal_before - self.state.position))
         goal_progress = distance_before - distance_after
-        goal_direction = goal_before - self.state.position
-        goal_direction_norm = float(np.linalg.norm(goal_direction))
-        if goal_direction_norm > 1e-12:
-            velocity_projection = float(np.dot(self.state.velocity, goal_direction / goal_direction_norm))
-            velocity_toward_goal = max(0.0, velocity_projection / float(np.linalg.norm(self.config.v_max)))
-        else:
-            velocity_toward_goal = 0.0
+        potential_before = self.distance_potential(distance_before)
+        potential_after = self.distance_potential(distance_after)
+        potential_shaping = self.distance_potential_shaping(distance_before, distance_after)
+        signed_velocity = self.signed_velocity_toward_goal(self.state.velocity, self.state.position, goal_before)
         task_completed_now = distance_after <= self.goal_radius + 1e-12
-
         reward_components = {
-            "goal_progress_reward": self.reward_config.progress_weight * goal_progress,
-            "velocity_toward_goal_reward": self.reward_config.velocity_toward_goal_weight * velocity_toward_goal,
+            "distance_potential_shaping": potential_shaping,
+            "signed_velocity_toward_goal_reward": self.reward_config.velocity_toward_goal_weight * signed_velocity,
             "time_cost": -self.reward_config.time_cost,
             "task_completion_reward": self.reward_config.task_completion_reward * float(task_completed_now),
             "collision_penalty": -self.reward_config.collision_penalty * float(collision),
@@ -327,43 +447,92 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         self.minimum_goal_distance = min(self.minimum_goal_distance, distance_after)
         self.goal_distance_sum += distance_after
         self.goal_distance_samples += 1
-        completed_goal = goal_before.copy() if task_completed_now else None
+        if boundary_collision:
+            self.current_consecutive_boundary_contacts += 1
+        else:
+            self.current_consecutive_boundary_contacts = 0
+        self.maximum_consecutive_boundary_contacts = max(
+            self.maximum_consecutive_boundary_contacts,
+            self.current_consecutive_boundary_contacts,
+        )
+        boundary_lock_event = None
+        if self.current_consecutive_boundary_contacts == 101:
+            self.boundary_lock_event_count += 1
+            boundary_lock_event = {
+                "event": "BOUNDARY_LOCK_EVENT",
+                "episode_step": self.episode_step,
+                "consecutive_boundary_contacts": self.current_consecutive_boundary_contacts,
+                "boundary_axes": np.flatnonzero(boundary_axes).tolist(),
+                "position": self.state.position.copy(),
+            }
+
+        self._update_goal_attempt(
+            reward_components,
+            signed_velocity,
+            collision,
+            boundary_collision,
+            velocity_saturated,
+        )
+        goal_attempt_records: list[dict[str, Any]] = []
+        completed_goal = None
         if task_completed_now:
+            completed_goal = goal_before.copy()
+            goal_attempt_records.append(self._finalize_goal_attempt(completed=True, final_distance=distance_after))
             self.tasks_completed += 1
             self.goal = self._sample_free_position(self.state.position)
+            self._start_goal_attempt()
+
+        truncated = self.episode_step >= self.max_episode_steps
+        if truncated:
+            current_distance = float(np.linalg.norm(self.goal - self.state.position))
+            goal_attempt_records.append(self._finalize_goal_attempt(completed=False, final_distance=current_distance))
+            self._episode_truncated = True
         self.last_lidar = self.lidar_model.measure(self.state, self.world, self.np_random)
 
-        terminated = False
-        truncated = self.episode_step >= self.max_episode_steps
         info = {
             "normalized_action": normalized_action.astype(np.float32),
             "physical_acceleration": physical_action.astype(np.float32),
             "reward_components": reward_components,
+            "goal_id_before": goal_id_before,
+            "goal_before": goal_before,
             "goal_progress": goal_progress,
             "distance_to_goal_before": distance_before,
             "distance_to_goal_after": distance_after,
+            "distance_potential_before": potential_before,
+            "distance_potential_after": potential_after,
             "minimum_goal_distance": self.minimum_goal_distance,
             "mean_goal_distance": self.goal_distance_sum / self.goal_distance_samples,
-            "velocity_toward_goal": velocity_toward_goal,
+            "signed_velocity_toward_goal": signed_velocity,
+            "velocity_toward_goal": signed_velocity,
             "task_completed_now": task_completed_now,
             "completed_goal": completed_goal,
             "current_goal": self.goal.copy(),
+            "current_goal_id": self._goal_attempt["goal_id"],
             "tasks_completed": self.tasks_completed,
             "tasks_per_1000_steps": 1000.0 * self.tasks_completed / self.episode_step,
+            "goal_attempt_records": goal_attempt_records,
             "collision": collision,
             "boundary_collision": boundary_collision,
+            "boundary_axes": np.flatnonzero(boundary_axes).tolist(),
             "obstacle_collision": obstacle_collision,
             "collision_count": self.collision_count,
             "collision_rate": self.collision_count / self.episode_step,
+            "boundary_collision_count": self.boundary_collision_count,
+            "boundary_collision_rate": self.boundary_collision_count / self.episode_step,
+            "current_consecutive_boundary_contacts": self.current_consecutive_boundary_contacts,
+            "maximum_consecutive_boundary_contacts": self.maximum_consecutive_boundary_contacts,
+            "boundary_lock_event": boundary_lock_event,
+            "boundary_lock_event_count": self.boundary_lock_event_count,
             "velocity_saturated": velocity_saturated,
             "velocity_saturation_count": self.velocity_saturation_count,
+            "velocity_saturation_rate": self.velocity_saturation_count / self.episode_step,
             "energy_usage": energy_usage,
             "cumulative_energy_usage": self.cumulative_energy_usage,
             "kappa_takeover_count": 0,
             "fallback_count": 0,
             "physical_state": self.state.copy(),
         }
-        return self._observation(), reward, terminated, truncated, info
+        return self._observation(), reward, False, truncated, info
 
 
 def make_sb3_persistent_navigation_env(
