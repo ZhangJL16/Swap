@@ -105,9 +105,11 @@ class GeneratorTransition:
     next_charging_state: bool | None = None
     next_charging_restriction: bool | None = None
     next_authority_action: np.ndarray | None = None
+    task_goal: np.ndarray | None = None
+    collector_boundary: bool = False
 
     def __post_init__(self) -> None:
-        for name in ("observation", "next_observation", "u", "eta", "c", "G", "candidate_action", "kappa_action", "executed_action", "measured_action", "next_c", "next_G", "next_kappa", "next_authority_action"):
+        for name in ("observation", "next_observation", "u", "eta", "c", "G", "candidate_action", "kappa_action", "executed_action", "measured_action", "next_c", "next_G", "next_kappa", "next_authority_action", "task_goal"):
             object.__setattr__(self, name, _copy_array(getattr(self, name)))
         if self.executed_action is None or self.executed_action.shape != (3,):
             raise ValueError("executed_action must have shape (3,)")
@@ -263,10 +265,18 @@ class GeneratorSAC:
         terminated = self._tensor([float(transition.terminated) for transition in batch])
         truncated = self._tensor([float(transition.truncated) for transition in batch])
         done = terminated if self.config.bootstrap_on_truncation else torch.maximum(terminated, truncated)
+        collector_boundary = self._tensor([float(transition.collector_boundary) for transition in batch])
+        done = torch.maximum(done, collector_boundary)
         next_observations = self._tensor(np.stack([transition.next_observation for transition in batch]))
         next_actions = self._tensor(np.stack([transition.next_kappa for transition in batch]))
         entropy = torch.zeros(len(batch), dtype=torch.float32, device=self.device)
-        generator_indices = [index for index, transition in enumerate(batch) if transition.next_generator_available and transition.next_certificate_valid and not transition.terminated]
+        generator_indices = [
+            index for index, transition in enumerate(batch)
+            if transition.next_generator_available
+            and transition.next_certificate_valid
+            and not transition.terminated
+            and not transition.collector_boundary
+        ]
         if generator_indices:
             index_tensor = torch.as_tensor(generator_indices, dtype=torch.long, device=self.device)
             centers = self._tensor(np.stack([batch[index].next_c for index in generator_indices]))
@@ -437,6 +447,8 @@ class PersistentGeneratorSAC(GeneratorSAC):
 
     @staticmethod
     def _validate_persistent_transition(transition: GeneratorTransition) -> None:
+        if transition.collector_boundary:
+            return
         if transition.next_execution_authority is None:
             raise ValueError("persistent transition requires next execution authority")
         try:
@@ -470,8 +482,13 @@ class PersistentGeneratorSAC(GeneratorSAC):
         terminated = self._tensor([float(transition.terminated) for transition in batch])
         truncated = self._tensor([float(transition.truncated) for transition in batch])
         done = terminated if self.config.bootstrap_on_truncation else torch.maximum(terminated, truncated)
+        collector_boundary = self._tensor([float(transition.collector_boundary) for transition in batch])
+        done = torch.maximum(done, collector_boundary)
         fail_closed = self._tensor([
-            float(transition.next_execution_authority == ExecutionAuthority.FAIL_CLOSED.value)
+            float(
+                not transition.collector_boundary
+                and transition.next_execution_authority == ExecutionAuthority.FAIL_CLOSED.value
+            )
             for transition in batch
         ])
         bootstrap = (1.0 - done) * (1.0 - fail_closed)
@@ -485,6 +502,7 @@ class PersistentGeneratorSAC(GeneratorSAC):
                 transition.next_execution_authority in self._GENERATOR_AUTHORITIES
                 and transition.next_generator_executable is True
                 and not transition.terminated
+                and not transition.collector_boundary
             )
         ]
         if generator_indices:
@@ -524,4 +542,5 @@ class PersistentGeneratorSAC(GeneratorSAC):
                 for transition in batch
             ),
             "fail_closed_target_count": int(fail_closed.sum().item()),
+            "collector_boundary_target_count": sum(transition.collector_boundary for transition in batch),
         }

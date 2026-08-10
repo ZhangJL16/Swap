@@ -3702,6 +3702,9 @@ This is a task-semantic contract, not a new safety theorem.
 
 Persistent evaluation assigns a new goal only after completion. Consequently, a run with no
 completion exposes its network to only one task goal. Such a run cannot establish general
-goal-conditioned learning failure. A future episodic multi-goal collection protocol must first be
-implemented and compared against an equal-step persistent-only baseline; this phase stopped at the
-completion-boundary bug as required and did not run that experiment.
+goal-conditioned learning failure. The controlled training collector may therefore terminate a
+rollout after a configured exposure interval and resample `(x,g)` without resetting the policy,
+critics, target critics, temperature, optimizers, gradient counter, or replay. The final physical
+transition receives a distinct collector-boundary no-bootstrap mask, so the one-step Bellman target
+never uses the unrelated reset state. This changes data collection only; persistent evaluation and
+all task-independent safety definitions remain unchanged.

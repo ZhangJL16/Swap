@@ -19,6 +19,8 @@ def transition_from_cycle(
     context: dict[str, Any],
     next_context: dict[str, Any] | None,
     info: dict[str, Any],
+    *,
+    collector_boundary: bool = False,
 ) -> GeneratorTransition:
     """Build an immutable persistent transition from actual runtime execution."""
     telemetry = info["telemetry"]
@@ -96,4 +98,6 @@ def transition_from_cycle(
         next_charging_state=str(selected_next.get("persistent_mode", "")) == "CHARGING_RL",
         next_charging_restriction=selected_next.get("charging_restriction") is True,
         next_authority_action=next_authority_action,
+        task_goal=np.asarray(info.get("goal_before", info.get("current_goal")), dtype=np.float32),
+        collector_boundary=bool(collector_boundary),
     )

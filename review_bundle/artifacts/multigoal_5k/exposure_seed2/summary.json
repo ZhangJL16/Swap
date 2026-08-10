@@ -1,0 +1,612 @@
+{
+  "scenario": "random_persistent_open",
+  "legacy_fixed_graph": false,
+  "seed": 2,
+  "temperature_coordinate": "physical",
+  "training_protocol": "episodic_multi_goal_exposure",
+  "evaluation_protocol": "persistent_random_goal",
+  "goal_exposure_reset_steps": 250,
+  "steps": 5000,
+  "episodes": 20,
+  "gradient_steps": 4700,
+  "actor_updates": 4700,
+  "critic_updates": 4700,
+  "accepted_actor_samples": 300800,
+  "goal_exposure": {
+    "unique_goals_seen": 20,
+    "goal_assignments": 20,
+    "collector_resets": 19,
+    "natural_task_completions": 0,
+    "steps_per_goal": [
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250,
+      250
+    ],
+    "median_steps_per_goal": 250.0,
+    "steps_per_completed_goal": [],
+    "current_goal_age_steps": 250,
+    "goal_direction_angular_coverage_degrees": 179.6475338847684,
+    "goal_direction_entropy": 2.276422685805818,
+    "goal_sequence_length": 20,
+    "goal_exposure_gate": "PASS",
+    "distribution_annotation": "MULTI_GOAL_TRAINING_DISTRIBUTION",
+    "assignments": [
+      {
+        "step": 0,
+        "source": "initial_reset",
+        "reset_seed": 2,
+        "sampled_start": [
+          3.122576886633731,
+          3.1558940635225983,
+          0.998313400783373
+        ],
+        "sampled_goal": [
+          3.15147276706653,
+          1.3811685460871748,
+          1.0
+        ],
+        "goal_direction": [
+          0.028895880432799004,
+          -1.7747255174354235,
+          0.0016865992166269494
+        ]
+      },
+      {
+        "step": 250,
+        "source": "collector_reset",
+        "reset_seed": 1000005,
+        "sampled_start": [
+          3.0358189021991167,
+          2.2540529652822117,
+          0.9980788679913289
+        ],
+        "sampled_goal": [
+          3.014929664323324,
+          3.153480001820003,
+          1.0
+        ],
+        "goal_direction": [
+          -0.020889237875792777,
+          0.8994270365377912,
+          0.001921132008671056
+        ]
+      },
+      {
+        "step": 500,
+        "source": "collector_reset",
+        "reset_seed": 2000008,
+        "sampled_start": [
+          1.4258547160873887,
+          3.1520677366838674,
+          0.9992899291414646
+        ],
+        "sampled_goal": [
+          3.0623350222615784,
+          0.4955129637716299,
+          1.0
+        ],
+        "goal_direction": [
+          1.6364803061741897,
+          -2.6565547729122376,
+          0.000710070858535361
+        ]
+      },
+      {
+        "step": 750,
+        "source": "collector_reset",
+        "reset_seed": 3000011,
+        "sampled_start": [
+          0.8287989084711225,
+          1.353057765940194,
+          0.998005686124227
+        ],
+        "sampled_goal": [
+          3.149802377166112,
+          0.9066559780183149,
+          1.0
+        ],
+        "goal_direction": [
+          2.3210034686949896,
+          -0.446401787921879,
+          0.0019943138757729795
+        ]
+      },
+      {
+        "step": 1000,
+        "source": "collector_reset",
+        "reset_seed": 4000014,
+        "sampled_start": [
+          3.1471723465460593,
+          2.3044816447805925,
+          0.9998783067172573
+        ],
+        "sampled_goal": [
+          1.2372952439508147,
+          0.5066715755713904,
+          1.0
+        ],
+        "goal_direction": [
+          -1.9098771025952446,
+          -1.797810069209202,
+          0.00012169328274269642
+        ]
+      },
+      {
+        "step": 1250,
+        "source": "collector_reset",
+        "reset_seed": 5000017,
+        "sampled_start": [
+          1.649933262033864,
+          3.1535369535253843,
+          1.0012217005552788
+        ],
+        "sampled_goal": [
+          3.103812183877349,
+          3.154347082420473,
+          1.0
+        ],
+        "goal_direction": [
+          1.4538789218434849,
+          0.0008101288950888019,
+          -0.0012217005552788152
+        ]
+      },
+      {
+        "step": 1500,
+        "source": "collector_reset",
+        "reset_seed": 6000020,
+        "sampled_start": [
+          2.298982024488002,
+          0.49556753169275525,
+          1.0016359297179014
+        ],
+        "sampled_goal": [
+          1.2059748421321617,
+          2.2456824400520086,
+          1.0
+        ],
+        "goal_direction": [
+          -1.0930071823558403,
+          1.7501149083592533,
+          -0.0016359297179013854
+        ]
+      },
+      {
+        "step": 1750,
+        "source": "collector_reset",
+        "reset_seed": 7000023,
+        "sampled_start": [
+          0.8504889918036206,
+          1.791546260125659,
+          0.997979283658259
+        ],
+        "sampled_goal": [
+          2.874412490095724,
+          3.144350354080497,
+          1.0
+        ],
+        "goal_direction": [
+          2.0239234982921035,
+          1.352804093954838,
+          0.002020716341740947
+        ]
+      },
+      {
+        "step": 2000,
+        "source": "collector_reset",
+        "reset_seed": 8000026,
+        "sampled_start": [
+          1.2486669577754324,
+          1.3535382062238777,
+          0.998846760112676
+        ],
+        "sampled_goal": [
+          0.9255885488962455,
+          3.156216828287239,
+          1.0
+        ],
+        "goal_direction": [
+          -0.3230784088791868,
+          1.8026786220633613,
+          0.0011532398873239647
+        ]
+      },
+      {
+        "step": 2250,
+        "source": "collector_reset",
+        "reset_seed": 9000029,
+        "sampled_start": [
+          2.1351959472210864,
+          3.154039645942926,
+          0.9993853676028965
+        ],
+        "sampled_goal": [
+          2.029665334240781,
+          0.4993693086422161,
+          1.0
+        ],
+        "goal_direction": [
+          -0.10553061298030553,
+          -2.65467033730071,
+          0.0006146323971034651
+        ]
+      },
+      {
+        "step": 2500,
+        "source": "collector_reset",
+        "reset_seed": 10000032,
+        "sampled_start": [
+          3.191507908359262,
+          0.5017623886356941,
+          1.000965316023412
+        ],
+        "sampled_goal": [
+          3.193490481050476,
+          2.245237410736487,
+          1.0
+        ],
+        "goal_direction": [
+          0.001982572691213935,
+          1.7434750221007929,
+          -0.0009653160234119884
+        ]
+      },
+      {
+        "step": 2750,
+        "source": "collector_reset",
+        "reset_seed": 11000035,
+        "sampled_start": [
+          0.9968504942014323,
+          1.3525795172272927,
+          0.9987417509726887
+        ],
+        "sampled_goal": [
+          3.152482664521172,
+          3.185250584566501,
+          1.0
+        ],
+        "goal_direction": [
+          2.1556321703197394,
+          1.8326710673392081,
+          0.001258249027311309
+        ]
+      },
+      {
+        "step": 3000,
+        "source": "collector_reset",
+        "reset_seed": 12000038,
+        "sampled_start": [
+          1.5601515148014697,
+          3.154334050148722,
+          0.9988544931904573
+        ],
+        "sampled_goal": [
+          3.1229064518632734,
+          0.5043140812182391,
+          1.0
+        ],
+        "goal_direction": [
+          1.5627549370618037,
+          -2.650019968930483,
+          0.001145506809542729
+        ]
+      },
+      {
+        "step": 3250,
+        "source": "collector_reset",
+        "reset_seed": 13000041,
+        "sampled_start": [
+          2.172997257020339,
+          2.24638057033087,
+          0.9979454191890315
+        ],
+        "sampled_goal": [
+          3.175421661089843,
+          0.5055523778661004,
+          1.0
+        ],
+        "goal_direction": [
+          1.002424404069504,
+          -1.7408281924647695,
+          0.0020545808109685426
+        ]
+      },
+      {
+        "step": 3500,
+        "source": "collector_reset",
+        "reset_seed": 14000044,
+        "sampled_start": [
+          0.42833234937058734,
+          0.4989815145630824,
+          1.001940839141396
+        ],
+        "sampled_goal": [
+          2.838144324755498,
+          3.144024924634658,
+          1.0
+        ],
+        "goal_direction": [
+          2.4098119753849105,
+          2.6450434100715756,
+          -0.001940839141395978
+        ]
+      },
+      {
+        "step": 3750,
+        "source": "collector_reset",
+        "reset_seed": 15000047,
+        "sampled_start": [
+          1.1557610934443228,
+          0.5033824936318004,
+          0.999121465999443
+        ],
+        "sampled_goal": [
+          3.1434186408633185,
+          0.579090769159606,
+          1.0
+        ],
+        "goal_direction": [
+          1.9876575474189957,
+          0.07570827552780557,
+          0.0008785340005570408
+        ]
+      },
+      {
+        "step": 4000,
+        "source": "collector_reset",
+        "reset_seed": 16000050,
+        "sampled_start": [
+          1.8537416431728668,
+          0.49551521578523555,
+          0.9996917309529849
+        ],
+        "sampled_goal": [
+          3.143319649261354,
+          1.1976882125233115,
+          1.0
+        ],
+        "goal_direction": [
+          1.2895780060884872,
+          0.7021729967380759,
+          0.00030826904701508617
+        ]
+      },
+      {
+        "step": 4250,
+        "source": "collector_reset",
+        "reset_seed": 17000053,
+        "sampled_start": [
+          0.8507999777718359,
+          1.7946219205489333,
+          1.0001920812690288
+        ],
+        "sampled_goal": [
+          2.2204413551547812,
+          3.151527519522086,
+          1.0
+        ],
+        "goal_direction": [
+          1.3696413773829454,
+          1.3569055989731527,
+          -0.00019208126902880984
+        ]
+      },
+      {
+        "step": 4500,
+        "source": "collector_reset",
+        "reset_seed": 18000056,
+        "sampled_start": [
+          1.5038624801998373,
+          0.496359390406222,
+          0.9998602872499528
+        ],
+        "sampled_goal": [
+          0.8506538353582793,
+          1.395487293785829,
+          1.0
+        ],
+        "goal_direction": [
+          -0.6532086448415579,
+          0.8991279033796069,
+          0.00013971275004720507
+        ]
+      },
+      {
+        "step": 4750,
+        "source": "collector_reset",
+        "reset_seed": 19000059,
+        "sampled_start": [
+          0.8497561803161687,
+          1.3885482715449378,
+          1.0020152111476808
+        ],
+        "sampled_goal": [
+          2.040078208776073,
+          1.3446102371868929,
+          1.0
+        ],
+        "goal_direction": [
+          1.1903220284599043,
+          -0.043938034358044886,
+          -0.0020152111476807733
+        ]
+      }
+    ]
+  },
+  "total_reward": -57.382556422027825,
+  "aggregate_metrics": {
+    "total_steps": 5000,
+    "total_reward": -57.382556422027825,
+    "tasks_completed": 0,
+    "tasks_per_1000_steps": 0.0,
+    "task_completion_count": 0,
+    "task_completion_steps": [],
+    "mean_task_completion_steps": null,
+    "voluntary_station_arrivals": 1,
+    "backup_recovery_count": 0,
+    "backup_intervention_reward_events": 0,
+    "backup_rate": 0.0,
+    "charging_visits": 1,
+    "charging_steps": 181,
+    "charging_fraction": 0.0362,
+    "energy_charged": 7.214969196180164,
+    "departure_attempts": 0,
+    "departure_rejections": 0,
+    "generator_accepted_steps": 5000,
+    "generator_acceptance_rate": 1.0,
+    "no_generator_steps": 0,
+    "no_generator_rate": 0.0,
+    "energy_consumed": 60.21557688832577,
+    "energy_per_task": 60.21557688832577,
+    "minimum_energy_margin": 13.005097512955285,
+    "collision_count": 0,
+    "energy_depletion_count": 0,
+    "uncertified_publication_count": 0,
+    "invalid_kappa_fallback_count": 0,
+    "rl_generator_steps": 5000,
+    "rl_generator_fraction": 1.0,
+    "kappa_backup_steps": 0,
+    "kappa_backup_fraction": 0.0,
+    "charger_constrained_steps": 0,
+    "charger_constrained_fraction": 0.0,
+    "fail_closed_steps": 0,
+    "fail_closed_fraction": 0.0,
+    "accepted_into_kappa_only_count": 0,
+    "total_goal_progress": 0.4490012668045038,
+    "fraction_steps_progressing_to_goal": 0.5058,
+    "mean_goal_progress_per_step": 8.980025336090076e-05,
+    "energy_margin_at_backup": [],
+    "energy_margin_at_station_approach": [
+      23.71433239014931
+    ],
+    "energy_on_station_arrival": [
+      24.952819155784177
+    ],
+    "energy_on_departure": [
+      29.98793822264448
+    ],
+    "charge_durations": []
+  },
+  "last_episode_metrics": {
+    "episode_id": 19,
+    "episode_seed": 19000059,
+    "start_position": [
+      0.8497561803161687,
+      1.3885482715449378,
+      1.0020152111476808
+    ],
+    "initial_goal": [
+      2.040078208776073,
+      1.3446102371868929,
+      1.0
+    ],
+    "steps": 250,
+    "return": -2.762497072589276,
+    "tasks_completed": 0,
+    "voluntary_station_arrivals": 0,
+    "backup_recoveries": 0,
+    "backup_intervention_reward_events": 0,
+    "kappa_backup_steps": 0,
+    "charging_visits": 0,
+    "charging_steps": 0,
+    "generator_accepted_steps": 250,
+    "no_generator_steps": 0,
+    "minimum_energy_margin": 22.805990715306372,
+    "collision_count": 0,
+    "energy_depletion_count": 0,
+    "uncertified_publication_count": 0,
+    "invalid_kappa_fallback_count": 0,
+    "goal_progress": 0.03860368149492022,
+    "goal_sequence": [
+      [
+        2.040078208776073,
+        1.3446102371868929,
+        1.0
+      ]
+    ],
+    "terminated": false,
+    "truncated": false,
+    "partial": true,
+    "training_protocol": "episodic_multi_goal_exposure",
+    "collector_boundary": false,
+    "collector_reset_index": 19
+  },
+  "last_update": {
+    "critic_loss_1": 33.70835876464844,
+    "critic_loss_2": 35.08098220825195,
+    "actor_loss": 323.5404357910156,
+    "alpha_loss": -4.882234573364258,
+    "alpha": 4.090372085571289,
+    "mean_log_prob": 6.466675758361816,
+    "mean_log_det_G": -8.510505676269531,
+    "mean_tanh_log_jacobian": -1.7815841436386108,
+    "temperature_coordinate": "physical",
+    "q_value_exec": -296.83990478515625,
+    "accepted_batch_count": 64,
+    "fallback_batch_count": 0,
+    "accepted_batch_fraction": 1.0,
+    "actor_status": "updated",
+    "critic_gradient_norm": 1015.3677978515625,
+    "actor_gradient_norm": 1.9478564262390137,
+    "mean_reward": -0.012049004381356714,
+    "mean_bellman_target": -297.81927490234375,
+    "mean_td_error": -0.9793806076049805,
+    "mean_log_prob_u": -3.825413703918457,
+    "mean_negative_tanh_log_jacobian": 1.7815841436386108,
+    "mean_negative_log_det_G": 8.510505676269531,
+    "mean_normalized_log_prob": -2.043830156326294,
+    "entropy_target_residual": 3.4666759967803955,
+    "physical_entropy_target_residual": 3.4666759967803955,
+    "normalized_entropy_target_residual": -5.043830394744873,
+    "alpha_gradient": -3.4666759967803955,
+    "mean_u": 0.009358599781990051,
+    "std_u": 0.8671894073486328,
+    "mean_abs_u": 0.6940979957580566,
+    "max_abs_u": 2.900775671005249,
+    "mean_eta": -0.0071793124079704285,
+    "std_eta": 0.5880420207977295,
+    "eta_abs_gt_090": 0.0833333358168602,
+    "eta_abs_gt_095": 0.0364583320915699,
+    "eta_abs_gt_099": 0.0052083334885537624,
+    "u_abs_gt_2": 0.015625,
+    "u_abs_gt_3": 0.0,
+    "u_abs_gt_5": 0.0,
+    "generator_target_count": 64,
+    "fallback_target_count": 0,
+    "target_batch_count": 64,
+    "rl_generator_target_count": 64,
+    "charger_target_count": 0,
+    "kappa_target_count": 0,
+    "charger_atomic_target_count": 0,
+    "fail_closed_target_count": 0,
+    "collector_boundary_target_count": 0,
+    "batch_unique_goal_count": 19,
+    "batch_goal_direction_entropy": 2.243653348443318,
+    "unique_goals_seen_at_update": 20
+  },
+  "artifact_paths": {
+    "episodes": "artifacts/multigoal_5k/exposure_seed2/episodes.jsonl",
+    "learning_curve": "artifacts/multigoal_5k/exposure_seed2/learning_curve.jsonl",
+    "trajectory_events": "artifacts/multigoal_5k/exposure_seed2/trajectory_events.jsonl",
+    "checkpoint": "artifacts/multigoal_5k/exposure_seed2/checkpoint_latest.pt"
+  },
+  "synthetic_only": true,
+  "batch_goal_telemetry_reconstructed_from_trajectory": true
+}

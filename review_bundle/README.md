@@ -152,6 +152,14 @@ PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/audit_persistent_generator
 PYTHONPATH=. /home/zjl/mappo/.venv/bin/python scripts/train_persistent_generator_sac.py --scenario random_persistent_open --temperature-coordinate physical --steps 2000
 ```
 
+Training-only multi-goal exposure is enabled explicitly with
+`--goal-exposure-reset-steps 250`. It periodically ends the data-collection rollout, samples a
+new certified start and continuous goal with a deterministic distinct reset seed, and preserves the
+agent, optimizers, alpha, gradient counter, and replay. The replay transition at that collector
+boundary stores the real physical successor but carries an independent no-bootstrap mask, so it is
+never connected to the unrelated reset state. The option is disabled by default and is never used
+during persistent evaluation.
+
 Persistent backup reward is charged once per authority takeover, not once per kappa-controlled
 step. `--temperature-coordinate normalized` changes only automatic alpha adaptation; actor and
 Bellman objectives continue to use the exact physical affine-tanh density.

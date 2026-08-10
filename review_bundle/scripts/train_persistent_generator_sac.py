@@ -16,6 +16,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cert_runtime.generator_sac import GeneratorSACConfig, PersistentGeneratorSAC
+from cert_runtime.goal_exposure import (
+    GoalExposureAccumulator,
+    batch_goal_diversity,
+    goal_exposure_reset_boundary,
+    goal_exposure_reset_seed,
+    training_protocol_name,
+)
 from cert_runtime.experiment_metrics import (
     PersistentMetricAccumulator,
     episode_record,
@@ -39,9 +46,17 @@ def main() -> None:
     parser.add_argument("--output-dir", default="artifacts/persistent_generator_sac")
     parser.add_argument("--log-interval", type=int, default=500)
     parser.add_argument("--temperature-coordinate", choices=("physical", "normalized"), default="physical")
+    parser.add_argument("--goal-exposure-reset-steps", type=int, default=0)
     args = parser.parse_args()
     if args.log_interval <= 0:
         raise ValueError("log interval must be positive")
+    if args.goal_exposure_reset_steps < 0:
+        raise ValueError("goal exposure reset steps must be nonnegative")
+    if args.legacy_fixed_graph and args.goal_exposure_reset_steps:
+        raise ValueError("goal exposure resets are only defined for random persistent training")
+
+    exposure_reset_steps = args.goal_exposure_reset_steps or None
+    training_protocol = training_protocol_name(exposure_reset_steps)
 
     factory = make_persistent_uav_env if args.legacy_fixed_graph else make_random_persistent_uav_env
     environment = factory(f"{args.scenario}.json", seed=args.seed)
@@ -67,6 +82,19 @@ def main() -> None:
     actor_updates = 0
     critic_updates = 0
     accepted_actor_samples = 0
+    collector_reset_index = 0
+    goal_exposure = GoalExposureAccumulator()
+    goal_exposure.assign(
+        np.asarray(reset_info["sampled_goal"], dtype=np.float64),
+        np.asarray(reset_info["sampled_start"].position, dtype=np.float64),
+        0,
+        "initial_reset",
+        episode_seed,
+    )
+    last_batch_goal_diversity: dict[str, float | int] = {
+        "batch_unique_goal_count": 0,
+        "batch_goal_direction_entropy": 0.0,
+    }
 
     def goal_sequence() -> list[np.ndarray]:
         manager = environment.task_env.manager
@@ -74,6 +102,7 @@ def main() -> None:
 
     def learning_curve_record(step_number: int) -> dict[str, object]:
         interval = interval_metrics.summary()
+        exposure_interval = goal_exposure.interval_summary(reset=True)
         update = {} if last_update is None else last_update
         target_count = max(1, int(update.get("target_batch_count", 0) or 0))
         return {
@@ -119,6 +148,14 @@ def main() -> None:
             "fail_closed_target_fraction": float(update.get("fail_closed_target_count", 0) or 0) / target_count,
             "gradient_steps": agent.gradient_steps,
             "replay_size": len(agent.replay),
+            "training_protocol": training_protocol,
+            "goal_exposure_reset_steps": exposure_reset_steps,
+            "cumulative_unique_goals": goal_exposure.summary()["unique_goals_seen"],
+            "interval_new_goals": exposure_interval["interval_new_goals"],
+            "median_current_goal_age": exposure_interval["median_current_goal_age"],
+            "collector_resets": goal_exposure.collector_resets,
+            "batch_unique_goal_count": last_batch_goal_diversity["batch_unique_goal_count"],
+            "batch_goal_direction_entropy": last_batch_goal_diversity["batch_goal_direction_entropy"],
         }
 
     for step in range(args.steps):
@@ -130,6 +167,23 @@ def main() -> None:
         certificate_state_before = environment.runtime._certificate_state()
         candidate_action = environment._candidate_from_context(actor_u, context)
         next_observation, reward, terminated, truncated, info = environment.step(actor_u)
+        step_number = step + 1
+        collector_boundary = goal_exposure_reset_boundary(
+            step_number,
+            args.steps,
+            exposure_reset_steps,
+            terminated=terminated,
+            truncated=truncated,
+        )
+        goal_exposure.observe_step(bool(info.get("task_completed_now", False)))
+        if info.get("task_assigned_now"):
+            goal_exposure.assign(
+                np.asarray(info["current_goal"], dtype=np.float64),
+                np.asarray(info["telemetry"].state_after.position, dtype=np.float64),
+                step_number,
+                "task_completion",
+                None,
+            )
         snapshot = info["persistent_metrics"]
         delta = metric_snapshot_delta(previous_snapshot, snapshot)
         previous_snapshot = snapshot
@@ -219,8 +273,11 @@ def main() -> None:
             "terminated": bool(terminated),
             "truncated": bool(truncated),
             "failure_reason": info.get("failure_reason"),
+            "training_protocol": training_protocol,
+            "collector_boundary": collector_boundary,
+            "current_goal_age_steps": goal_exposure.current_goal_age_steps,
         })
-        next_context = None if terminated or truncated else environment._refresh_context()
+        next_context = None if terminated or truncated or collector_boundary else environment._refresh_context()
         if (
             info.get("accepted")
             and next_context is not None
@@ -231,18 +288,27 @@ def main() -> None:
         agent.observe(transition_from_cycle(
             observation, next_observation, actor_u, reward, terminated, truncated,
             episode_id, context, next_context, info,
+            collector_boundary=collector_boundary,
         ))
         if len(agent.replay) >= args.batch_size and step >= args.warmup_steps:
-            last_update = agent.update()
+            selected_batch = agent.replay.sample(args.batch_size)
+            last_batch_goal_diversity = batch_goal_diversity(
+                selected_batch,
+                environment.task_env.observation_layout["position"],
+                environment.task_env.observation_layout["goal_delta"],
+                environment.plant.config.world_size,
+            )
+            last_update = agent.update(selected_batch)
+            last_update.update(last_batch_goal_diversity)
+            last_update["unique_goals_seen_at_update"] = goal_exposure.summary()["unique_goals_seen"]
             critic_updates += 1
             actor_updates += int(last_update["actor_status"] == "updated")
             accepted_actor_samples += int(last_update["accepted_batch_count"])
-        step_number = step + 1
         if step_number % args.log_interval == 0 or step_number == args.steps:
             curve_records.append(learning_curve_record(step_number))
             interval_metrics = PersistentMetricAccumulator()
-        if terminated or truncated:
-            episode_records.append(episode_record(
+        if terminated or truncated or collector_boundary:
+            record = episode_record(
                 episode_id,
                 episode_seed,
                 reset_info,
@@ -251,20 +317,39 @@ def main() -> None:
                 terminated=terminated,
                 truncated=truncated,
                 partial=False,
-            ))
+            )
+            record.update({
+                "training_protocol": training_protocol,
+                "collector_boundary": collector_boundary,
+                "collector_reset_index": collector_reset_index + int(collector_boundary),
+            })
+            episode_records.append(record)
             episode_metrics = PersistentMetricAccumulator()
             previous_snapshot = None
             if step_number < args.steps:
                 episode_id += 1
-                episode_seed = args.seed + episode_id
+                if collector_boundary:
+                    collector_reset_index += 1
+                    episode_seed = goal_exposure_reset_seed(args.seed, collector_reset_index)
+                    assignment_source = "collector_reset"
+                else:
+                    episode_seed = args.seed + episode_id
+                    assignment_source = "environment_reset"
                 observation, reset_info = environment.reset(seed=episode_seed)
                 context = reset_info["action_context"]
+                goal_exposure.assign(
+                    np.asarray(reset_info["sampled_goal"], dtype=np.float64),
+                    np.asarray(reset_info["sampled_start"].position, dtype=np.float64),
+                    step_number,
+                    assignment_source,
+                    episode_seed,
+                )
         else:
             observation = next_observation
             context = next_context
 
     if episode_metrics.total_steps:
-        episode_records.append(episode_record(
+        record = episode_record(
             episode_id,
             episode_seed,
             reset_info,
@@ -273,7 +358,13 @@ def main() -> None:
             terminated=False,
             truncated=False,
             partial=True,
-        ))
+        )
+        record.update({
+            "training_protocol": training_protocol,
+            "collector_boundary": False,
+            "collector_reset_index": collector_reset_index,
+        })
+        episode_records.append(record)
 
     output = ROOT / args.output_dir
     output.mkdir(parents=True, exist_ok=True)
@@ -293,12 +384,16 @@ def main() -> None:
         "legacy_fixed_graph": args.legacy_fixed_graph,
         "seed": args.seed,
         "temperature_coordinate": args.temperature_coordinate,
+        "training_protocol": training_protocol,
+        "evaluation_protocol": "persistent_random_goal",
+        "goal_exposure_reset_steps": exposure_reset_steps,
         "steps": args.steps,
         "episodes": len(episode_records),
         "gradient_steps": agent.gradient_steps,
         "actor_updates": actor_updates,
         "critic_updates": critic_updates,
         "accepted_actor_samples": accepted_actor_samples,
+        "goal_exposure": goal_exposure.summary(),
         "total_reward": aggregate["total_reward"],
         "aggregate_metrics": aggregate,
         "last_episode_metrics": None if not episode_records else episode_records[-1],

@@ -294,6 +294,9 @@ goal-radius set is closed, including the exact numerical boundary. Distances obs
 
 The initial 2k physical-temperature runs completed no tasks and therefore exposed each network to
 one continuous random goal. They must be labeled `SINGLE_GOAL_TRAINING_DISTRIBUTION`; their
-counterfactual goal sensitivity does not yet characterize learning under a true multi-goal training
-distribution. Episodic multi-goal exposure is reserved for a later, controlled data-collection
-comparison. Persistent evaluation semantics remain unchanged.
+counterfactual goal sensitivity does not characterize learning under a true multi-goal training
+distribution. The training entry point now supports explicit episodic multi-goal exposure through
+`--goal-exposure-reset-steps`. This is a collector-only reset: it preserves the same SAC agent and
+replay, stores the real final physical successor, and prevents Bellman bootstrap across the reset
+boundary. Persistent evaluation semantics remain unchanged and never perform periodic exposure
+resets.
