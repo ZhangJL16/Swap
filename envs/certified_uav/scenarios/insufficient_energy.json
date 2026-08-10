@@ -1,0 +1,6 @@
+{
+  "base": "open_corridor.json",
+  "name": "insufficient_energy",
+  "initial_energy": 1.1,
+  "expected_certificate_outcome": "insufficient-energy"
+}

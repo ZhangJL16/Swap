@@ -2058,6 +2058,10 @@ class UAVEnvDiscreteWrapper:
         action = np.asarray(action, dtype=np.float32).reshape(-1)
         if action.size < self.action_dim:
             action = np.pad(action, (0, self.action_dim - action.size))
+        if getattr(self.env, "continuous_action_is_physical", False):
+            return np.clip(
+                action[: self.action_dim], -self.env.a_max, self.env.a_max
+            ).astype(np.float32)
         action = np.clip(action[: self.action_dim], -1.0, 1.0)
         return action.astype(np.float32) * float(self.env.a_max)
 
@@ -2145,6 +2149,11 @@ class UAVEnvDiscreteWrapper:
             "n_actions": self.n_actions,
             "low_action_type": self.low_action_type,
             "low_action_dim": self.action_dim,
+            "low_action_limit": float(
+                self.env.a_max
+                if getattr(self.env, "continuous_action_is_physical", False)
+                else 1.0
+            ),
             "n_agents": self.n_agents,
             "state_shape": int(state.shape[0]),
             "obs_shape": int(obs.shape[-1]),

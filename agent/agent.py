@@ -60,40 +60,19 @@ class Agents:
 
             self.policy = GMIX(args)
         elif args.alg.find("ippo") > -1:
-            if getattr(args, "use_level_policy", False):
-                raise ValueError("ippo is only implemented for flat PPO.")
             from policy.ippo import IPPO
 
             self.policy = IPPO(args)
         elif args.alg == "official_mappo":
-            if getattr(args, "use_level_policy", False):
-                raise ValueError("official_mappo is only implemented for flat MAPPO.")
             from policy.official_mappo import OfficialMAPPO
 
             self.policy = OfficialMAPPO(args)
-        elif args.alg == "official_hmappo":
-            if not getattr(args, "use_level_policy", False):
-                raise ValueError("official_hmappo requires level-policy training.")
-            from level_policy.official_hmappo import OfficialHMAPPO
-
-            self.policy = OfficialHMAPPO(args)
-        elif args.alg == "hmappo_cbf_flow":
-            if not getattr(args, "use_level_policy", False):
-                raise ValueError("hmappo_cbf_flow requires level-policy training.")
-            from level_policy.mappo import MAPPO
-
-            self.policy = MAPPO(args)
         elif args.alg.find("mappo_lagrangian") > -1:
-            if getattr(args, "use_level_policy", False):
-                raise ValueError("mappo_lagrangian is only implemented for flat MAPPO.")
             from policy.mappo_lagrangian import MAPPOLagrangian
 
             self.policy = MAPPOLagrangian(args)
         elif args.alg.find("mappo") > -1:
-            if getattr(args, "use_level_policy", False):
-                from level_policy.mappo import MAPPO
-            else:
-                from policy.mappo import MAPPO
+            from policy.mappo import MAPPO
 
             self.policy = MAPPO(args)
         elif args.alg.find("macpo") > -1:
@@ -101,10 +80,7 @@ class Agents:
 
             self.policy = MACPO(args)
         elif args.alg.lower().find("rgmcomm") > -1:
-            if getattr(args, "use_level_policy", False):
-                from level_policy.maddpg import MADDPG
-                self.policy = MADDPG(args, agent_id)
-            elif args.alg.lower().find("matd3") > -1:
+            if args.alg.lower().find("matd3") > -1:
                 from policy.matd3 import MATD3
 
                 self.policy = MATD3(args, agent_id)
@@ -132,16 +108,6 @@ class Agents:
         self.cbf_teacher = None
         self.correction_records = []
         self.energy_records = []
-        if args.alg == "hmappo_cbf_flow":
-            from safety.joint_cbf_qp import JointCBFQP
-
-            self.cbf_teacher = JointCBFQP(
-                alpha1=getattr(args, "cbf_alpha1", 1.0),
-                alpha2=getattr(args, "cbf_alpha2", 1.0),
-                teacher_margin=getattr(args, "cbf_teacher_margin", 0.0),
-            )
-            self.last_cbf_constraint_A = None
-            self.last_cbf_constraint_c = None
 
         if self.use_comm_plugin:
             dqn_kwargs = dict(
@@ -389,25 +355,6 @@ class Agents:
 
         return action
 
-    def choose_high_level_action(
-        self,
-        obs,
-        agent_num,
-        avail_actions=None,
-        epsilon=0.0,
-    ):
-        if not hasattr(self.policy, "choose_high_level_action"):
-            raise AttributeError("Current policy does not expose high-level actions.")
-        action = self.policy.choose_high_level_action(
-            obs,
-            agent_num,
-            avail_actions,
-            evaluate=(epsilon == 0),
-        )
-        if isinstance(action, torch.Tensor):
-            action = action.detach().cpu().numpy()
-        return np.asarray(action, dtype=np.float32)
-
     def prepare_comm_obs(self, observations, epsilon, active_agent_mask=None):
         raw_obs = [
             np.asarray(obs, dtype=np.float32).reshape(-1)
@@ -604,37 +551,6 @@ class Agents:
         return 0.0
 
     def revise_safe_actions(self, observations, avail_actions, base_actions):
-        if self.args.alg == "hmappo_cbf_flow":
-            del observations, avail_actions
-            active_mask = (
-                self.env.get_active_agent_mask()
-                if hasattr(self.env, "get_active_agent_mask")
-                else np.ones(self.n_agents, dtype=np.float32)
-            )
-            corrected, A, c = self.cbf_teacher.solve_from_env(
-                self.env.env if hasattr(self.env, "env") else self.env,
-                np.asarray(base_actions, dtype=np.float32),
-                active_mask=active_mask,
-            )
-            raw = np.asarray(base_actions, dtype=np.float32)
-            delta = np.linalg.norm(corrected - raw, axis=-1)
-            flags = ((delta > 1e-6).astype(np.float32) * active_mask.reshape(-1))
-            self.last_guard_applied = flags.tolist()
-            self.last_cbf_constraint_A = A
-            self.last_cbf_constraint_c = c
-            env_ref = self.env.env if hasattr(self.env, "env") else self.env
-            if hasattr(env_ref, "get_cbf_safety_state"):
-                self.correction_records.append(
-                    {
-                        "safety_state_abs": env_ref.get_cbf_safety_state(),
-                        "raw_joint_action": raw.reshape(-1).copy(),
-                        "correct_joint_action": corrected.reshape(-1).copy(),
-                        "constraint_A": A.copy(),
-                        "constraint_c": c.copy(),
-                        "active_mask": active_mask.copy(),
-                    }
-                )
-            return corrected.astype(np.float32)
         if getattr(self.args, "low_action_type", "discrete") == "continuous":
             self.last_guard_applied = [0.0 for _ in range(self.n_agents)]
             return None
@@ -658,33 +574,6 @@ class Agents:
                 ),
                 dtype=np.float32,
             )
-
-        if (
-            getattr(self.args, "hrl_safe_action_guard_enabled", False)
-            and hasattr(self.env, "revise_safe_actions")
-        ):
-            env_result = self.env.revise_safe_actions(
-                revised_actions,
-                avail_actions=avail_actions,
-                guard_margin=getattr(
-                    self.args,
-                    "hrl_safe_action_guard_margin",
-                    None,
-                ),
-                guard_horizon=getattr(
-                    self.args,
-                    "hrl_safe_action_guard_horizon",
-                    None,
-                ),
-            )
-            if isinstance(env_result, tuple):
-                revised_actions, env_guard_flags = env_result
-                guard_flags = np.maximum(
-                    guard_flags,
-                    np.asarray(env_guard_flags, dtype=np.float32).reshape(-1),
-                )
-            else:
-                revised_actions = env_result
 
         self.last_guard_applied = guard_flags.astype(np.float32).tolist()
         return revised_actions

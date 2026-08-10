@@ -1,0 +1,6 @@
+{
+  "base": "open_corridor.json",
+  "name": "narrow_corridor",
+  "configuration_overrides": {"minimum_generator_sigma": 0.06},
+  "expected_certificate_outcome": "no-generator-set"
+}

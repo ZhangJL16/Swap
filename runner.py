@@ -24,17 +24,6 @@ from tqdm import trange, tqdm
 import torch
 from datetime import datetime
 
-from safety.constrained_flow import ConstrainedFlow
-from safety.correction_buffer import CorrectionBuffer
-from safety.distillation_trainer import DistillationTrainer
-from safety.distilled_corrector import DistilledCorrector
-from safety.flow_trainer import FlowTrainer
-from hierarchy.energy_buffer import EnergyReplayBuffer
-from hierarchy.navigation_energy import NavigationEnergyNetwork, NavigationEnergyTrainer
-from hierarchy.order_q import OrderQNetwork, OrderQTrainer
-from hierarchy.order_replay_buffer import OrderReplayBuffer
-
-
 UAV_COLLISION_MAPS = {
     "UAV3D",
     "UAVEncircle",
@@ -45,10 +34,6 @@ UAV_COLLISION_MAPS = {
     "UAVEnergyDelivery",
     "UAVEnergyDelivery2D",
     "UAVEnergyDelivery3D",
-    "UAVEnergyDeliveryLevel",
-    "UAVEnergyDeliveryLevel2D",
-    "UAVEnergyDeliveryLevel3D",
-    "UAVEnergyDeliveryHierarchical",
 }
 
 UAV_DELIVERY_MAPS = {
@@ -58,10 +43,6 @@ UAV_DELIVERY_MAPS = {
     "UAVEnergyDelivery",
     "UAVEnergyDelivery2D",
     "UAVEnergyDelivery3D",
-    "UAVEnergyDeliveryLevel",
-    "UAVEnergyDeliveryLevel2D",
-    "UAVEnergyDeliveryLevel3D",
-    "UAVEnergyDeliveryHierarchical",
 }
 
 DEFAULT_CSV_COLUMNS = [
@@ -206,13 +187,7 @@ UAV_DELIVERY_EXPERIMENT_COLUMNS = [
     "run_command",
     "seed",
     "eval_seed",
-    "hmappo_meta_period",
-    "high_level_n_actions",
     "charge_action_id",
-    "high_lr_actor",
-    "high_lr_critic",
-    "high_actor_hidden_dim",
-    "high_critic_hidden_dim",
 ]
 
 
@@ -356,287 +331,6 @@ class Runner:
         self._last_saved_bucket = -1
         if self.args.map == "UAV3D":
             self.args.save_cycle = 50000
-        self._init_cbf_flow_phase_modules()
-
-    def _base_env(self):
-        return self.env.env if hasattr(self.env, "env") else self.env
-
-    def _init_cbf_flow_phase_modules(self):
-        self.correction_buffer = None
-        self.flow_net = None
-        self.flow_trainer = None
-        self.student = None
-        self.student_trainer = None
-        self.energy_buffer = None
-        self.energy_model = None
-        self.energy_trainer = None
-        self.order_buffer = None
-        self.order_q_net = None
-        self.order_q_trainer = None
-        if self.args.alg != "hmappo_cbf_flow":
-            return
-        self.cbf_flow_artifact_dir = (
-            getattr(self.args, "cbf_flow_artifact_dir", "")
-            or os.path.join(self.args.model_dir, self.args.alg, self.args.map, "cbf_flow")
-        )
-        self.cbf_flow_load_artifact_dir = (
-            getattr(self.args, "cbf_flow_load_artifact_dir", "")
-            or self.cbf_flow_artifact_dir
-        )
-        base_env = self._base_env()
-        safety_state_dim = int(
-            len(base_env.get_cbf_safety_state())
-            if hasattr(base_env, "get_cbf_safety_state")
-            else self.args.n_agents * int(getattr(self.args, "low_action_dim", self.args.n_actions)) * 2
-        )
-        joint_action_dim = int(
-            self.args.n_agents * int(getattr(self.args, "low_action_dim", self.args.n_actions))
-        )
-        self.correction_buffer = CorrectionBuffer(getattr(self.args, "energy_buffer_size", 100000))
-        self.flow_net = ConstrainedFlow(
-            safety_state_dim=safety_state_dim,
-            joint_action_dim=joint_action_dim,
-            hidden_dim=getattr(self.args, "flow_hidden_dim", 256),
-        )
-        self.flow_trainer = FlowTrainer(
-            self.flow_net,
-            lr=getattr(self.args, "flow_lr", 3e-4),
-            flow_train_steps=getattr(self.args, "flow_train_steps", 8),
-            cbf_coef=getattr(self.args, "flow_cbf_coef", 1.0),
-            endpoint_coef=getattr(self.args, "flow_endpoint_coef", 1.0),
-            terminal_coef=getattr(self.args, "flow_terminal_coef", 1.0),
-            flow_margin=getattr(self.args, "flow_margin", 0.0),
-            kappa=getattr(self.args, "flow_kappa", 1.0),
-            device=(
-                f"cuda:{getattr(self.args, 'gpu_id', 0)}"
-                if getattr(self.args, "cuda", False) and torch.cuda.is_available()
-                else "cpu"
-            ),
-        )
-        self.student = DistilledCorrector(
-            safety_state_dim=safety_state_dim,
-            joint_action_dim=joint_action_dim,
-            hidden_dim=getattr(self.args, "flow_hidden_dim", 256),
-        )
-        self.student_trainer = DistillationTrainer(
-            self.student,
-            lr=getattr(self.args, "student_lr", 3e-4),
-            teacher_coef=getattr(self.args, "student_teacher_coef", 1.0),
-            safety_coef=getattr(self.args, "student_safety_coef", 1.0),
-            margin=getattr(self.args, "student_margin", 0.0),
-            device=(
-                f"cuda:{getattr(self.args, 'gpu_id', 0)}"
-                if getattr(self.args, "cuda", False) and torch.cuda.is_available()
-                else "cpu"
-            ),
-        )
-        self.energy_buffer = EnergyReplayBuffer(getattr(self.args, "energy_buffer_size", 100000))
-        self.energy_model = NavigationEnergyNetwork()
-        self.energy_trainer = NavigationEnergyTrainer(
-            self.energy_model,
-            lr=getattr(self.args, "energy_lr", 3e-4),
-            gamma=getattr(self.args, "energy_gamma", 0.99),
-            device=(
-                f"cuda:{getattr(self.args, 'gpu_id', 0)}"
-                if getattr(self.args, "cuda", False) and torch.cuda.is_available()
-                else "cpu"
-            ),
-        )
-        self.order_buffer = OrderReplayBuffer(getattr(self.args, "order_q_buffer_size", 100000))
-        self.order_q_net = OrderQNetwork()
-        self.order_q_trainer = OrderQTrainer(
-            self.order_q_net,
-            lr=getattr(self.args, "order_q_lr", 3e-4),
-            gamma=getattr(self.args, "order_q_gamma", 0.99),
-            device=(
-                f"cuda:{getattr(self.args, 'gpu_id', 0)}"
-                if getattr(self.args, "cuda", False) and torch.cuda.is_available()
-                else "cpu"
-            ),
-        )
-        if hasattr(base_env, "high_controller"):
-            base_env.high_controller.order_q_net = self.order_q_net
-            base_env.high_controller.energy_model = self.energy_model
-        self._load_cbf_flow_artifacts()
-
-    def _artifact_path(self, name, root=None):
-        root = self.cbf_flow_artifact_dir if root is None else root
-        return os.path.join(root, name)
-
-    def _load_cbf_flow_artifacts(self):
-        if self.args.alg != "hmappo_cbf_flow":
-            return
-        root = getattr(self, "cbf_flow_load_artifact_dir", "")
-        if not root or not os.path.isdir(root):
-            return
-
-        def _load_state(module, name):
-            path = self._artifact_path(name, root=root)
-            if module is not None and os.path.exists(path):
-                module.load_state_dict(torch.load(path, map_location="cpu"))
-
-        _load_state(self.flow_net, "flow.pt")
-        _load_state(self.student, "student.pt")
-        _load_state(self.energy_model, "navigation_energy.pt")
-        _load_state(self.order_q_net, "order_q.pt")
-        if self.flow_net is not None and self.flow_trainer is not None:
-            self.flow_trainer.flow_net = self.flow_net.to(self.flow_trainer.device)
-        if self.student is not None and self.student_trainer is not None:
-            self.student_trainer.student = self.student.to(self.student_trainer.device)
-        if self.energy_model is not None and self.energy_trainer is not None:
-            self.energy_trainer.model = self.energy_model.to(self.energy_trainer.device)
-            self.energy_trainer.target.load_state_dict(self.energy_trainer.model.state_dict())
-        if self.order_q_net is not None and self.order_q_trainer is not None:
-            self.order_q_trainer.q_net = self.order_q_net.to(self.order_q_trainer.device)
-            self.order_q_trainer.target_q_net.load_state_dict(
-                self.order_q_trainer.q_net.state_dict()
-            )
-
-        if self.correction_buffer is not None:
-            path = self._artifact_path("correction_buffer.pkl", root=root)
-            if os.path.exists(path):
-                self.correction_buffer.load(path)
-        if self.energy_buffer is not None:
-            path = self._artifact_path("energy_buffer.pkl", root=root)
-            if os.path.exists(path):
-                self.energy_buffer.load(path)
-        if self.order_buffer is not None:
-            path = self._artifact_path("order_buffer.pkl", root=root)
-            if os.path.exists(path):
-                self.order_buffer.load(path)
-
-    def _save_cbf_flow_artifacts(self, train_step=None, final=False):
-        if self.args.alg != "hmappo_cbf_flow":
-            return
-        os.makedirs(self.cbf_flow_artifact_dir, exist_ok=True)
-
-        def _save_state(module, name):
-            if module is None:
-                return
-            torch.save(module.state_dict(), self._artifact_path(name))
-            if train_step is not None:
-                torch.save(module.state_dict(), self._artifact_path(f"{train_step}_{name}"))
-
-        _save_state(self.flow_net, "flow.pt")
-        _save_state(self.student, "student.pt")
-        _save_state(self.energy_model, "navigation_energy.pt")
-        _save_state(self.order_q_net, "order_q.pt")
-        if self.correction_buffer is not None:
-            self.correction_buffer.save(self._artifact_path("correction_buffer.pkl"))
-        if self.energy_buffer is not None:
-            self.energy_buffer.save(self._artifact_path("energy_buffer.pkl"))
-        if self.order_buffer is not None:
-            self.order_buffer.save(self._artifact_path("order_buffer.pkl"))
-        if final and bool(getattr(self.args, "cbf_flow_export_student", False)):
-            metrics = self._validate_student_for_export()
-            if metrics.get("student_cbf_violation_rate", 1.0) == 0.0 and metrics.get(
-                "student_action_mse", float("inf")
-            ) <= float(getattr(self.args, "cbf_flow_student_mse_threshold", 0.02)):
-                torch.save(self.student.state_dict(), self._artifact_path("student_deploy.pt"))
-
-    def _validate_student_for_export(self):
-        if (
-            self.student is None
-            or self.correction_buffer is None
-            or len(self.correction_buffer) < 1
-        ):
-            return {"student_cbf_violation_rate": 1.0, "student_action_mse": float("inf")}
-        batch = self.correction_buffer.sample(
-            min(int(getattr(self.args, "energy_batch_size", 256)), len(self.correction_buffer))
-        )
-        device = next(self.student.parameters()).device
-        with torch.no_grad():
-            state = torch.as_tensor(np.stack(batch["safety_state_abs"]), dtype=torch.float32, device=device)
-            raw = torch.as_tensor(np.stack(batch["raw_joint_action"]), dtype=torch.float32, device=device)
-            correct = torch.as_tensor(np.stack(batch["correct_joint_action"]), dtype=torch.float32, device=device)
-            action = self.student(state, raw)
-            mse = torch.mean((action - correct).pow(2)).item()
-            A, c = self.student_trainer._constraint_tensors(batch)
-            margin = torch.bmm(A, action.unsqueeze(-1)).squeeze(-1) + c
-            violation_rate = float((margin < float(getattr(self.args, "student_margin", 0.0))).float().mean().item())
-        return {
-            "student_action_mse": float(mse),
-            "student_cbf_violation_rate": float(violation_rate),
-        }
-
-    def _drain_correction_records(self):
-        if self.correction_buffer is None or not hasattr(self.agents, "drain_correction_records"):
-            return 0
-        records = self.agents.drain_correction_records()
-        for record in records:
-            self.correction_buffer.add(record)
-        return len(records)
-
-    def _drain_order_records(self):
-        if self.order_buffer is None:
-            return 0
-        base_env = self._base_env()
-        if not hasattr(base_env, "get_completed_option_transitions"):
-            return 0
-        records = base_env.get_completed_option_transitions()
-        for record in records:
-            self.order_buffer.add(record)
-        return len(records)
-
-    def _drain_energy_records(self):
-        if self.energy_buffer is None or not hasattr(self.agents, "drain_energy_records"):
-            return 0
-        records = self.agents.drain_energy_records()
-        for record in records:
-            self.energy_buffer.add(record)
-        return len(records)
-
-    def _train_cbf_flow_phase(self):
-        phase = getattr(self.args, "training_phase", "low_cbf")
-        if self.args.alg != "hmappo_cbf_flow" or self.correction_buffer is None:
-            return {}
-        if phase == "low_cbf":
-            return {}
-        if phase == "energy":
-            if self.energy_buffer is None or self.energy_trainer is None or len(self.energy_buffer) < 1:
-                return {"energy_buffer_size": float(len(self.energy_buffer or []))}
-            batch = self.energy_buffer.sample(
-                min(int(getattr(self.args, "energy_batch_size", 64)), len(self.energy_buffer))
-            )
-            return self.energy_trainer.train_step(batch)
-        if phase == "high_q":
-            if self.order_buffer is None or self.order_q_trainer is None or len(self.order_buffer) < 1:
-                return {"order_q_buffer_size": float(len(self.order_buffer or []))}
-            batch = self.order_buffer.sample(
-                min(int(getattr(self.args, "order_q_batch_size", 64)), len(self.order_buffer))
-            )
-            return self.order_q_trainer.train_step(batch)
-        if len(self.correction_buffer) < 1:
-            return {"correction_buffer_size": 0.0}
-        batch_size = min(
-            int(getattr(self.args, "energy_batch_size", 64)),
-            len(self.correction_buffer),
-        )
-        batch = self.correction_buffer.sample(batch_size)
-        metrics = {"correction_buffer_size": float(len(self.correction_buffer))}
-        if phase == "flow" and self.flow_trainer is not None:
-            metrics.update(self.flow_trainer.train_step(batch))
-        elif phase == "distill" and self.flow_net is not None and self.student_trainer is not None:
-            device = self.flow_trainer.device if self.flow_trainer is not None else torch.device("cpu")
-            with torch.no_grad():
-                state = torch.as_tensor(
-                    np.stack(batch["safety_state_abs"]),
-                    dtype=torch.float32,
-                    device=device,
-                )
-                raw = torch.as_tensor(
-                    np.stack(batch["raw_joint_action"]),
-                    dtype=torch.float32,
-                    device=device,
-                )
-                flow_action = self.flow_net.integrate(
-                    state,
-                    raw,
-                    int(getattr(self.args, "flow_eval_steps", getattr(self.args, "flow_train_steps", 8))),
-                )
-            batch["flow_joint_action"] = flow_action.detach().cpu().numpy()
-            metrics.update(self.student_trainer.train_step(batch))
-        return metrics
 
     def close(self):
         if self.parallel_episode_collector is not None:
@@ -727,22 +421,6 @@ class Runner:
                 writer.writerow(UAV_DELIVERY_EXPERIMENT_COLUMNS)
             writer.writerow(row)
 
-    def _uav_delivery_experiment_level_fields(self):
-        optional_values = [
-            getattr(self.args, "high_lr_actor", ""),
-            getattr(self.args, "high_lr_critic", ""),
-            getattr(self.args, "high_actor_hidden_dim", ""),
-            getattr(self.args, "high_critic_hidden_dim", ""),
-        ]
-        return [
-            int(getattr(self.args, "seed", 0)),
-            int(getattr(self.args, "eval_seed", 0)),
-            int(getattr(self.args, "hmappo_meta_period", 0)),
-            int(getattr(self.args, "high_level_n_actions", 0)),
-            int(getattr(self.args, "charge_action_id", -1)),
-            *["" if value is None else value for value in optional_values],
-        ]
-
     def _append_uav_delivery_experiment_result(self, time_steps, train_steps):
         if self.args.map not in UAV_DELIVERY_MAPS or self.last_eval_summary is None:
             return
@@ -769,8 +447,10 @@ class Runner:
             float(summary.get("step", 0.0)),
             getattr(self.args, "run_script", ""),
             getattr(self.args, "run_command", ""),
+            int(getattr(self.args, "seed", 0)),
+            int(getattr(self.args, "eval_seed", 0)),
+            int(getattr(self.args, "charge_action_id", -1)),
         ]
-        row.extend(self._uav_delivery_experiment_level_fields())
         self._write_uav_delivery_experiment_row(row)
 
     def _append_uav_delivery_rgm_experiment_result(
@@ -813,8 +493,10 @@ class Runner:
             float(summary.get("step", 0.0)),
             getattr(self.args, "run_script", ""),
             getattr(self.args, "run_command", ""),
+            int(getattr(self.args, "seed", 0)),
+            int(getattr(self.args, "eval_seed", 0)),
+            int(getattr(self.args, "charge_action_id", -1)),
         ]
-        row.extend(self._uav_delivery_experiment_level_fields())
         self._write_uav_delivery_experiment_row(row)
 
     def _set_log_row_value(self, row, column, value):
@@ -1058,7 +740,6 @@ class Runner:
             return
 
         saver(time_steps)
-        self._save_cbf_flow_artifacts(train_step=int(time_steps), final=force)
         if current_bucket >= 0:
             self._last_saved_bucket = current_bucket
 
@@ -1153,10 +834,6 @@ class Runner:
                             episode_batch[key] = np.concatenate(
                                 (episode_batch[key], episode[key]), axis=0
                             )
-                    self._drain_correction_records()
-                    self._drain_energy_records()
-                    self._drain_order_records()
-                    phase = getattr(self.args, "training_phase", "low_cbf")
                     if (
                         self.args.alg.find("coma") > -1
                         or self.args.alg.find("central_v") > -1
@@ -1165,14 +842,9 @@ class Runner:
                         or self.args.alg.find("mappo") > -1
                         or self.args.alg.find("macpo") > -1
                     ):
-                        if self.args.alg == "hmappo_cbf_flow" and phase in {"flow", "distill"}:
-                            train_metrics = self._train_cbf_flow_phase()
-                        else:
-                            train_metrics = self.agents.train(
-                                episode_batch, train_steps, self.rolloutWorker.epsilon
-                            )
-                            if self.args.alg == "hmappo_cbf_flow":
-                                train_metrics.update(self._train_cbf_flow_phase())
+                        train_metrics = self.agents.train(
+                            episode_batch, train_steps, self.rolloutWorker.epsilon
+                        )
                         safety_loss = (
                             train_metrics.get("safety_loss", "")
                             if isinstance(train_metrics, dict)

@@ -1,0 +1,131 @@
+{
+  "G": [
+    [
+      0.07970703125,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.07970703125,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.009980468750000002
+    ]
+  ],
+  "a_candidate": [
+    0.015732200817145183,
+    -0.023219663504198098,
+    -0.039005266694270464
+  ],
+  "a_exec": [
+    0.015732200817145183,
+    -0.023219663504198098,
+    -0.039005266694270464
+  ],
+  "a_measured": [
+    0.015732200817145183,
+    -0.023219663504198098,
+    -0.039005266694270464
+  ],
+  "accepted": true,
+  "actor_called": true,
+  "c": [
+    -0.0,
+    0.0,
+    -0.04
+  ],
+  "certificate_epoch": "afeb20cc72d1d959ff3cd9437732e71774a766ab0e9e9f3044bd4fcffe35eca3",
+  "certificate_state_digest": "60f7c1a8135f74ce18f8e69bc8cb4046e4fce6e40fa2d30694e2e061cd82c2ab",
+  "collision": false,
+  "condition_number": 7.986301369863013,
+  "corridor_version": "1",
+  "cycle_index": 0,
+  "deadline": 0.1,
+  "det_G": 6.34080221578479e-05,
+  "elapsed_time": 0.07154029401135631,
+  "energy_after": 99.98791769193426,
+  "energy_before": 100.0,
+  "energy_certificate_hash": "0c0ea3f3ca19278bd331dbb878066e4451e4172df3627a57d697b73c48060084",
+  "energy_cost": 0.01208230806574569,
+  "eta": [
+    0.197375320224904,
+    -0.2913126124515909,
+    0.09966799462495582
+  ],
+  "fallback_reason": null,
+  "geometry_version": "7",
+  "kappa": [
+    -0.0,
+    0.0,
+    -0.04
+  ],
+  "manifest_integrity": true,
+  "plant_input_matches_exec": true,
+  "published_once": true,
+  "recovery_certificate_hash": "036add07752067cbd819972b47e0c22b67ca094a100caae84aed813f2cd74d90",
+  "reset_certificate_ready": true,
+  "reward": -0.010165464524076509,
+  "scenario_id": "open_corridor",
+  "sigma_min": 0.00998046875,
+  "stage_timings": {
+    "T_actor": 0.00555400998564437,
+    "T_certificate": 0.010123718995600939,
+    "T_corridor": 0.0,
+    "T_energy": 0.0,
+    "T_kappa": 0.005756608006777242,
+    "T_log": 0.00010057599865831435,
+    "T_plant": 0.0010260379931423813,
+    "T_publish": 2.1909945644438267e-06,
+    "T_recheck": 0.00634593001450412,
+    "T_sensor": 0.0,
+    "T_set": 0.0,
+    "T_snapshot": 0.010119014012161642,
+    "T_total": 0.07154029401135631,
+    "T_update": 0.0
+  },
+  "state_after": {
+    "energy": 99.98791769193426,
+    "position": [
+      1.0203146440163429,
+      0.749535606729916,
+      1.0152198946661146
+    ],
+    "timestamp": 0.2,
+    "velocity": [
+      0.0031464401634290367,
+      -0.00464393270083962,
+      0.0721989466611459
+    ]
+  },
+  "state_before": {
+    "energy": 100.0,
+    "position": [
+      1.02,
+      0.75,
+      1.0
+    ],
+    "timestamp": 0.0,
+    "velocity": [
+      0.0,
+      0.0,
+      0.08
+    ]
+  },
+  "task_observation_shape": [
+    117
+  ],
+  "terminal_admissible": true,
+  "terminated": true,
+  "truncated": false,
+  "u": [
+    0.2,
+    -0.3,
+    0.1
+  ],
+  "zonotope_certificate_hash": "9f021327d96e7c15a83c6e950285d548908a12865f04a87608c74f44e7ab9ab2",
+  "zonotope_volume": 0.0005072641772627832
+}

@@ -1,1 +1,0 @@
-.venv/bin/python main.py --alg mappo --map UAVEnergyDelivery --uav_n_agents 4 --episode_limit 400 --uav_total_orders 16 --uav_max_active_orders 8 --seed 123 --eval_seed 100123 --evaluate_epoch 20 --cuda True --gpu_id 0 --experiment_device lab --n_steps 600000 

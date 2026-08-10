@@ -1,0 +1,152 @@
+[
+  {
+    "accepted": true,
+    "actor_called": true,
+    "actual_reason": null,
+    "certificate_valid": true,
+    "executed_action": [
+      0.015732200817145183,
+      -0.023219663504198098,
+      -0.039005266694270464
+    ],
+    "expected_reason": null,
+    "generator_available": true,
+    "pass": true,
+    "scenario": "open_corridor"
+  },
+  {
+    "accepted": false,
+    "actor_called": false,
+    "actual_reason": "NO_GENERATOR_SET",
+    "certificate_valid": false,
+    "executed_action": [
+      -0.0,
+      0.0,
+      -0.04
+    ],
+    "expected_reason": "NO_GENERATOR_SET",
+    "generator_available": false,
+    "pass": true,
+    "scenario": "narrow_corridor"
+  },
+  {
+    "accepted": false,
+    "actor_called": false,
+    "actual_reason": "INITIAL_STATE_OUTSIDE_CORRIDOR_SUFFIX",
+    "certificate_valid": false,
+    "executed_action": [
+      -0.0,
+      -0.0,
+      -0.04
+    ],
+    "expected_reason": "INITIAL_STATE_OUTSIDE_CORRIDOR_SUFFIX",
+    "generator_available": false,
+    "pass": true,
+    "scenario": "invalid_corridor"
+  },
+  {
+    "accepted": false,
+    "actor_called": false,
+    "actual_reason": "INSUFFICIENT_RECOVERY_RESERVE",
+    "certificate_valid": false,
+    "executed_action": [
+      -0.0,
+      -0.0,
+      -0.04
+    ],
+    "expected_reason": "INSUFFICIENT_RECOVERY_RESERVE",
+    "generator_available": false,
+    "pass": true,
+    "scenario": "insufficient_energy"
+  },
+  {
+    "accepted": false,
+    "actor_called": true,
+    "actual_reason": "CERTIFIER_EXCEPTION",
+    "certificate_valid": true,
+    "executed_action": [
+      -0.0,
+      0.0,
+      -0.04
+    ],
+    "expected_reason": "CERTIFIER_EXCEPTION",
+    "generator_available": true,
+    "pass": true,
+    "scenario": "actor_nonfinite"
+  },
+  {
+    "accepted": false,
+    "actor_called": true,
+    "actual_reason": "CERTIFIER_EXCEPTION",
+    "certificate_valid": true,
+    "executed_action": [
+      -0.0,
+      0.0,
+      -0.04
+    ],
+    "expected_reason": "CERTIFIER_EXCEPTION",
+    "generator_available": true,
+    "pass": true,
+    "scenario": "stale_certificate"
+  },
+  {
+    "accepted": false,
+    "actor_called": true,
+    "actual_reason": "WATCHDOG_DEADLINE",
+    "certificate_valid": true,
+    "executed_action": [
+      -0.0,
+      0.0,
+      -0.04
+    ],
+    "expected_reason": "WATCHDOG_DEADLINE",
+    "generator_available": true,
+    "pass": true,
+    "scenario": "watchdog_deadline"
+  },
+  {
+    "accepted": false,
+    "actor_called": false,
+    "actual_reason": "INSUFFICIENT_SENSING_FOR_BRAKING_TUBE",
+    "certificate_valid": false,
+    "executed_action": [
+      -0.0,
+      -0.0,
+      -0.04
+    ],
+    "expected_reason": "INSUFFICIENT_SENSING_FOR_BRAKING_TUBE",
+    "generator_available": false,
+    "pass": true,
+    "scenario": "insufficient_sensing"
+  },
+  {
+    "accepted": false,
+    "actor_called": false,
+    "actual_reason": "EnergyCalibrationContract-expired-or-out-of-domain",
+    "certificate_valid": true,
+    "executed_action": [
+      -0.0,
+      -0.0,
+      -0.04
+    ],
+    "expected_reason": "EnergyCalibrationContract-expired-or-out-of-domain",
+    "generator_available": false,
+    "pass": true,
+    "scenario": "energy_contract_mismatch"
+  },
+  {
+    "accepted": false,
+    "actor_called": true,
+    "actual_reason": "STALE_OR_INCOMPLETE_BUNDLE",
+    "certificate_valid": true,
+    "executed_action": [
+      -0.0,
+      0.0,
+      -0.04
+    ],
+    "expected_reason": "STALE_OR_INCOMPLETE_BUNDLE",
+    "generator_available": true,
+    "pass": true,
+    "scenario": "corridor_hash_tamper"
+  }
+]
