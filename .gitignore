@@ -83,3 +83,5 @@ review_bundle/artifacts/phase1_sb3_sac_smoke/
 review_bundle/artifacts/phase1_sb3_sac_200k/
 review_bundle/artifacts/phase1_sb3_sac_reward_fix_smoke/
 review_bundle/artifacts/phase1_sb3_sac_1m_reward_fix/
+review_bundle/artifacts/phase1_sb3_sac_gpu_smoke/
+review_bundle/artifacts/phase1_sb3_sac_1m_gpu/

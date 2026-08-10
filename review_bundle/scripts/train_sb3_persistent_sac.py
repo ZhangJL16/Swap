@@ -566,6 +566,36 @@ def train(args: argparse.Namespace) -> None:
         device=args.device,
         verbose=1,
     )
+    model_device = str(model.device)
+    actor_parameter_devices = sorted({str(parameter.device) for parameter in model.actor.parameters()})
+    critic_parameter_devices = sorted({str(parameter.device) for parameter in model.critic.parameters()})
+    critic_target_parameter_devices = sorted(
+        {str(parameter.device) for parameter in model.critic_target.parameters()}
+    )
+    config |= {
+        "requested_device": args.device,
+        "model_device": model_device,
+        "actor_parameter_devices": actor_parameter_devices,
+        "critic_parameter_devices": critic_parameter_devices,
+        "critic_target_parameter_devices": critic_target_parameter_devices,
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+    }
+    _write_json(output_dir / "config.json", config)
+    print(
+        "DEVICE_CHECK "
+        + json.dumps(
+            {
+                "requested_device": args.device,
+                "model_device": model_device,
+                "actor_parameter_devices": actor_parameter_devices,
+                "critic_parameter_devices": critic_parameter_devices,
+                "critic_target_parameter_devices": critic_target_parameter_devices,
+                "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
     model.set_logger(configure(str(output_dir / "sb3_logger"), ["stdout", "csv", "json"]))
     callback = build_callback(args, output_dir)
     try:
