@@ -277,7 +277,7 @@ def main() -> None:
             "collector_boundary": collector_boundary,
             "current_goal_age_steps": goal_exposure.current_goal_age_steps,
         })
-        next_context = None if terminated or truncated or collector_boundary else environment._refresh_context()
+        next_context = None if terminated or truncated else environment._refresh_context()
         if (
             info.get("accepted")
             and next_context is not None
