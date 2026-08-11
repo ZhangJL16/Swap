@@ -49,8 +49,11 @@ from .recoverability import (
     RecoverableSetCertificate,
 )
 from .sb3_persistent_navigation import (
+    EnergyNavigationConfig,
     NavigationRewardConfig,
+    PersistentEnergyNavigationEnv,
     PersistentNavigationEnv,
+    make_sb3_persistent_energy_navigation_env,
     make_sb3_persistent_navigation_env,
 )
 
@@ -117,8 +120,11 @@ __all__ = [
     "PersistentTaskManager",
     "PersistentTaskWrapper",
     "NavigationRewardConfig",
+    "EnergyNavigationConfig",
     "PersistentNavigationEnv",
+    "PersistentEnergyNavigationEnv",
     "make_sb3_persistent_navigation_env",
+    "make_sb3_persistent_energy_navigation_env",
 ]
 
 

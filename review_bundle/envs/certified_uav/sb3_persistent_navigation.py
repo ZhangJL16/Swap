@@ -32,6 +32,29 @@ class NavigationRewardConfig:
             raise ValueError("gamma must lie in (0, 1]")
 
 
+@dataclass(frozen=True)
+class EnergyNavigationConfig:
+    battery_capacity: float = 30.0
+    charging_rate: float = 2.0
+    charging_radius: float = 0.18
+    charging_velocity_limit: tuple[float, float, float] = (0.05, 0.05, 0.04)
+    initial_energy_fraction_min: float = 0.30
+    initial_energy_fraction_max: float = 1.00
+
+    def __post_init__(self) -> None:
+        if not np.isfinite(self.battery_capacity) or self.battery_capacity <= 0.0:
+            raise ValueError("battery_capacity must be positive")
+        if not np.isfinite(self.charging_rate) or self.charging_rate <= 0.0:
+            raise ValueError("charging_rate must be positive")
+        if not np.isfinite(self.charging_radius) or self.charging_radius <= 0.0:
+            raise ValueError("charging_radius must be positive")
+        velocity_limit = as_vec3(np.asarray(self.charging_velocity_limit), "charging_velocity_limit")
+        if np.any(velocity_limit <= 0.0):
+            raise ValueError("charging velocity limits must be positive")
+        if not 0.0 <= self.initial_energy_fraction_min <= self.initial_energy_fraction_max <= 1.0:
+            raise ValueError("initial energy fractions must lie in [0, 1]")
+
+
 class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
     """Direct-SAC navigation environment isolated from certification internals.
 
@@ -222,7 +245,7 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
                 self.state.velocity / self.config.v_max,
                 self.goal / self.config.world_size,
                 self.scenario.station_position / self.config.world_size,
-                np.array([self.state.energy / self.navigation_energy_capacity]),
+                np.array([self.state.energy / self._energy_observation_capacity]),
                 self.last_lidar.distances / self.config.lidar_range,
                 self.last_lidar.valid.astype(np.float64),
             )
@@ -230,6 +253,14 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         if not np.all(np.isfinite(observation)):
             raise FloatingPointError("nonfinite navigation observation")
         return np.clip(observation, self.observation_space.low, self.observation_space.high).astype(np.float32)
+
+    @property
+    def _energy_observation_capacity(self) -> float:
+        return self.navigation_energy_capacity
+
+    def _initial_energy(self, reset_options: dict[str, Any]) -> float:
+        del reset_options
+        return self.navigation_energy_capacity
 
     def _start_goal_attempt(self) -> None:
         delta = self.goal - self.state.position
@@ -317,7 +348,7 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         else:
             velocity = np.zeros(3)
 
-        self.state = UAVPhysicalState(start, velocity, self.navigation_energy_capacity, 0.0)
+        self.state = UAVPhysicalState(start, velocity, self._initial_energy(reset_options), 0.0)
         self.goal = goal
         self.last_lidar = self.lidar_model.measure(self.state, self.world, self.np_random)
         self.episode_step = 0
@@ -379,16 +410,11 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
             raise RuntimeError("collision correction failed to produce a legal state")
         return corrected_position, corrected_velocity, boundary_axes, obstacle_collision
 
-    def step(self, action: np.ndarray):
-        if self._episode_truncated:
-            raise RuntimeError("step called after truncation without reset")
-        normalized_action = np.asarray(action, dtype=np.float64)
-        physical_action = self.normalized_to_physical_action(normalized_action)
-        state_before = self.state.copy()
-        goal_before = self.goal.copy()
-        goal_id_before = str(self._goal_attempt["goal_id"])
-        distance_before = float(np.linalg.norm(goal_before - state_before.position))
-
+    def _integrate_motion(
+        self,
+        state_before: UAVPhysicalState,
+        physical_action: np.ndarray,
+    ) -> dict[str, Any]:
         candidate_position, raw_velocity = integrate_double_integrator(
             state_before.position,
             state_before.velocity,
@@ -403,12 +429,59 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
             clipped_velocity,
         )
         boundary_collision = bool(np.any(boundary_axes))
-        collision = boundary_collision or obstacle_collision
+        return {
+            "position_after": position_after,
+            "velocity_after": velocity_after,
+            "boundary_axes": boundary_axes,
+            "boundary_collision": boundary_collision,
+            "obstacle_collision": obstacle_collision,
+            "collision": boundary_collision or obstacle_collision,
+            "velocity_saturated": velocity_saturated,
+            "executed_physical_acceleration": physical_action.copy(),
+        }
 
+    def _transition_state(
+        self,
+        state_before: UAVPhysicalState,
+        physical_action: np.ndarray,
+    ) -> dict[str, Any]:
+        transition = self._integrate_motion(state_before, physical_action)
         energy_usage = self.energy_model.realized_cost(state_before, physical_action, self.config.dt)
         energy_after = max(0.0, state_before.energy - energy_usage)
         if energy_after <= 0.0:
             raise RuntimeError("navigation baseline energy budget exhausted")
+        transition |= {
+            "energy_after": energy_after,
+            "energy_usage": energy_usage,
+            "flight_energy_used": energy_usage,
+            "gross_charge_received": 0.0,
+            "net_energy_change": -energy_usage,
+            "charging": False,
+            "inside_charging_region": False,
+            "energy_stranded": False,
+        }
+        return transition
+
+    def step(self, action: np.ndarray):
+        if self._episode_truncated:
+            raise RuntimeError("step called after truncation without reset")
+        normalized_action = np.asarray(action, dtype=np.float64)
+        physical_action = self.normalized_to_physical_action(normalized_action)
+        state_before = self.state.copy()
+        goal_before = self.goal.copy()
+        goal_id_before = str(self._goal_attempt["goal_id"])
+        distance_before = float(np.linalg.norm(goal_before - state_before.position))
+
+        transition = self._transition_state(state_before, physical_action)
+        position_after = transition["position_after"]
+        velocity_after = transition["velocity_after"]
+        boundary_axes = transition["boundary_axes"]
+        obstacle_collision = bool(transition["obstacle_collision"])
+        boundary_collision = bool(transition["boundary_collision"])
+        collision = bool(transition["collision"])
+        velocity_saturated = bool(transition["velocity_saturated"])
+        energy_usage = float(transition["energy_usage"])
+        energy_after = float(transition["energy_after"])
         self.state = UAVPhysicalState(
             position_after,
             velocity_after,
@@ -492,6 +565,9 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         info = {
             "normalized_action": normalized_action.astype(np.float32),
             "physical_acceleration": physical_action.astype(np.float32),
+            "executed_physical_acceleration": np.asarray(
+                transition["executed_physical_acceleration"], dtype=np.float32
+            ),
             "reward_components": reward_components,
             "goal_id_before": goal_id_before,
             "goal_before": goal_before,
@@ -527,6 +603,13 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
             "velocity_saturation_count": self.velocity_saturation_count,
             "velocity_saturation_rate": self.velocity_saturation_count / self.episode_step,
             "energy_usage": energy_usage,
+            "flight_energy_used": float(transition["flight_energy_used"]),
+            "gross_charge_received": float(transition["gross_charge_received"]),
+            "net_energy_change": float(transition["net_energy_change"]),
+            "charging": bool(transition["charging"]),
+            "inside_charging_region": bool(transition["inside_charging_region"]),
+            "energy_stranded": bool(transition["energy_stranded"]),
+            "state_of_charge": self.state.energy / self._energy_observation_capacity,
             "cumulative_energy_usage": self.cumulative_energy_usage,
             "kappa_takeover_count": 0,
             "fallback_count": 0,
@@ -535,8 +618,281 @@ class PersistentNavigationEnv(gym.Env[np.ndarray, np.ndarray]):
         return self._observation(), reward, False, truncated, info
 
 
+class PersistentEnergyNavigationEnv(PersistentNavigationEnv):
+    """Finite-energy persistent navigation with continuous station charging."""
+
+    def __init__(
+        self,
+        scenario_name: str = "random_persistent_open.json",
+        *,
+        energy_config: EnergyNavigationConfig | None = None,
+        **kwargs: Any,
+    ) -> None:
+        self.energy_navigation_config = energy_config or EnergyNavigationConfig()
+        kwargs.pop("navigation_energy_capacity", None)
+        super().__init__(
+            scenario_name,
+            navigation_energy_capacity=self.energy_navigation_config.battery_capacity,
+            **kwargs,
+        )
+        self.station_visit_count = 0
+        self.charging_session_count = 0
+        self.successful_charging_session_count = 0
+        self.successful_resume_count = 0
+        self.energy_stranded_count = 0
+        self.minimum_soc = 1.0
+        self.soc_sum = 0.0
+        self.soc_samples = 0
+        self._was_inside_station = False
+        self._was_charging = False
+        self._energy_stranded_active = False
+        self._active_charging_session: dict[str, Any] | None = None
+        self._tasks_since_last_charge = 0
+
+    @property
+    def _energy_observation_capacity(self) -> float:
+        return self.energy_navigation_config.battery_capacity
+
+    @property
+    def charging_velocity_limit(self) -> np.ndarray:
+        return np.asarray(self.energy_navigation_config.charging_velocity_limit, dtype=np.float64)
+
+    def _initial_energy(self, reset_options: dict[str, Any]) -> float:
+        if "initial_energy_fraction" in reset_options:
+            fraction = float(reset_options["initial_energy_fraction"])
+            if not 0.0 <= fraction <= 1.0:
+                raise ValueError("initial_energy_fraction must lie in [0, 1]")
+        elif "initial_energy_fraction_range" in reset_options:
+            low, high = (float(value) for value in reset_options["initial_energy_fraction_range"])
+            if not 0.0 <= low <= high <= 1.0:
+                raise ValueError("initial_energy_fraction_range must lie in [0, 1]")
+            fraction = float(self.np_random.uniform(low, high))
+        else:
+            fraction = float(
+                self.np_random.uniform(
+                    self.energy_navigation_config.initial_energy_fraction_min,
+                    self.energy_navigation_config.initial_energy_fraction_max,
+                )
+            )
+        return fraction * self.energy_navigation_config.battery_capacity
+
+    def _inside_station(self, position: np.ndarray) -> bool:
+        return bool(
+            np.linalg.norm(as_vec3(position, "position") - self.scenario.station_position)
+            <= self.energy_navigation_config.charging_radius + 1e-12
+        )
+
+    def _charging_admissible(self, position: np.ndarray, velocity: np.ndarray) -> bool:
+        return self._inside_station(position) and bool(
+            np.all(np.abs(as_vec3(velocity, "velocity")) <= self.charging_velocity_limit + 1e-12)
+        )
+
+    def _transition_state(
+        self,
+        state_before: UAVPhysicalState,
+        physical_action: np.ndarray,
+    ) -> dict[str, Any]:
+        if state_before.energy <= 0.0:
+            zero = np.zeros(3, dtype=np.float64)
+            transition = {
+                "position_after": state_before.position.copy(),
+                "velocity_after": zero.copy(),
+                "boundary_axes": np.zeros(3, dtype=bool),
+                "boundary_collision": False,
+                "obstacle_collision": False,
+                "collision": False,
+                "velocity_saturated": False,
+                "executed_physical_acceleration": zero.copy(),
+            }
+            flight_energy_demand = 0.0
+        else:
+            transition = self._integrate_motion(state_before, physical_action)
+            flight_energy_demand = self.energy_model.realized_cost(
+                state_before,
+                physical_action,
+                self.config.dt,
+            )
+        flight_energy_used = min(state_before.energy, flight_energy_demand)
+        energy_after_flight = max(0.0, state_before.energy - flight_energy_used)
+        charging = self._charging_admissible(
+            transition["position_after"],
+            transition["velocity_after"],
+        )
+        gross_charge_received = 0.0
+        if charging:
+            gross_charge_received = min(
+                self.energy_navigation_config.charging_rate * self.config.dt,
+                self.energy_navigation_config.battery_capacity - energy_after_flight,
+            )
+        energy_after = float(
+            np.clip(
+                energy_after_flight + gross_charge_received,
+                0.0,
+                self.energy_navigation_config.battery_capacity,
+            )
+        )
+        transition |= {
+            "energy_after": energy_after,
+            "energy_usage": flight_energy_used,
+            "flight_energy_used": flight_energy_used,
+            "flight_energy_demand": flight_energy_demand,
+            "energy_after_flight": energy_after_flight,
+            "gross_charge_received": gross_charge_received,
+            "net_energy_change": energy_after - state_before.energy,
+            "charging": charging,
+            "inside_charging_region": self._inside_station(transition["position_after"]),
+            "energy_stranded": energy_after <= 0.0 and not charging,
+        }
+        return transition
+
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[np.ndarray, dict[str, Any]]:
+        observation, info = super().reset(seed=seed, options=options)
+        initial_soc = self.state.energy / self.energy_navigation_config.battery_capacity
+        self.station_visit_count = int(self._inside_station(self.state.position))
+        self.charging_session_count = 0
+        self.successful_charging_session_count = 0
+        self.successful_resume_count = 0
+        self.energy_stranded_count = 0
+        self.minimum_soc = initial_soc
+        self.soc_sum = initial_soc
+        self.soc_samples = 1
+        self._was_inside_station = self._inside_station(self.state.position)
+        self._was_charging = False
+        self._energy_stranded_active = False
+        self._active_charging_session = None
+        self._tasks_since_last_charge = 0
+        info |= {
+            "initial_energy": self.state.energy,
+            "initial_soc": initial_soc,
+            "energy_mode": "finite_charging",
+        }
+        return observation, info
+
+    def _finalize_charging_session(self, status: str, current_goal_id: str) -> dict[str, Any]:
+        if self._active_charging_session is None:
+            raise RuntimeError("charging session accounting is inconsistent")
+        session = dict(self._active_charging_session)
+        interrupted_goal_id = str(session["interrupted_pending_goal_id"])
+        resumed = status == "departed" and current_goal_id == interrupted_goal_id
+        session |= {
+            "status": status,
+            "charge_end_episode_step": self.episode_step,
+            "charge_end_soc": float(session["last_charging_soc"]),
+            "departure_soc": self.state.energy / self.energy_navigation_config.battery_capacity,
+            "resumed_pending_goal_id": current_goal_id if status == "departed" else None,
+            "pending_goal_preserved": resumed,
+            "successful_resume": resumed,
+            "successful_charge": status == "departed" and session["energy_received"] > 0.0,
+        }
+        session.pop("last_charging_soc")
+        if session["successful_charge"]:
+            self.successful_charging_session_count += 1
+        if resumed:
+            self.successful_resume_count += 1
+        return session
+
+    def step(self, action: np.ndarray):
+        observation, reward, terminated, truncated, info = super().step(action)
+        soc = self.state.energy / self.energy_navigation_config.battery_capacity
+        self.minimum_soc = min(self.minimum_soc, soc)
+        self.soc_sum += soc
+        self.soc_samples += 1
+        if info["task_completed_now"]:
+            self._tasks_since_last_charge += 1
+
+        inside_station = bool(info["inside_charging_region"])
+        charging = bool(info["charging"])
+        station_visit_now = inside_station and not self._was_inside_station
+        charging_session_started_now = charging and not self._was_charging
+        if inside_station and not self._was_inside_station:
+            self.station_visit_count += 1
+
+        charging_session_records: list[dict[str, Any]] = []
+        if charging_session_started_now:
+            self.charging_session_count += 1
+            start_soc = float(
+                (self.state.energy - info["gross_charge_received"])
+                / self.energy_navigation_config.battery_capacity
+            )
+            self._active_charging_session = {
+                "charging_session_id": f"episode-{self._episode_index}-charge-{self.charging_session_count - 1}",
+                "charge_start_episode_step": self.episode_step,
+                "charge_start_soc": start_soc,
+                "interrupted_pending_goal_id": info["goal_id_before"],
+                "tasks_between_charges": self._tasks_since_last_charge,
+                "charging_duration_steps": 0,
+                "energy_received": 0.0,
+                "last_charging_soc": soc,
+                "voluntary": True,
+            }
+            self._tasks_since_last_charge = 0
+        if charging:
+            if self._active_charging_session is None:
+                raise RuntimeError("charging active without a charging session")
+            self._active_charging_session["charging_duration_steps"] += 1
+            self._active_charging_session["energy_received"] += float(info["gross_charge_received"])
+            self._active_charging_session["last_charging_soc"] = soc
+        charging_session_ended_now = not charging and self._was_charging
+        if charging_session_ended_now:
+            charging_session_records.append(
+                self._finalize_charging_session("departed", str(info["goal_id_before"]))
+            )
+            self._active_charging_session = None
+
+        stranding_event = None
+        if info["energy_stranded"] and not self._energy_stranded_active:
+            self.energy_stranded_count += 1
+            stranding_event = {
+                "event": "ENERGY_STRANDED",
+                "episode_step": self.episode_step,
+                "goal_id": info["goal_id_before"],
+                "position": self.state.position.copy(),
+                "state_of_charge": soc,
+            }
+        self._energy_stranded_active = bool(info["energy_stranded"])
+
+        if truncated and self._active_charging_session is not None:
+            charging_session_records.append(
+                self._finalize_charging_session("active_at_truncation", str(info["current_goal_id"]))
+            )
+            self._active_charging_session = None
+
+        self._was_inside_station = inside_station
+        self._was_charging = charging and not truncated
+        info |= {
+            "station_visit_count": self.station_visit_count,
+            "station_visit_now": station_visit_now,
+            "charging_session_count": self.charging_session_count,
+            "charging_session_started_now": charging_session_started_now,
+            "charging_session_ended_now": charging_session_ended_now,
+            "voluntary_charging_session_count": self.charging_session_count,
+            "successful_charging_session_count": self.successful_charging_session_count,
+            "successful_resume_count": self.successful_resume_count,
+            "energy_stranded_count": self.energy_stranded_count,
+            "minimum_soc": self.minimum_soc,
+            "mean_soc": self.soc_sum / self.soc_samples,
+            "charging_session_records": charging_session_records,
+            "stranding_event": stranding_event,
+            "energy_stranded_now": stranding_event is not None,
+            "energy_mode": "finite_charging",
+        }
+        return observation, reward, terminated, truncated, info
+
+
 def make_sb3_persistent_navigation_env(
     scenario_name: str = "random_persistent_open.json",
     **kwargs: Any,
 ) -> PersistentNavigationEnv:
     return PersistentNavigationEnv(scenario_name, **kwargs)
+
+
+def make_sb3_persistent_energy_navigation_env(
+    scenario_name: str = "random_persistent_open.json",
+    **kwargs: Any,
+) -> PersistentEnergyNavigationEnv:
+    return PersistentEnergyNavigationEnv(scenario_name, **kwargs)
